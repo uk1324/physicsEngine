@@ -9,7 +9,7 @@ struct Mat3x2T {
 	Mat3x2T() = default;
 	constexpr Mat3x2T(const Vec2T<T>& x, const Vec2T<T>& y, const Vec2T<T>& w);
 
-	auto operator*(const Mat3x2T& other) -> Mat3x2T;
+	auto operator*(const Mat3x2T& other) const -> Mat3x2T;
 	auto operator[](isize i);
 	auto operator[](isize i) const;
 
@@ -37,7 +37,7 @@ constexpr Mat3x2T<T>::Mat3x2T(const Vec2T<T>& x, const Vec2T<T>& y, const Vec2T<
 }
 
 template<typename T>
-auto Mat3x2T<T>::operator*(const Mat3x2T& other) -> Mat3x2T {
+auto Mat3x2T<T>::operator*(const Mat3x2T& other) const -> Mat3x2T {
 	Mat3x2T<T> mat(
 		Vec3{ m[0][0], m[0][1], 0 } * other,
 		Vec3{ m[1][0], m[1][1], 0 } * other,

@@ -56,6 +56,43 @@ Renderer::Renderer(Gfx& gfx) {
 		.StructureByteStride = 0,
 	};
 	CHECK_WIN_HRESULT(gfx.device->CreateBuffer(&circleShaderConstatntBufferDesc, nullptr, circleShaderConstantBuffer.GetAddressOf()));
+
+	const D3D11_RASTERIZER_DESC rasterizerDesc{
+		.FillMode = D3D11_FILL_SOLID,
+		.CullMode = D3D11_CULL_BACK,
+		.FrontCounterClockwise = FALSE,
+		.DepthBias = 0,
+		.DepthBiasClamp = 0.0f,
+		.SlopeScaledDepthBias = 0.0f,
+		.DepthClipEnable = TRUE,
+		.ScissorEnable = FALSE,
+		.MultisampleEnable = TRUE,
+		.AntialiasedLineEnable = TRUE
+	};
+	ComPtr<ID3D11RasterizerState> rasterizerState;
+	CHECK_WIN_HRESULT(gfx.device->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf()));
+	gfx.ctx->RSSetState(rasterizerState.Get());
+	
+	
+	const D3D11_BLEND_DESC blendDesc{
+		.AlphaToCoverageEnable = FALSE,
+		.IndependentBlendEnable = FALSE,
+		.RenderTarget {
+			{
+				.BlendEnable = TRUE,
+				.SrcBlend = D3D11_BLEND_SRC_ALPHA,
+				.DestBlend = D3D11_BLEND_INV_SRC_ALPHA,
+				.BlendOp = D3D11_BLEND_OP_ADD,
+				.SrcBlendAlpha = D3D11_BLEND_ONE,
+				.DestBlendAlpha = D3D11_BLEND_ZERO,
+				.BlendOpAlpha = D3D11_BLEND_OP_ADD,
+				.RenderTargetWriteMask = 0x0f,
+			}
+		}
+	};
+	ComPtr<ID3D11BlendState> blendState;
+	CHECK_WIN_HRESULT(gfx.device->CreateBlendState(&blendDesc, blendState.GetAddressOf()));
+	gfx.ctx->OMSetBlendState(blendState.Get(), nullptr, 0xffffffff);
 }
 
 auto Renderer::update(Gfx& gfx) -> void {
@@ -73,11 +110,13 @@ auto Renderer::update(Gfx& gfx) -> void {
 	}
 	gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
 
+	float width = 640.0f, height = 480.0f;
+
 	const D3D11_VIEWPORT viewport{
 		.TopLeftX = 0.0f,
 		.TopLeftY = 0.0f,
-		.Width = 640.0f,
-		.Height = 480.0f,
+		.Width = width,
+		.Height = height,
 		.MinDepth = 0.0f,
 		.MaxDepth = 1.0f,
 	};
@@ -93,8 +132,9 @@ auto Renderer::update(Gfx& gfx) -> void {
 	// This may be bad if there is a lot of computation do here. I don't know the cost of Map.
 	auto& buffer = *reinterpret_cast<CircleShaderConstantBuffer*>(resource.pData);
 	memset(resource.pData, 0, sizeof(buffer));
-	buffer.instanceData[0] = { .transform = Mat3x2::scale(Vec2{ 0.5f, 0.2f }) * Mat3x2::rotate(3.14f / 5) * Mat3x2::translate(Vec2{ 0.2f, 0.5f }) };
-	buffer.instanceData[1] = { .transform = Mat3x2::scale(Vec2{ 0.4f, 0.1f }) * Mat3x2::rotate(3.14f / 2) * Mat3x2::translate(Vec2{ -0.3f, -0.3f }) };
+	const auto s = Mat3x2::scale(Vec2{ 1.0, width / height });
+	buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.4f }) * Mat3x2::rotate(0.3f) * Mat3x2::translate(Vec2{ 0.2f, 0.5f }) };
+	buffer.instanceData[1] = { s * Mat3x2::scale(Vec2{ 0.3f }) * Mat3x2::translate(Vec2{ -0.3f, -0.3f }) };
 
 	//memcpy(resource.pData, &buffer, sizeof(buffer));
 	gfx.ctx->Unmap(circleShaderConstantBuffer.Get(), 0);
