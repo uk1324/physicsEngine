@@ -122,6 +122,8 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>./src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ShowIncludes>false</ShowIncludes>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -138,6 +140,8 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalIncludeDirectories>./src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ShowIncludes>false</ShowIncludes>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -150,12 +154,46 @@
     <None Include=".gitignore" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\engine\input.cpp" />
+    <ClCompile Include="src\engine\time.cpp" />
+    <ClCompile Include="src\game\game.cpp" />
+    <ClCompile Include="src\game\renderer.cpp" />
+    <ClCompile Include="src\gfx\gfx.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\win.cpp" />
+    <ClCompile Include="src\gfx\hlslTypes.cpp" />
+    <ClCompile Include="src\winUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\asserts.hpp" />
+    <ClInclude Include="src\engine\input.hpp" />
+    <ClInclude Include="src\engine\time.hpp" />
+    <ClInclude Include="src\game\game.hpp" />
+    <ClInclude Include="src\game\renderer.hpp" />
+    <ClInclude Include="src\gfx\hlslTypes.hpp" />
+    <ClInclude Include="src\math\mat3x2.hpp" />
+    <ClInclude Include="src\math\vec2.hpp" />
+    <ClInclude Include="src\math\vec3.hpp" />
+    <ClInclude Include="src\utils\asserts.hpp" />
+    <ClInclude Include="src\gfx\dx11.hpp" />
+    <ClInclude Include="src\gfx\gfx.hpp" />
+    <ClInclude Include="src\utils\int.hpp" />
     <ClInclude Include="src\win.hpp" />
+    <ClInclude Include="src\winUtils.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="src\game\shaders\psCircle.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="src\game\shaders\vsTransformQuadPt.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

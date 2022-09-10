@@ -1,9 +1,12 @@
+#include <winUtils.hpp>
+#include <utils/asserts.hpp>
+
 #include <win.hpp>
 
-auto getLastErrorString() -> std::string
-{
-	const auto errorCode = GetLastError();
+#include <string>
 
+static auto getErrorMessage(long errorCode) -> std::string
+{
 	ASSERT(errorCode != 0);
 
 	char* message;
@@ -29,4 +32,11 @@ auto getLastErrorString() -> std::string
 	ASSERT(result == nullptr);
 
 	return messageString;
+}
+
+auto onWinError(HRESULT errorCode, const char* filename, int line) -> void {
+	const auto result = MessageBox(nullptr, getErrorMessage(errorCode).c_str(), nullptr, MB_ICONEXCLAMATION);
+	ASSERT(result != 0);
+	DebugBreak();
+	exit(EXIT_FAILURE);
 }
