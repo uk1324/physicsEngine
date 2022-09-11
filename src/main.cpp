@@ -3,80 +3,13 @@
 #include <gfx/gfx.hpp>
 #include <game/game.hpp>
 #include <engine/time.hpp>
+#include <engine/window.hpp>
 
 #include <chrono>
 
-auto WINAPI windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
-	switch (msg)
-	{
-	case WM_CLOSE:
-		PostQuitMessage(EXIT_SUCCESS);
-		return 0;
-	}
-
-	return DefWindowProc(hWnd, msg, wParam, lParam);
-}
-
-auto WINAPI WinMain(
-	_In_ HINSTANCE hInstance, // Application instance. Can also get it by calling GetModuleHandle(nullptr).
-	_In_opt_ HINSTANCE,
-	_In_ LPSTR argsString, 
-	_In_ int
-) -> int {
-	const auto windowClassName = "game";
-	auto createWindow = [&](LONG width, LONG height, const char* title) -> HWND {
-		WNDCLASSEX windowsClassInfo{
-			.cbSize = sizeof(windowsClassInfo),
-			.style = CS_OWNDC,
-			.lpfnWndProc = windowMessageCallback,
-			.cbClsExtra = 0,
-			.cbWndExtra = 0,
-			.hInstance = hInstance,
-			.hIcon = nullptr,
-			.hCursor = nullptr,
-			.hbrBackground = nullptr,
-			.lpszMenuName = nullptr,
-			.lpszClassName = windowClassName,
-			.hIconSm = nullptr,
-		};
-		CHECK_WIN_ZERO(RegisterClassEx(&windowsClassInfo));
-
-		const DWORD windowStyle = WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU;
-		const auto left = 0;
-		const auto top = 0;
-		RECT windowRect{
-			.left = left,
-			.top = top,
-			.right = left + width,
-			.bottom = top + height
-		};
-
-		// Adjust the size so the client region (no title bar or any other bars) has the desired size.
-		CHECK_WIN_BOOL(AdjustWindowRect(&windowRect, windowStyle, FALSE));
-
-		HWND hWnd = CreateWindowEx(
-			0,
-			windowClassName,
-			title,
-			windowStyle,
-			CW_USEDEFAULT, CW_USEDEFAULT,
-			windowRect.right - windowRect.left, windowRect.bottom - windowRect.top,
-			nullptr, nullptr, hInstance, nullptr
-		);
-		CHECK_WIN_NULL(hWnd);
-
-		ShowWindow(hWnd, SW_SHOW);
-		return hWnd;
-	};
-
-	auto destroyWindow = [&](HWND hWnd) {
-		CHECK_WIN_BOOL(DestroyWindow(hWnd));
-		CHECK_WIN_BOOL(UnregisterClass(windowClassName, hInstance));
-	};
-
-	HWND hWnd{ createWindow(640, 480, "game") };
-	Gfx gfx{ hWnd };
-
+auto WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
+	Window::init("game", Vec2(640, 480));
+	Gfx gfx{ Window::hWnd() };
 	Game game{ gfx };
 
 	auto currentTime = []() -> float {
@@ -84,40 +17,33 @@ auto WINAPI WinMain(
 		return duration<float> { duration_cast<seconds>(high_resolution_clock::now().time_since_epoch()) }.count();
 	};
 
-	MSG msg;
-	int exitCode;
 	auto previousFrameStart{ currentTime() }, accumulated{ 0.0f };
 	static constexpr auto FRAME_TIME = 1.0f / 60.0f;
-	for (;;) {
+	while (Window::running()) {
 		const auto frameStart{ currentTime() };
 		const auto elapsed{ frameStart - previousFrameStart };
 		accumulated += elapsed;
 		previousFrameStart = frameStart;
 
 		while (accumulated >= FRAME_TIME) {
-			if (bool anyNewMessages{ PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) == TRUE }) {
-				// Translate virtual-key messages (WM_KEY_DOWN) to character messages (VM_CHAR) and puts them back onto the message queue.
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-
-			if (msg.message == WM_QUIT) {
-				exitCode = static_cast<int>(msg.wParam);
-				goto exit;
-			}
-
 			accumulated -= FRAME_TIME;
-			Time::update(FRAME_TIME);
 
-			game.update(gfx);
+			gfx.update();
+
+			Window::update();
+			// Without this the window doesn't close instantly.
+			// TODO: Maybe find a better way to do this. The current way still has to wait untill the frame finishes.
+			if (!Window::running())
+				goto exit;
+
+			Time::update(FRAME_TIME);
 			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
+			game.update(gfx);
 			gfx.present();
 		}
 	}
 
 	exit:
-
-	destroyWindow(hWnd);
-
-	return exitCode;
+	Window::destroy();
+	return Window::exitCode();
 }

@@ -39,5 +39,4 @@ private:
 		// Can use designed initializers {[0 ... <n>] = <value>};
 		CircleInstance instanceData[100];
 	};
-
 };

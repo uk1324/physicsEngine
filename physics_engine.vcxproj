@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClCompile Include="src\engine\input.cpp" />
     <ClCompile Include="src\engine\time.cpp" />
+    <ClCompile Include="src\engine\window.cpp" />
     <ClCompile Include="src\game\game.cpp" />
     <ClCompile Include="src\game\renderer.cpp" />
     <ClCompile Include="src\gfx\gfx.cpp" />
@@ -166,6 +167,7 @@
   <ItemGroup>
     <ClInclude Include="src\engine\input.hpp" />
     <ClInclude Include="src\engine\time.hpp" />
+    <ClInclude Include="src\engine\window.hpp" />
     <ClInclude Include="src\game\game.hpp" />
     <ClInclude Include="src\game\renderer.hpp" />
     <ClInclude Include="src\gfx\hlslTypes.hpp" />

@@ -12,6 +12,10 @@ struct Vec2T {
 	auto operator[](isize index) -> T&;
 	auto operator[](isize index) const -> const T&;
 
+	// Not using <=> because it doesn't make sense for the other operators.
+	auto operator==(const Vec2T& other) const -> bool;
+	auto operator!=(const Vec2T& other) const -> bool;
+
 	T x, y;
 };
 
@@ -47,4 +51,14 @@ auto Vec2T<T>::operator[](isize index) const -> const T& {
 		ASSERT_NOT_REACHED();
 		return T(123123123);
 	}
+}
+
+template<typename T>
+auto Vec2T<T>::operator==(const Vec2T& other) const -> bool {
+	return (x == other.x) && (y == other.y);
+}
+
+template<typename T>
+auto Vec2T<T>::operator!=(const Vec2T& other) const -> bool {
+	return !(*this == other);
 }

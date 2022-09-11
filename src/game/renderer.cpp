@@ -1,5 +1,6 @@
 #include <game/renderer.hpp>
 #include <winUtils.hpp>
+#include <engine/window.hpp>
 
 #include <filesystem>
 
@@ -110,18 +111,18 @@ auto Renderer::update(Gfx& gfx) -> void {
 	}
 	gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
 
-	float width = 640.0f, height = 480.0f;
-
-	const D3D11_VIEWPORT viewport{
-		.TopLeftX = 0.0f,
-		.TopLeftY = 0.0f,
-		.Width = width,
-		.Height = height,
-		.MinDepth = 0.0f,
-		.MaxDepth = 1.0f,
-	};
-
-	gfx.ctx->RSSetViewports(1, &viewport);
+	if (Window::resized()) {
+		const D3D11_VIEWPORT viewport{
+			.TopLeftX = 0.0f,
+			.TopLeftY = 0.0f,
+			.Width = Window::size().x,
+			.Height = Window::size().y,
+			.MinDepth = 0.0f,
+			.MaxDepth = 1.0f,
+		};
+		gfx.ctx->RSSetViewports(1, &viewport);
+	}
+	
 	gfx.ctx->IASetInputLayout(ptLayout.Get());
 	gfx.ctx->VSSetShader(transformQuadPtShader.Get(), nullptr, 0);
 	gfx.ctx->PSSetShader(circleShader.Get(), nullptr, 0);
@@ -132,9 +133,10 @@ auto Renderer::update(Gfx& gfx) -> void {
 	// This may be bad if there is a lot of computation do here. I don't know the cost of Map.
 	auto& buffer = *reinterpret_cast<CircleShaderConstantBuffer*>(resource.pData);
 	memset(resource.pData, 0, sizeof(buffer));
-	const auto s = Mat3x2::scale(Vec2{ 1.0, width / height });
-	buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.4f }) * Mat3x2::rotate(0.3f) * Mat3x2::translate(Vec2{ 0.2f, 0.5f }) };
-	buffer.instanceData[1] = { s * Mat3x2::scale(Vec2{ 0.3f }) * Mat3x2::translate(Vec2{ -0.3f, -0.3f }) };
+	float sY = Window::size().x / Window::size().y;
+	const auto s = Mat3x2::scale(Vec2{ 1.0, sY });
+	buffer.instanceData[0] = { Mat3x2::scale(Vec2{ 0.4f }) * Mat3x2::rotate(0.3f) * s * Mat3x2::translate(Vec2{ 0.2f, 0.5f * sY }) };
+	buffer.instanceData[1] = { Mat3x2::scale(Vec2{ 0.3f }) * s * Mat3x2::translate(Vec2{ -0.3f, -0.3f * sY }) };
 
 	//memcpy(resource.pData, &buffer, sizeof(buffer));
 	gfx.ctx->Unmap(circleShaderConstantBuffer.Get(), 0);
