@@ -2,6 +2,7 @@
 #include <game/renderer.hpp>
 #include <winUtils.hpp>
 #include <engine/window.hpp>
+#include <engine/input.hpp>
 
 #include <filesystem>
 
@@ -134,14 +135,31 @@ auto Renderer::update(Gfx& gfx) -> void {
 	// This may be bad if there is a lot of computation do here. I don't know the cost of Map.
 	auto& buffer = *reinterpret_cast<CircleShaderConstantBuffer*>(resource.pData);
 	memset(resource.pData, 0, sizeof(buffer));
-	float sY = Window::size().x / Window::size().y;
-	const auto s = Mat3x2::scale(Vec2{ 1.0, sY });
-	buffer.instanceData[0] = { Mat3x2::scale(Vec2{ 0.4f }) * Mat3x2::rotate(0.3f) * s * Mat3x2::translate(Vec2{ 0.2f, 0.5f * sY }) };
-	buffer.instanceData[1] = { Mat3x2::scale(Vec2{ 0.3f }) * s * Mat3x2::translate(Vec2{ -0.3f, -0.3f * sY }) };
+	const auto s = Mat3x2::scale(Vec2{ 1.0f, Window::size().x / Window::size().y });
+
+
+	static float x = 0.5f, y = 0.5f;
+	if (Input::isKeyHeld(Keycode::W)) {
+		y += 0.04f;
+	}
+	if (Input::isKeyHeld(Keycode::S)) {
+		y -= 0.04f;
+	}
+
+	if (Input::isKeyHeld(Keycode::D)) {
+		x += 0.04f;
+	}
+	if (Input::isKeyHeld(Keycode::A)) {
+		x -= 0.04f;
+	}
+
+
+	//buffer.instanceData[0] = { Mat3x2::translate(Vec2{ x, y }) };
+	buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.3f }) * Mat3x2::translate(Vec2{ x, y * (Window::size().x / Window::size().y ) }) };
 
 	//memcpy(resource.pData, &buffer, sizeof(buffer));
 	gfx.ctx->Unmap(circleShaderConstantBuffer.Get(), 0);
 
 	gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBuffer.GetAddressOf());
-	gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), 2, 0, 0, 0);
+	gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), 1, 0, 0, 0);
 }

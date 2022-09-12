@@ -1,5 +1,6 @@
 #include <pch.hpp>
 #include <engine/window.hpp>
+#include <engine/input.hpp>
 #include <winUtils.hpp>
 #include <stdlib.h>
 
@@ -92,6 +93,16 @@ auto WINAPI Window::windowMessageCallback(HWND hWnd_, UINT msg, WPARAM wParam, L
 		size_.x = size.x;
 		size_.y = size.y;
 		resizedOnThisFrame = true;
+		break;
+
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN:
+		Input::onKeyDown(wParam, lParam);
+		break;
+
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+		Input::onKeyUp(wParam, lParam);
 		break;
 	}
 

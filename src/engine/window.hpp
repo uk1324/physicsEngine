@@ -22,7 +22,6 @@ public:
 private:
 	static auto WINAPI windowMessageCallback(HWND hWnd_, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT;
 
-private:
 	static constexpr auto WINDOW_CLASS_NAME = "game";
 
 	static HWND hWnd_;

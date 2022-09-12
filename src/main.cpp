@@ -4,6 +4,7 @@
 #include <game/game.hpp>
 #include <engine/time.hpp>
 #include <engine/window.hpp>
+#include <engine/input.hpp>
 
 #include <chrono>
 
@@ -32,6 +33,7 @@ auto WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPSTR , 
 
 			gfx.update();
 
+			Input::update();
 			Window::update();
 			// Without this the window doesn't close instantly.
 			// TODO: Maybe find a better way to do this. The current way still has to wait untill the frame finishes.

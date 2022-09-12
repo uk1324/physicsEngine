@@ -6,50 +6,46 @@
 #pragma comment(lib, "dxgi.lib")
 
 Gfx::Gfx(HWND hWnd_) {
-	auto init = [&] {
-		CHECK_WIN_HRESULT(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, nullptr, 0, D3D11_SDK_VERSION, device.GetAddressOf(), nullptr, ctx.GetAddressOf()));
+	CHECK_WIN_HRESULT(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, D3D11_CREATE_DEVICE_DEBUG, nullptr, 0, D3D11_SDK_VERSION, device.GetAddressOf(), nullptr, ctx.GetAddressOf()));
 
-		DXGI_SAMPLE_DESC sample{ .Count = 1, .Quality = 0 };
-		for (UINT i = sample.Count; i <= 8; i++) {
-			UINT quality;
-			CHECK_WIN_HRESULT(device->CheckMultisampleQualityLevels(SWAP_CHAIN_FORMAT, i, &quality));
-			if (quality > 0) {
-				sample.Count = i;
-				sample.Quality = quality - 1;
-			}
+	DXGI_SAMPLE_DESC sample{ .Count = 1, .Quality = 0 };
+	for (UINT i = sample.Count; i <= 8; i++) {
+		UINT quality;
+		CHECK_WIN_HRESULT(device->CheckMultisampleQualityLevels(SWAP_CHAIN_FORMAT, i, &quality));
+		if (quality > 0) {
+			sample.Count = i;
+			sample.Quality = quality - 1;
 		}
+	}
 
-		// TODO: Maybe add log about what MSAA level was chosen.
+	// TODO: Maybe add log about what MSAA level was chosen.
 
-		DXGI_SWAP_CHAIN_DESC swapChainDesc{
-			.BufferDesc = {
-				.Width = 0,
-				.Height = 0,
-				.RefreshRate {
-					.Numerator = 0,
-					.Denominator = 0,
-				},
-				.Format = SWAP_CHAIN_FORMAT,
-				.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
-				.Scaling = DXGI_MODE_SCALING_UNSPECIFIED,
+	DXGI_SWAP_CHAIN_DESC swapChainDesc{
+		.BufferDesc = {
+			.Width = 0,
+			.Height = 0,
+			.RefreshRate {
+				.Numerator = 0,
+				.Denominator = 0,
 			},
-			.SampleDesc = sample,
-			.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-			.BufferCount = SWAP_CHAIN_BUFFER_COUNT,
-			.OutputWindow = hWnd_,
-			.Windowed = TRUE,
-			.SwapEffect = DXGI_SWAP_EFFECT_DISCARD,
-			.Flags = SWAP_CHAIN_FLAGS,
-		};
-		ComPtr<IDXGIFactory> factory;
-		CHECK_WIN_HRESULT(CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(factory.GetAddressOf())));
-		// TODO: Using CreateSwapChain is not recommended. Look at documentation. Maybe change later.
-		CHECK_WIN_HRESULT(factory->CreateSwapChain(device.Get(), &swapChainDesc, swapChain.GetAddressOf()));
-
-		setBackBufferRenderTargetView();
+			.Format = SWAP_CHAIN_FORMAT,
+			.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED,
+			.Scaling = DXGI_MODE_SCALING_UNSPECIFIED,
+		},
+		.SampleDesc = sample,
+		.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
+		.BufferCount = SWAP_CHAIN_BUFFER_COUNT,
+		.OutputWindow = hWnd_,
+		.Windowed = TRUE,
+		.SwapEffect = DXGI_SWAP_EFFECT_DISCARD,
+		.Flags = SWAP_CHAIN_FLAGS,
 	};
+	ComPtr<IDXGIFactory> factory;
+	CHECK_WIN_HRESULT(CreateDXGIFactory(__uuidof(IDXGIFactory), reinterpret_cast<void**>(factory.GetAddressOf())));
+	// TODO: Using CreateSwapChain is not recommended. Look at documentation. Maybe change later.
+	CHECK_WIN_HRESULT(factory->CreateSwapChain(device.Get(), &swapChainDesc, swapChain.GetAddressOf()));
 
-	init();
+	setBackBufferRenderTargetView();
 }
 
 auto Gfx::update() -> void {
