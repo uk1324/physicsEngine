@@ -1,4 +1,4 @@
-#include <win.hpp>
+#include <pch.hpp>
 #include <winUtils.hpp>
 #include <gfx/gfx.hpp>
 #include <game/game.hpp>
@@ -6,6 +6,8 @@
 #include <engine/window.hpp>
 
 #include <chrono>
+
+// TODO: Could make something similar to rust's dbg macro by using templates. Using variadic templates probably wouldn't work because there is no way to stringify all the arguments in the macro and pass them to a function. Might be possible be creating multiple copies of the macro with different argument counts?
 
 auto WINAPI WinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
 	Window::init("game", Vec2(640, 480));
