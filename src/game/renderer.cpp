@@ -2,7 +2,7 @@
 #include <game/renderer.hpp>
 #include <winUtils.hpp>
 #include <engine/window.hpp>
-#include <engine/input.hpp>
+#include <game/input.hpp>
 
 #include <filesystem>
 
@@ -11,6 +11,8 @@
 Renderer::Renderer(Gfx& gfx) {
 	fullscreenQuadPtVb = gfx.createVb(fullscreenQuadVerts, sizeof(fullscreenQuadVerts), sizeof(fullscreenQuadVerts[0]));
 	fullscreenQuadIb = gfx.createIb(fullscreenQuadIndices, sizeof(fullscreenQuadIndices), sizeof(fullscreenQuadIndices[0]));
+
+	OutputDebugString("abc)");
 
 	ComPtr<ID3DBlob> vsBlob;
 	CHECK_WIN_HRESULT(D3DReadFileToBlob(BUILD_DIR L"vsTransformQuadPt.cso", vsBlob.GetAddressOf()));
@@ -139,17 +141,17 @@ auto Renderer::update(Gfx& gfx) -> void {
 
 
 	static float x = 0.5f, y = 0.5f;
-	if (Input::isKeyHeld(Keycode::W)) {
+	if (Input::isButtonHeld(GameButton::UP)) {
 		y += 0.04f;
 	}
-	if (Input::isKeyHeld(Keycode::S)) {
+	if (Input::isButtonHeld(GameButton::DOWN)) {
 		y -= 0.04f;
 	}
 
-	if (Input::isKeyHeld(Keycode::D)) {
+	if (Input::isButtonHeld(GameButton::RIGHT)) {
 		x += 0.04f;
 	}
-	if (Input::isKeyHeld(Keycode::A)) {
+	if (Input::isButtonHeld(GameButton::LEFT)) {
 		x -= 0.04f;
 	}
 

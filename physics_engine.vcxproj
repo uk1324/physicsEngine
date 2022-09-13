@@ -189,6 +189,7 @@
     <ClCompile Include="src\winUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\game\input.hpp" />
     <ClInclude Include="src\pch.hpp" />
     <ClInclude Include="src\engine\input.hpp" />
     <ClInclude Include="src\engine\time.hpp" />
