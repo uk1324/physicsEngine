@@ -100,6 +100,8 @@ Renderer::Renderer(Gfx& gfx) {
 	gfx.ctx->OMSetBlendState(blendState.Get(), nullptr, 0xffffffff);
 }
 
+#include <stdio.h>
+
 auto Renderer::update(Gfx& gfx) -> void {
 	gfx.ctx->OMSetRenderTargets(1, gfx.backBufferRenderTargetView.GetAddressOf(), nullptr);
 
@@ -141,23 +143,28 @@ auto Renderer::update(Gfx& gfx) -> void {
 
 
 	static float x = 0.5f, y = 0.5f;
-	if (Input::isButtonHeld(GameButton::UP)) {
-		y += 0.04f;
-	}
-	if (Input::isButtonHeld(GameButton::DOWN)) {
-		y -= 0.04f;
-	}
+	//if (Input::isButtonHeld(GameButton::UP)) {
+	//	y += 0.04f;
+	//}
+	//if (Input::isButtonHeld(GameButton::DOWN)) {
+	//	y -= 0.04f;
+	//}
 
-	if (Input::isButtonHeld(GameButton::RIGHT)) {
-		x += 0.04f;
-	}
-	if (Input::isButtonHeld(GameButton::LEFT)) {
-		x -= 0.04f;
-	}
-
+	//if (Input::isButtonHeld(GameButton::RIGHT)) {
+	//	x += 0.04f;
+	//}
+	//if (Input::isButtonHeld(GameButton::LEFT)) {
+	//	x -= 0.04f;
+	//}
+	x = Input::cursorPos().x;
+	y = Input::cursorPos().y;
+	char a[1233];
+	snprintf(a, sizeof(a), "%g %g\n", x, y);
+	OutputDebugString(a);
 
 	//buffer.instanceData[0] = { Mat3x2::translate(Vec2{ x, y }) };
-	buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.3f }) * Mat3x2::translate(Vec2{ x, y * (Window::size().x / Window::size().y ) }) };
+	/*buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.02f }) * Mat3x2::translate(Vec2{ x, y * (Window::size().x / Window::size().y ) }) };*/
+	buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.02f }) * Mat3x2::translate(Vec2{ x, y }) };
 
 	//memcpy(resource.pData, &buffer, sizeof(buffer));
 	gfx.ctx->Unmap(circleShaderConstantBuffer.Get(), 0);

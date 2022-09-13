@@ -95,6 +95,11 @@ auto WINAPI Window::windowMessageCallback(HWND hWnd_, UINT msg, WPARAM wParam, L
 		resizedOnThisFrame = true;
 		break;
 
+	case WM_MOUSEMOVE:
+		const auto pos = MAKEPOINTS(lParam);
+		Input::onMouseMove(Vec2{ static_cast<float>(pos.x), static_cast<float>(pos.y) });
+		break;
+
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
 		Input::onKeyDown(wParam, lParam);

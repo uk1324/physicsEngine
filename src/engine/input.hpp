@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utils/int.hpp>
+#include <math/vec2.hpp>
 
 #include <bitset>
 #include <unordered_map>
@@ -20,7 +21,7 @@ enum class Keycode : u8 {
 
 class Window;
 
-// There is no way to make private variables without a class if templated functions are used.
+// There is no way to make private variables without a class if templated functions are used and also the on<action> functions couldn't be private.
 class Input {
 	friend class Window;
 
@@ -39,11 +40,14 @@ public:
 	static auto isKeyUp(Keycode key) -> bool;
 	static auto isKeyHeld(Keycode key) -> bool;
 
+	static auto cursorPos() -> Vec2 { return cursorPos_; };
+
 	static auto update() -> void;
 
 private:
 	static auto onKeyDown(u64 wParam, u64 lParam) -> void;
 	static auto onKeyUp(u64 wParam, u64 lParam) -> void;
+	static auto onMouseMove(Vec2 mousePos) -> void;
 
 	static constexpr auto KEY_COUNT = static_cast<size_t>(Keycode::COUNT);
 	static std::bitset<KEY_COUNT> keyDown;
@@ -54,6 +58,8 @@ private:
 	static std::unordered_map<int, bool> buttonDown;
 	static std::unordered_map<int, bool> buttonUp;
 	static std::unordered_map<int, bool> buttonHeld;
+
+	static Vec2 cursorPos_;
 };
 
 template<typename ButtonEnum>

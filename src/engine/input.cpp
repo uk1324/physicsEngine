@@ -1,4 +1,5 @@
 #include <engine/input.hpp>
+#include <engine/window.hpp>
 
 auto Input::isKeyDown(Keycode key) -> bool {
 	return keyDown[static_cast<size_t>(key)];
@@ -55,6 +56,13 @@ auto Input::onKeyUp(u64 wParam, u64 lParam) -> void {
 	}
 }
 
+auto Input::onMouseMove(Vec2 mousePos) -> void {
+	cursorPos_ = mousePos;
+	cursorPos_ /= (Window::size() / 2.0f);
+	cursorPos_.y = -cursorPos_.y;
+	cursorPos_ += Vec2{ -1.0f, 1.0f };
+}
+
 std::bitset<Input::KEY_COUNT> Input::keyDown;
 std::bitset<Input::KEY_COUNT> Input::keyUp;
 std::bitset<Input::KEY_COUNT> Input::keyHeld;
@@ -63,3 +71,5 @@ std::unordered_multimap<u8, int> Input::keycodeToButton;
 std::unordered_map<int, bool> Input::buttonDown;
 std::unordered_map<int, bool> Input::buttonUp;
 std::unordered_map<int, bool> Input::buttonHeld;
+
+Vec2 Input::cursorPos_;

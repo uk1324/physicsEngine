@@ -9,6 +9,12 @@ struct Vec2T {
 	constexpr explicit Vec2T(T all);
 	constexpr Vec2T(T x, T y);
 
+	auto operator+(const Vec2T& v) const -> Vec2T;
+	auto operator+=(const Vec2T& v) -> Vec2T&;
+	auto operator/(T s) const -> Vec2T;
+	auto operator/(const Vec2T& v) const -> Vec2T;
+	auto operator/=(const Vec2T& v) -> Vec2T&;
+
 	auto operator[](isize index) -> T&;
 	auto operator[](isize index) const -> const T&;
 
@@ -36,6 +42,36 @@ template<typename T>
 constexpr Vec2T<T>::Vec2T(T x, T y)
 	: x(x)
 	, y(y) {}
+
+template<typename T>
+auto Vec2T<T>::operator+(const Vec2T& v) const -> Vec2T
+{
+	return Vec2{ x + v.x, y + v.y };
+}
+
+template<typename T>
+auto Vec2T<T>::operator+=(const Vec2T& v) -> Vec2T&
+{
+	*this = *this + v;
+	return *this;
+}
+
+template<typename T>
+auto Vec2T<T>::operator/(T s) const -> Vec2T
+{
+	return Vec2{ x / s, y / s };
+}
+
+template<typename T>
+auto Vec2T<T>::operator/(const Vec2T& v) const -> Vec2T {
+	return Vec2{ x / v.x, y / v.y };
+}
+
+template<typename T>
+auto Vec2T<T>::operator/=(const Vec2T& v) -> Vec2T& {
+	*this = *this / v;
+	return *this;
+}
 
 template<typename T>
 auto Vec2T<T>::operator[](isize index) -> T& {
