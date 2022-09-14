@@ -22,6 +22,14 @@ enum class Keycode : u8 {
 	COUNT
 };
 
+enum class MouseButton : u8 {
+	// Mouse buttons are also virtual key codes, but they are not sent by WM_KEY<action> events.
+	LEFT = 0x01,
+	RIGHT = 0x02,
+	MIDDLE = 0x04,
+	COUNT,
+};
+
 class Window;
 
 // There is no way to make private variables without a class if templated functions are used and also the on<action> functions couldn't be private.
@@ -31,6 +39,8 @@ class Input {
 public:
 	template<typename ButtonEnum>
 	static auto registerKeyButton(Keycode key, ButtonEnum button) -> void;
+	template<typename ButtonEnum>
+	static auto registerMouseButton(MouseButton mouseButton, ButtonEnum button) -> void;
 
 	template<typename ButtonEnum> 
 	static auto isButtonDown(ButtonEnum button) -> bool;
@@ -43,21 +53,28 @@ public:
 	static auto isKeyUp(Keycode key) -> bool;
 	static auto isKeyHeld(Keycode key) -> bool;
 
+	static auto isMouseButtonDown(MouseButton button) -> bool;
+	static auto isMouseButtonUp(MouseButton button) -> bool;
+	static auto isMouseButtonHeld(MouseButton button) -> bool;
+
 	static auto cursorPos() -> Vec2 { return cursorPos_; };
 
 	static auto update() -> void;
 
 private:
-	static auto onKeyDown(u64 wParam, u64 lParam) -> void;
-	static auto onKeyUp(u64 wParam, u64 lParam) -> void;
+	static auto onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void;
+	static auto onKeyUp(u8 virtualKeyCode) -> void;
 	static auto onMouseMove(Vec2 mousePos) -> void;
 
-	static constexpr auto KEY_COUNT = static_cast<size_t>(Keycode::COUNT);
-	static std::bitset<KEY_COUNT> keyDown;
-	static std::bitset<KEY_COUNT> keyUp;
-	static std::bitset<KEY_COUNT> keyHeld;
+	static constexpr auto MOUSE_BUTTON_COUNT = static_cast<size_t>(MouseButton::COUNT);
+	static constexpr auto KEYCODE_COUNT = static_cast<size_t>(Keycode::COUNT);
+	// Virtual keycodes are always one byte so this is kind of pointless.
+	static constexpr auto VIRTUAL_KEY_COUNT = (MOUSE_BUTTON_COUNT > KEYCODE_COUNT) ? MOUSE_BUTTON_COUNT : KEYCODE_COUNT;
+	static std::bitset<VIRTUAL_KEY_COUNT> keyDown;
+	static std::bitset<VIRTUAL_KEY_COUNT> keyUp;
+	static std::bitset<VIRTUAL_KEY_COUNT> keyHeld;
 
-	static std::unordered_multimap<u8, int> keycodeToButton;
+	static std::unordered_multimap<u8, int> virtualKeyToButton;
 	static std::unordered_map<int, bool> buttonDown;
 	static std::unordered_map<int, bool> buttonUp;
 	static std::unordered_map<int, bool> buttonHeld;
@@ -68,26 +85,36 @@ private:
 template<typename ButtonEnum>
 auto Input::registerKeyButton(Keycode key, ButtonEnum button) -> void {
 	const auto code = static_cast<int>(button);
-	keycodeToButton.insert({ static_cast<u8>(key), code });
+	virtualKeyToButton.insert({ static_cast<u8>(key), code });
 	buttonDown[code] = false;
 	buttonUp[code] = false;
 	buttonHeld[code] = false;
 }
 
 template<typename ButtonEnum>
+auto Input::registerMouseButton(MouseButton mouseButton, ButtonEnum button) -> void {
+	registerKeyButton(static_cast<Keycode>(mouseButton), button);
+}
+
+// Check to prevent accidentally using wrong enums. Not using concepts because they still aren't fully suported. And for some reason can't be created in class scope.
+#define CHECK_BUTTON_ENUM() static_assert(!std::is_same_v<ButtonEnum, Keycode> && !std::is_same_v<ButtonEnum, MouseButton>);
+
+template<typename ButtonEnum>
 auto Input::isButtonDown(ButtonEnum button) -> bool {
-	static_assert(!std::is_same_v<ButtonEnum, Keycode>);
+	CHECK_BUTTON_ENUM();
 	return buttonDown[static_cast<int>(button)];
 }
 
 template<typename ButtonEnum>
 auto Input::isButtonUp(ButtonEnum button) -> bool {
-	static_assert(!std::is_same_v<ButtonEnum, Keycode>);
+	CHECK_BUTTON_ENUM();
 	return buttonUp[static_cast<int>(button)];
 }
 
 template<typename ButtonEnum>
 auto Input::isButtonHeld(ButtonEnum button) -> bool {
-	static_assert(!std::is_same_v<ButtonEnum, Keycode>);
+	CHECK_BUTTON_ENUM();
 	return buttonHeld[static_cast<int>(button)];
 }
+
+#undef CHECK_BUTTON_ENUM

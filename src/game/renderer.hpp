@@ -33,6 +33,7 @@ private:
 
 	struct CircleInstance {
 		float3x2 transform;
+		float3 color;
 	};
 	ComPtr<ID3D11Buffer> circleShaderConstantBuffer;
 	struct CircleShaderConstantBuffer {

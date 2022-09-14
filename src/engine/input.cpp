@@ -13,6 +13,18 @@ auto Input::isKeyHeld(Keycode key) -> bool {
 	return keyHeld[static_cast<size_t>(key)];
 }
 
+auto Input::isMouseButtonDown(MouseButton button) -> bool {
+	return isKeyDown(static_cast<Keycode>(button));
+}
+
+auto Input::isMouseButtonUp(MouseButton button) -> bool {
+	return isKeyUp(static_cast<Keycode>(button));
+}
+
+auto Input::isMouseButtonHeld(MouseButton button) -> bool {
+	return isKeyHeld(static_cast<Keycode>(button));
+}
+
 auto Input::update() -> void {
 	keyDown.reset();
 	keyUp.reset();
@@ -26,20 +38,14 @@ static auto setIfAlreadyExists(std::unordered_map<int, bool>& map, int key, bool
 		it->second = value;
 }
 
-auto Input::onKeyDown(u64 wParam, u64 lParam) -> void {
-	const auto autoRepeat{ static_cast<bool>(lParam >> 30) };
-	const auto virtualKeyCode{ static_cast<u8>(wParam) };
-	if (autoRepeat || virtualKeyCode > KEY_COUNT)
+auto Input::onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void {
+	if (autoRepeat || virtualKeyCode > VIRTUAL_KEY_COUNT)
 		return;
 	
 	keyDown.set(virtualKeyCode);
 	keyHeld.set(virtualKeyCode);
 
-	if (virtualKeyCode == 'T') {
-		int x = 5;
-	}
-
-	const auto buttons = keycodeToButton.equal_range(virtualKeyCode);
+	const auto buttons = virtualKeyToButton.equal_range(virtualKeyCode);
 	for (auto button = buttons.first; button != buttons.second; ++button) {
 		const auto& [_, buttonCode] = *button;
 		setIfAlreadyExists(buttonDown, buttonCode, true);
@@ -47,12 +53,11 @@ auto Input::onKeyDown(u64 wParam, u64 lParam) -> void {
 	}
 }
 
-auto Input::onKeyUp(u64 wParam, u64 lParam) -> void {
-	const auto virtualKeyCode{ static_cast<u8>(wParam) };
+auto Input::onKeyUp(u8 virtualKeyCode) -> void {
 	keyUp.set(virtualKeyCode);
 	keyHeld.set(virtualKeyCode, false);
 
-	const auto buttons = keycodeToButton.equal_range(virtualKeyCode);
+	const auto buttons = virtualKeyToButton.equal_range(virtualKeyCode);
 	for (auto button = buttons.first; button != buttons.second; ++button) {
 		const auto& [_, buttonCode] = *button;
 		setIfAlreadyExists(buttonUp, buttonCode, true);
@@ -67,11 +72,11 @@ auto Input::onMouseMove(Vec2 mousePos) -> void {
 	cursorPos_ += Vec2{ -1.0f, 1.0f };
 }
 
-std::bitset<Input::KEY_COUNT> Input::keyDown;
-std::bitset<Input::KEY_COUNT> Input::keyUp;
-std::bitset<Input::KEY_COUNT> Input::keyHeld;
+std::bitset<Input::VIRTUAL_KEY_COUNT> Input::keyDown;
+std::bitset<Input::VIRTUAL_KEY_COUNT> Input::keyUp;
+std::bitset<Input::VIRTUAL_KEY_COUNT> Input::keyHeld;
 
-std::unordered_multimap<u8, int> Input::keycodeToButton;
+std::unordered_multimap<u8, int> Input::virtualKeyToButton;
 std::unordered_map<int, bool> Input::buttonDown;
 std::unordered_map<int, bool> Input::buttonUp;
 std::unordered_map<int, bool> Input::buttonHeld;

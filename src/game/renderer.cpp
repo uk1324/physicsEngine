@@ -159,15 +159,13 @@ auto Renderer::update(Gfx& gfx) -> void {
 		dir.x -= 1.0f;
 	}
 	static Vec2 pos{ 0.0f };
-	if (dir.lengthSq() > 0) {
-		//DebugBreak();
-		int x = 5;
-	}
 	pos += dir.normalized() * 0.5f * Time::deltaTime();
 
-
 	//buffer.instanceData[0] = { Mat3x2::translate(Vec2{ x, y }) };
-	buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.2f }) * Mat3x2::translate(Vec2{ pos.x, pos.y * (Window::size().x / Window::size().y ) }) };
+	buffer.instanceData[0] = {
+		.transform = s * Mat3x2::scale(Vec2{ 0.2f }) * Mat3x2::translate(Vec2{ pos.x, pos.y * (Window::size().x / Window::size().y) }),
+		.color = Input::isMouseButtonHeld(MouseButton::LEFT) ? Vec3{ 0.0, 0.0f, 1.0f } : Vec3{ 1.0, 0.0f, 0.0f }
+	};
 	//buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.02f }) * Mat3x2::translate(pos) };
 
 	//memcpy(resource.pData, &buffer, sizeof(buffer));

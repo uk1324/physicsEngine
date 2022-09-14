@@ -81,7 +81,7 @@ auto Window::update() -> void {
 	}
 }
 
-auto WINAPI Window::windowMessageCallback(HWND hWnd_, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
+auto WINAPI Window::windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
 	switch (msg) {
 	case WM_CLOSE:
 		PostQuitMessage(EXIT_SUCCESS);
@@ -101,17 +101,28 @@ auto WINAPI Window::windowMessageCallback(HWND hWnd_, UINT msg, WPARAM wParam, L
 		break;
 
 	case WM_KEYDOWN:
-	case WM_SYSKEYDOWN:
-		Input::onKeyDown(wParam, lParam);
-		break;
+	case WM_SYSKEYDOWN: {
+		const auto autoRepeat{ static_cast<bool>(lParam >> 30) };
+		Input::onKeyDown(static_cast<u8>(wParam), autoRepeat);
+	} break;
 
 	case WM_KEYUP:
 	case WM_SYSKEYUP:
-		Input::onKeyUp(wParam, lParam);
-		break;
+	{
+		Input::onKeyUp(static_cast<u8>(wParam));
+	} break;
+
+	case WM_LBUTTONDOWN: Input::onKeyDown(VK_LBUTTON, false); break;
+	case WM_RBUTTONDOWN: Input::onKeyDown(VK_RBUTTON, false); break;
+	case WM_MBUTTONDOWN: Input::onKeyDown(VK_MBUTTON, false); break;
+
+	case WM_LBUTTONUP: Input::onKeyUp(VK_LBUTTON); break;
+	case WM_RBUTTONUP: Input::onKeyUp(VK_RBUTTON); break;
+	case WM_MBUTTONUP: Input::onKeyUp(VK_MBUTTON); break;
+
 	}
 
-	return DefWindowProc(hWnd_, msg, wParam, lParam);
+	return DefWindowProc(hWnd, msg, wParam, lParam);
 }
 
 HWND Window::hWnd_;

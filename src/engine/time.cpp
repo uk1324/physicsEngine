@@ -2,8 +2,8 @@
 #include <engine/input.hpp>
 #include <chrono>
 
-auto Time::update(float currentFrameDeltaTime) -> void {
-	Time::currentFrameDeltaTime = currentFrameDeltaTime;
+auto Time::update(float frameDeltatime) -> void {
+	currentFrameDeltaTime = frameDeltatime;
 
 	if (Input::isKeyHeld(Keycode::T)) {
 		// TODO: Print debug message about the currently set scale.

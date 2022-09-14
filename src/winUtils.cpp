@@ -33,7 +33,7 @@ static auto getErrorMessage(long errorCode) -> std::string
 	return messageString;
 }
 
-auto onWinError(HRESULT errorCode, const char* filename, int line) -> void {
+auto onWinError(HRESULT errorCode, const char*, int) -> void {
 	const auto result = MessageBox(nullptr, getErrorMessage(errorCode).c_str(), nullptr, MB_ICONEXCLAMATION);
 	ASSERT(result != 0);
 	DebugBreak();
