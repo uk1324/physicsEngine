@@ -2,6 +2,7 @@
 #include <game/renderer.hpp>
 #include <winUtils.hpp>
 #include <engine/window.hpp>
+#include <engine/time.hpp>
 #include <game/input.hpp>
 
 #include <filesystem>
@@ -142,29 +143,32 @@ auto Renderer::update(Gfx& gfx) -> void {
 	const auto s = Mat3x2::scale(Vec2{ 1.0f, Window::size().x / Window::size().y });
 
 
-	static float x = 0.5f, y = 0.5f;
-	//if (Input::isButtonHeld(GameButton::UP)) {
-	//	y += 0.04f;
-	//}
-	//if (Input::isButtonHeld(GameButton::DOWN)) {
-	//	y -= 0.04f;
-	//}
 
-	//if (Input::isButtonHeld(GameButton::RIGHT)) {
-	//	x += 0.04f;
-	//}
-	//if (Input::isButtonHeld(GameButton::LEFT)) {
-	//	x -= 0.04f;
-	//}
-	x = Input::cursorPos().x;
-	y = Input::cursorPos().y;
-	char a[1233];
-	snprintf(a, sizeof(a), "%g %g\n", x, y);
-	OutputDebugString(a);
+	Vec2 dir{ 0.0f };
+	if (Input::isButtonHeld(GameButton::UP)) {
+		dir.y += 1.0f;
+	}
+	if (Input::isButtonHeld(GameButton::DOWN)) {
+		dir.y -= 1.0f;
+	}
+
+	if (Input::isButtonHeld(GameButton::RIGHT)) {
+		dir.x += 1.0f;
+	}
+	if (Input::isButtonHeld(GameButton::LEFT)) {
+		dir.x -= 1.0f;
+	}
+	static Vec2 pos{ 0.0f };
+	if (dir.lengthSq() > 0) {
+		//DebugBreak();
+		int x = 5;
+	}
+	pos += dir.normalized() * 0.5f * Time::deltaTime();
+
 
 	//buffer.instanceData[0] = { Mat3x2::translate(Vec2{ x, y }) };
-	/*buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.02f }) * Mat3x2::translate(Vec2{ x, y * (Window::size().x / Window::size().y ) }) };*/
-	buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.02f }) * Mat3x2::translate(Vec2{ x, y }) };
+	buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.2f }) * Mat3x2::translate(Vec2{ pos.x, pos.y * (Window::size().x / Window::size().y ) }) };
+	//buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.02f }) * Mat3x2::translate(pos) };
 
 	//memcpy(resource.pData, &buffer, sizeof(buffer));
 	gfx.ctx->Unmap(circleShaderConstantBuffer.Get(), 0);

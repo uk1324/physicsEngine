@@ -9,8 +9,14 @@ struct Vec2T {
 	constexpr explicit Vec2T(T all);
 	constexpr Vec2T(T x, T y);
 
+	auto lengthSq() const -> T;
+	auto length() const -> T;
+	auto normalized() const -> Vec2T;
+
 	auto operator+(const Vec2T& v) const -> Vec2T;
 	auto operator+=(const Vec2T& v) -> Vec2T&;
+	auto operator*(T s) const -> Vec2T;
+	auto operator*=(T s) -> Vec2T&;
 	auto operator/(T s) const -> Vec2T;
 	auto operator/(const Vec2T& v) const -> Vec2T;
 	auto operator/=(const Vec2T& v) -> Vec2T&;
@@ -27,7 +33,7 @@ struct Vec2T {
 
 using Vec2 = Vec2T<float>;
 
-// I don't think there are any good ways to leaves values unitialized explicitly so I just have to use the default constrcutor.
+// I don't think there are any good ways to leaves values unitialized explicitly so I just have to use the default constrcutor. Leaving the values unitialized is useful when creating an array. This could also be solved by providing some intialization function or in some cases maybe using a statically sized vector.
 template<typename T>
 constexpr Vec2T<T>::Vec2T()
 	: x(T(123123123))
@@ -44,6 +50,25 @@ constexpr Vec2T<T>::Vec2T(T x, T y)
 	, y(y) {}
 
 template<typename T>
+auto Vec2T<T>::lengthSq() const -> T {
+	return x * x + y * y;
+}
+
+template<typename T>
+auto Vec2T<T>::length() const -> T {
+	return sqrtf(lengthSq());
+}
+
+template<typename T>
+auto Vec2T<T>::normalized() const -> Vec2T {
+	const auto l = length();
+	if (l == 0) {
+		return *this;
+	}
+	return *this / l;
+}
+
+template<typename T>
 auto Vec2T<T>::operator+(const Vec2T& v) const -> Vec2T
 {
 	return Vec2{ x + v.x, y + v.y };
@@ -53,6 +78,17 @@ template<typename T>
 auto Vec2T<T>::operator+=(const Vec2T& v) -> Vec2T&
 {
 	*this = *this + v;
+	return *this;
+}
+
+template<typename T>
+auto Vec2T<T>::operator*(T s) const -> Vec2T {
+	return Vec2{ x * s, y * s };
+}
+
+template<typename T>
+auto Vec2T<T>::operator*=(T s) -> Vec2T& {
+	*this = *this * s;
 	return *this;
 }
 

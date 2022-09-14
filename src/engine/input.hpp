@@ -15,7 +15,10 @@ enum class Keycode : u8 {
 	A = 'A',
 	D = 'D',
 	S = 'S',
+	T = 'T',
 	W = 'W',
+	Plus = 0xBB,
+	Minus = 0xBD,
 	COUNT
 };
 
@@ -73,15 +76,18 @@ auto Input::registerKeyButton(Keycode key, ButtonEnum button) -> void {
 
 template<typename ButtonEnum>
 auto Input::isButtonDown(ButtonEnum button) -> bool {
+	static_assert(!std::is_same_v<ButtonEnum, Keycode>);
 	return buttonDown[static_cast<int>(button)];
 }
 
 template<typename ButtonEnum>
 auto Input::isButtonUp(ButtonEnum button) -> bool {
+	static_assert(!std::is_same_v<ButtonEnum, Keycode>);
 	return buttonUp[static_cast<int>(button)];
 }
 
 template<typename ButtonEnum>
 auto Input::isButtonHeld(ButtonEnum button) -> bool {
+	static_assert(!std::is_same_v<ButtonEnum, Keycode>);
 	return buttonHeld[static_cast<int>(button)];
 }

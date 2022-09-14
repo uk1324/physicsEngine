@@ -35,6 +35,10 @@ auto Input::onKeyDown(u64 wParam, u64 lParam) -> void {
 	keyDown.set(virtualKeyCode);
 	keyHeld.set(virtualKeyCode);
 
+	if (virtualKeyCode == 'T') {
+		int x = 5;
+	}
+
 	const auto buttons = keycodeToButton.equal_range(virtualKeyCode);
 	for (auto button = buttons.first; button != buttons.second; ++button) {
 		const auto& [_, buttonCode] = *button;
