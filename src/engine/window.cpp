@@ -20,12 +20,13 @@ auto Window::init(const char* title, Vec2 size) -> void {
 		.cbWndExtra = 0,
 		.hInstance = hInstance,
 		.hIcon = nullptr,
-		.hCursor = nullptr,
+		.hCursor = LoadCursor(NULL, IDC_ARROW), // If hCurosr is set to nullptr then the busy cursor is displayed at the start and the cursor isn't updated correctly when moving it into the window.
 		.hbrBackground = nullptr,
 		.lpszMenuName = nullptr,
 		.lpszClassName = WINDOW_CLASS_NAME,
 		.hIconSm = nullptr,
 	};
+	// The arrow with busy circle cursor is displayed at start probably because in debug mode some DLLs need to be loaded. It doesn't happen when lauching without the debugger.
 	CHECK_WIN_ZERO(RegisterClassEx(&windowsClassInfo));
 
 	const DWORD windowStyle = WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU | WS_SIZEBOX;

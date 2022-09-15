@@ -10,6 +10,8 @@
 
 // TODO: Could make something similar to rust's dbg macro by using templates. Using variadic templates probably wouldn't work because there is no way to stringify all the arguments in the macro and pass them to a function. Might be possible be creating multiple copies of the macro with different argument counts?
 
+#include <utils/io.hpp>
+
 auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
 	Window::init("game", Vec2(640, 480));
 	Gfx gfx{ Window::hWnd() };

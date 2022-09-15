@@ -2,6 +2,9 @@
 #include <gfx/gfx.hpp>
 #include <engine/window.hpp>
 #include <winUtils.hpp>
+#include <utils/io.hpp>
+
+#include <inttypes.h>
 
 #pragma comment(lib, "dxgi.lib")
 
@@ -17,8 +20,7 @@ Gfx::Gfx(HWND hWnd_) {
 			sample.Quality = quality - 1;
 		}
 	}
-
-	// TODO: Maybe add log about what MSAA level was chosen.
+	LOG_INFO("MSAA using count: %" PRIu32 "quality: % " PRIu32, sample.Count, sample.Quality);
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc{
 		.BufferDesc = {

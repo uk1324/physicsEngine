@@ -186,6 +186,7 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="src\utils\io.cpp" />
     <ClCompile Include="src\winUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -203,6 +204,7 @@
     <ClInclude Include="src\utils\asserts.hpp" />
     <ClInclude Include="src\gfx\gfx.hpp" />
     <ClInclude Include="src\utils\int.hpp" />
+    <ClInclude Include="src\utils\io.hpp" />
     <ClInclude Include="src\winUtils.hpp" />
   </ItemGroup>
   <ItemGroup>
