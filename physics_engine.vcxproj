@@ -203,6 +203,7 @@
     <ClInclude Include="src\math\vec3.hpp" />
     <ClInclude Include="src\utils\asserts.hpp" />
     <ClInclude Include="src\gfx\gfx.hpp" />
+    <ClInclude Include="src\utils\dbg.hpp" />
     <ClInclude Include="src\utils\int.hpp" />
     <ClInclude Include="src\utils\io.hpp" />
     <ClInclude Include="src\winUtils.hpp" />

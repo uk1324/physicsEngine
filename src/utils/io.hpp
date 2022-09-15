@@ -12,3 +12,13 @@ auto logWarningImpelementation(int line, const char* filename, const char* funct
 #define LOG_INFO(format, ...) logInfoImpelementation(__LINE__, __FILE__, __FUNCSIG__, format, __VA_ARGS__)
 #define LOG_WARNING(format, ...) logWarningImpelementation(__LINE__, __FILE__, __FUNCSIG__, format, __VA_ARGS__)
 #define LOG_FATAL(format, ...) logFatalImpelementation(__LINE__, __FILE__, __FUNCSIG__, format, __VA_ARGS__)
+
+template<typename T>
+T debugImplementation(T&& value, const char* expressionString, int line, const char* function) {
+	std::stringstream stream;
+	stream << value;
+	put("line %d in %s(): %s = %s\n", line, function, expressionString, stream.str().c_str());
+	return value;
+}
+
+#define dbg(value) debugImplementation(value, #value, __LINE__, __func__)
