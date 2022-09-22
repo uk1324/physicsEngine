@@ -32,6 +32,7 @@ private:
 	ComPtr<ID3D11PixelShader> circleShader;
 
 	struct CircleInstance {
+		float radiusInverse;
 		float3x2 transform;
 		float3 color;
 	};

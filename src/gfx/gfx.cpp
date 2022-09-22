@@ -20,7 +20,7 @@ Gfx::Gfx(HWND hWnd_) {
 			sample.Quality = quality - 1;
 		}
 	}
-	LOG_INFO("MSAA using count: %" PRIu32 "quality: % " PRIu32, sample.Count, sample.Quality);
+	LOG_INFO("MSAA using count: %" PRIu32 " quality: % " PRIu32, sample.Count, sample.Quality);
 
 	DXGI_SWAP_CHAIN_DESC swapChainDesc{
 		.BufferDesc = {

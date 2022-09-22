@@ -1,9 +1,8 @@
 #include <pch.hpp>
 #include <game/renderer.hpp>
+#include <game/entities.hpp>
 #include <winUtils.hpp>
 #include <engine/window.hpp>
-#include <engine/time.hpp>
-#include <game/input.hpp>
 
 #include <filesystem>
 
@@ -107,7 +106,7 @@ auto Renderer::update(Gfx& gfx) -> void {
 	gfx.ctx->OMSetRenderTargets(1, gfx.backBufferRenderTargetView.GetAddressOf(), nullptr);
 
 	{
-		float color[] = { 0.0f, 1.0f, 0.0f, 1.0f };
+		float color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		gfx.ctx->ClearRenderTargetView(gfx.backBufferRenderTargetView.Get(), color);
 	}
 
@@ -134,43 +133,31 @@ auto Renderer::update(Gfx& gfx) -> void {
 	gfx.ctx->VSSetShader(transformQuadPtShader.Get(), nullptr, 0);
 	gfx.ctx->PSSetShader(circleShader.Get(), nullptr, 0);
 
-	D3D11_MAPPED_SUBRESOURCE resource{};
-	CHECK_WIN_HRESULT(gfx.ctx->Map(circleShaderConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource));
-
-	// This may be bad if there is a lot of computation do here. I don't know the cost of Map.
-	auto& buffer = *reinterpret_cast<CircleShaderConstantBuffer*>(resource.pData);
-	memset(resource.pData, 0, sizeof(buffer));
 	const auto s = Mat3x2::scale(Vec2{ 1.0f, Window::size().x / Window::size().y });
 
-
-
-	Vec2 dir{ 0.0f };
-	if (Input::isButtonHeld(GameButton::UP)) {
-		dir.y += 1.0f;
-	}
-	if (Input::isButtonHeld(GameButton::DOWN)) {
-		dir.y -= 1.0f;
-	}
-
-	if (Input::isButtonHeld(GameButton::RIGHT)) {
-		dir.x += 1.0f;
-	}
-	if (Input::isButtonHeld(GameButton::LEFT)) {
-		dir.x -= 1.0f;
-	}
-	static Vec2 pos{ 0.0f };
-	pos += dir.normalized() * 0.5f * Time::deltaTime();
-
-	//buffer.instanceData[0] = { Mat3x2::translate(Vec2{ x, y }) };
-	buffer.instanceData[0] = {
-		.transform = s * Mat3x2::scale(Vec2{ 0.2f }) * Mat3x2::translate(Vec2{ pos.x, pos.y * (Window::size().x / Window::size().y) }),
-		.color = Input::isMouseButtonHeld(MouseButton::LEFT) ? Vec3{ 0.0, 0.0f, 1.0f } : Vec3{ 1.0, 0.0f, 0.0f }
+	CircleShaderConstantBuffer constantBuffer; 	// Pointless initialization. Could store inside the class.
+	UINT circlesToDraw = 0;
+	auto drawCircles = [&] {
+		D3D11_MAPPED_SUBRESOURCE resource{};
+		CHECK_WIN_HRESULT(gfx.ctx->Map(circleShaderConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource));
+		memcpy(resource.pData, &constantBuffer, sizeof(constantBuffer));
+		gfx.ctx->Unmap(circleShaderConstantBuffer.Get(), 0);
+		// TODO: Check if this needs to be called for every draw.
+		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBuffer.GetAddressOf());
+		gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), circlesToDraw, 0, 0, 0);
 	};
-	//buffer.instanceData[0] = { s * Mat3x2::scale(Vec2{ 0.02f }) * Mat3x2::translate(pos) };
+	for (const auto& circle : circleEntites) {
+		if (circlesToDraw >= std::size(constantBuffer.instanceData)) {
+			drawCircles();
+			circlesToDraw = 0;
+		}
 
-	//memcpy(resource.pData, &buffer, sizeof(buffer));
-	gfx.ctx->Unmap(circleShaderConstantBuffer.Get(), 0);
-
-	gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBuffer.GetAddressOf());
-	gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), 1, 0, 0, 0);
+		constantBuffer.instanceData[circlesToDraw] = {
+			.radiusInverse = 1.0f / circle.radius,
+			.transform = Mat3x2::rotate(circle.rotation) * s * Mat3x2::scale(Vec2{ circle.radius }) * Mat3x2::translate(Vec2{ circle.pos.x, circle.pos.y * (Window::size().x / Window::size().y)}),
+			.color = Vec3{ 1.0, 0.0f, 0.0f }
+		};
+		circlesToDraw++;
+	}
+	drawCircles();
 }

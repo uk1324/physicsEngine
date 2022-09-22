@@ -51,6 +51,9 @@
     <ClCompile Include="src\utils\io.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\entities.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -101,7 +104,10 @@
     <ClInclude Include="src\utils\io.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\utils\dbg.hpp">
+    <ClInclude Include="src\game\entities.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\utils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
