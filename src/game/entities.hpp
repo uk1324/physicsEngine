@@ -8,7 +8,7 @@ struct CircleEntity {
 	Vec2 pos;
 	Vec2 vel;
 	float rotation;
-	float rotationVel;
+	float angularVel;
 
 	float mass;
 

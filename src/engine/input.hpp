@@ -14,6 +14,7 @@ enum class Keycode : u8 {
 	DOWN = 0x28,
 	A = 'A',
 	D = 'D',
+	R = 'R',
 	S = 'S',
 	T = 'T',
 	W = 'W',

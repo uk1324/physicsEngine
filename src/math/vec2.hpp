@@ -12,6 +12,7 @@ struct Vec2T {
 	auto lengthSq() const -> T;
 	auto length() const -> T;
 	auto normalized() const -> Vec2T;
+	auto rotBy90deg() const -> const Vec2T;
 
 	auto operator+(const Vec2T& v) const -> Vec2T;
 	auto operator+=(const Vec2T& v) -> Vec2T&;
@@ -34,12 +35,27 @@ struct Vec2T {
 	T x, y;
 };
 
+using Vec2 = Vec2T<float>;
+
+template<typename T>
+auto operator*(T s, const Vec2T<T>& v) -> Vec2T<T> {
+	return v * s;
+}
+
 template<typename T>
 auto dot(const Vec2T<T>& a, const Vec2T<T> b) -> T {
 	return a.x * b.x + a.y * b.y;
 }
 
-using Vec2 = Vec2T<float>;
+template<typename T>
+auto det(const Vec2T<T>& a, const Vec2T<T> b) -> T {
+	return a.x * b.y - b.x * a.y;
+}
+
+template<typename T>
+auto distance(const Vec2T<T>& a, const Vec2T<T> b) -> T {
+	return (a - b).length();
+}
 
 // I don't think there are any good ways to leaves values unitialized explicitly so I just have to use the default constrcutor. Leaving the values unitialized is useful when creating an array. This could also be solved by providing some intialization function or in some cases maybe using a statically sized vector.
 template<typename T>
@@ -74,6 +90,11 @@ auto Vec2T<T>::normalized() const -> Vec2T {
 		return *this;
 	}
 	return *this / l;
+}
+
+template<typename T>
+auto Vec2T<T>::rotBy90deg() const -> const Vec2T {
+	return Vec2{ y, -x };
 }
 
 template<typename T>
