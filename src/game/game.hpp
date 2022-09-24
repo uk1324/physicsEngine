@@ -1,6 +1,7 @@
 #pragma once
 
 #include <game/renderer.hpp>
+#include <game/entities.hpp>
 
 class Game {
 public:
@@ -9,4 +10,7 @@ public:
 	auto update(Gfx& gfx) -> void;
 
 	Renderer renderer;
+
+	PhysicsMaterial material0;
+	PhysicsMaterial material1;
 };

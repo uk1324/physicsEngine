@@ -4,6 +4,10 @@
 
 #include <vector>
 
+struct PhysicsMaterial {
+	float bounciness;
+};
+
 struct CircleEntity {
 	Vec2 pos;
 	Vec2 vel;
@@ -13,6 +17,8 @@ struct CircleEntity {
 	float mass;
 
 	float radius;
+
+	const PhysicsMaterial* material;
 };
 
 extern std::vector<CircleEntity> circleEntites;

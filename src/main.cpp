@@ -5,10 +5,36 @@
 #include <engine/time.hpp>
 #include <engine/window.hpp>
 #include <engine/input.hpp>
+#include <engine/frameAllocator.hpp>
 
 #include <chrono>
 
-// TODO: Could make something similar to rust's dbg macro by using templates. Using variadic templates probably wouldn't work because there is no way to stringify all the arguments in the macro and pass them to a function. Might be possible be creating multiple copies of the macro with different argument counts?
+// TODO: Use an actual testing framework.
+auto testAreaAllocator() -> void {
+	AreaAllocator allocator{ 1024 * 1024 };
+	// Allocate all
+	{
+		const auto m = reinterpret_cast<u8*>(allocator.allocAlligned(1, 1024 * 1024));
+		m[1024 * 1024 - 1] = 'a';
+	}
+
+	allocator.reset();
+	// Allocations changing pages
+	{
+		auto m = reinterpret_cast<u8*>(allocator.allocAlligned(1, 4096 * 2));
+		*m = 'a';
+		m = reinterpret_cast<u8*>(allocator.allocAlligned(1, 4096 * 2));
+		*m = 'a';
+	}
+
+	// Allocations on the same page
+	{
+		auto m = reinterpret_cast<u8*>(allocator.allocAlligned(1, 1024));
+		*m = 'a';
+		m = reinterpret_cast<u8*>(allocator.allocAlligned(1, 1024));
+		*m = 'a';
+	}
+}
 
 auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
 	Window::init("game", Vec2(640, 480));
@@ -30,7 +56,7 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 
 		while (accumulated >= FRAME_TIME) {
 			accumulated -= FRAME_TIME;
-
+			frameAllocator.reset();
 			gfx.update();
 
 			Input::update();
@@ -42,6 +68,7 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 
 			Time::update(FRAME_TIME);
 			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
+
 			game.update(gfx);
 			gfx.present();
 		}
