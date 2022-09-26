@@ -64,6 +64,44 @@ auto Gfx::present() -> void {
 		CHECK_WIN_HRESULT(device->GetDeviceRemovedReason());
 }
 
+auto Gfx::createConstantBuffer(UINT sizeBytes) -> ComPtr<ID3D11Buffer> {
+	D3D11_BUFFER_DESC bufferDesc{
+		.ByteWidth = sizeBytes,
+		.Usage = D3D11_USAGE_DYNAMIC,
+		.BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+		.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+		.MiscFlags = 0,
+		.StructureByteStride = 0,
+	};
+	ComPtr<ID3D11Buffer> buffer;
+	CHECK_WIN_HRESULT(device->CreateBuffer(&bufferDesc, nullptr, buffer.GetAddressOf()));
+	return buffer;
+}
+
+auto Gfx::updateConstantBuffer(ComPtr<ID3D11Buffer>& buffer, void* data, usize dataSize) -> void {
+	D3D11_MAPPED_SUBRESOURCE resource{ 0 };
+	CHECK_WIN_HRESULT(ctx->Map(buffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource));
+	// Copying here instead of getting the pointer and writing to it because while a resource is Mapped it cannot be accessed by the GPU.
+	memcpy(resource.pData, data, dataSize);
+	ctx->Unmap(buffer.Get(), 0);
+}
+
+auto Gfx::vsFromFile(LPCWSTR filename) -> VertexShader {
+	ComPtr<ID3D11VertexShader> vs;
+	ComPtr<ID3DBlob> vsBlob;
+	CHECK_WIN_HRESULT(D3DReadFileToBlob(filename, &vsBlob));
+	CHECK_WIN_HRESULT(device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &vs));
+	return VertexShader{ std::move(vs), std::move(vsBlob) };
+}
+
+auto Gfx::psFromFile(LPCWSTR filename) -> ComPtr<ID3D11PixelShader> {
+	ComPtr<ID3D11PixelShader> ps;
+	ComPtr<ID3DBlob> psBlob;
+	CHECK_WIN_HRESULT(D3DReadFileToBlob(filename, psBlob.GetAddressOf()));
+	CHECK_WIN_HRESULT(device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &ps));
+	return ps;
+}
+
 static auto createBufffer(ComPtr<ID3D11Device>& device, D3D11_BIND_FLAG type, const void* data, UINT byteSize, UINT byteStride) -> ComPtr<ID3D11Buffer> {
 	const D3D11_BUFFER_DESC desc{
 		.ByteWidth = byteSize,

@@ -1,5 +1,5 @@
 struct CircleInstance {
-	float radiusInverse;
+	float invRadius;
 	float3x2 transform;
 	float3 color;
 };
@@ -16,13 +16,12 @@ struct VsOut {
 };
 
 VsOut main(float2 pos : Position, float2 texturePos : TexturePos, uint instanceId : Sv_InstanceId) {
-
 	CircleInstance instance = instanceData[instanceId];
 	VsOut o;
 	o.texturePos = texturePos;
 	o.color = instance.color;
 	// Can't just use the determinant of the transform because of the scale transform used to adapt to screen size.
-	o.widthScale = instance.radiusInverse;
-	o.pos = float4(mul(float3(pos, 1.0), instance.transform).xy, 0.0, 1.0);
+	o.widthScale = instance.invRadius;
+	o.pos = float4(mul(float3(pos, 1.0), instance.transform), 0.0, 1.0);
 	return o;
 }

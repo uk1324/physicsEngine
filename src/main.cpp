@@ -2,12 +2,15 @@
 #include <winUtils.hpp>
 #include <gfx/gfx.hpp>
 #include <game/game.hpp>
+#include <game/debug.hpp>
 #include <engine/time.hpp>
 #include <engine/window.hpp>
 #include <engine/input.hpp>
 #include <engine/frameAllocator.hpp>
 
 #include <chrono>
+
+// TODO: Integrate ImGui use custom vector type and using namespace Im = ImGui
 
 // TODO: Use an actual testing framework.
 auto testAreaAllocator() -> void {
@@ -69,6 +72,7 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 			Time::update(FRAME_TIME);
 			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
 
+			Debug::update();
 			game.update(gfx);
 			gfx.present();
 		}

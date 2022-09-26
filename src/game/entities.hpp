@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math/vec2.hpp>
+#include <math/line.hpp>
 
 #include <vector>
 
@@ -8,17 +9,41 @@ struct PhysicsMaterial {
 	float bounciness;
 };
 
-struct CircleEntity {
-	Vec2 pos;
+struct PhysicsInfo {
+	PhysicsInfo(const PhysicsMaterial* material, float mass);
+
 	Vec2 vel;
-	float rotation;
 	float angularVel;
-
-	float mass;
-
-	float radius;
-
+	// Should this be const? Changing the mass would also change the momentum of the system.
+	float invMass;
 	const PhysicsMaterial* material;
 };
 
+struct Transform {
+	Vec2 pos;
+	float orientation;
+};
+
+struct CircleCollider {
+	float radius;
+};
+
+struct CircleEntity {
+	Transform transform;
+	CircleCollider collider;
+	PhysicsInfo physics;
+};
+
+struct LineCollider {
+	// Maybe later allow to offset the center of mass.
+	float halfLength;
+};
+
+struct LineEntity {
+	Transform transform;
+	LineCollider collider;
+	PhysicsInfo physics;
+};
+
 extern std::vector<CircleEntity> circleEntites;
+extern std::vector<LineEntity> lineEntites;

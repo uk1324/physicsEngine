@@ -1,66 +1,55 @@
 #include <pch.hpp>
 #include <game/renderer.hpp>
 #include <game/entities.hpp>
+#include <game/debug.hpp>
 #include <winUtils.hpp>
 #include <engine/window.hpp>
-
-#include <filesystem>
+#include <stdio.h>
+#include <cmath>
 
 #define BUILD_DIR "./x64/Debug/"
 
 Renderer::Renderer(Gfx& gfx) {
-	fullscreenQuadPtVb = gfx.createVb(fullscreenQuadVerts, sizeof(fullscreenQuadVerts), sizeof(fullscreenQuadVerts[0]));
-	fullscreenQuadIb = gfx.createIb(fullscreenQuadIndices, sizeof(fullscreenQuadIndices), sizeof(fullscreenQuadIndices[0]));
+	vsCircle = gfx.vsFromFile(BUILD_DIR L"vsCircle.cso");
+	psCircle = gfx.psFromFile(BUILD_DIR L"psCircle.cso");
+	circleShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(circleShaderConstantBuffer));
 
-	OutputDebugString("abc)");
+	vsLine = gfx.vsFromFile(BUILD_DIR L"vsLine.cso");
+	psLine = gfx.psFromFile(BUILD_DIR L"psLine.cso");
+	lineShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(lineShaderConstantBuffer));
 
-	ComPtr<ID3DBlob> vsBlob;
-	CHECK_WIN_HRESULT(D3DReadFileToBlob(BUILD_DIR L"vsTransformQuadPt.cso", vsBlob.GetAddressOf()));
-	CHECK_WIN_HRESULT(gfx.device->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, transformQuadPtShader.GetAddressOf()));
-
-	// Can use D3D10_APPEND_ALIGNED_ELEMENT instead of the offsetof
-	const D3D11_INPUT_ELEMENT_DESC layoutDesc[] = {
-		{
-			.SemanticName = "Position",
-			.SemanticIndex = 0,
-			.Format = DXGI_FORMAT_R32G32_FLOAT,
-			.InputSlot = 0,
-			.AlignedByteOffset = offsetof(PtVert, pos),
-			.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
-			.InstanceDataStepRate = 0
-		},
-		{
-			.SemanticName = "TexturePos",
-			.SemanticIndex = 0,
-			.Format = DXGI_FORMAT_R32G32_FLOAT,
-			.InputSlot = 0,
-			.AlignedByteOffset = offsetof(PtVert, texturePos),
-			.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
-			.InstanceDataStepRate = 0
-		}
-	};
-
-	CHECK_WIN_HRESULT(gfx.device->CreateInputLayout(
-		layoutDesc,
-		static_cast<UINT>(std::size(layoutDesc)),
-		vsBlob->GetBufferPointer(),
-		vsBlob->GetBufferSize(),
-		ptLayout.GetAddressOf()
-	));
-
-	ComPtr<ID3DBlob> psBlob;
-	CHECK_WIN_HRESULT(D3DReadFileToBlob(BUILD_DIR L"psCircle.cso", psBlob.GetAddressOf()));
-	CHECK_WIN_HRESULT(gfx.device->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, circleShader.GetAddressOf()));
-
-	D3D11_BUFFER_DESC circleShaderConstatntBufferDesc{
-		.ByteWidth = sizeof(CircleShaderConstantBuffer),
-		.Usage = D3D11_USAGE_DYNAMIC,
-		.BindFlags = D3D11_BIND_CONSTANT_BUFFER,
-		.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
-		.MiscFlags = 0,
-		.StructureByteStride = 0,
-	};
-	CHECK_WIN_HRESULT(gfx.device->CreateBuffer(&circleShaderConstatntBufferDesc, nullptr, circleShaderConstantBuffer.GetAddressOf()));
+	{
+		fullscreenQuadPtVb = gfx.createVb(fullscreenQuadVerts, sizeof(fullscreenQuadVerts), sizeof(fullscreenQuadVerts[0]));
+		fullscreenQuadIb = gfx.createIb(fullscreenQuadIndices, sizeof(fullscreenQuadIndices), sizeof(fullscreenQuadIndices[0]));
+		// Can use D3D10_APPEND_ALIGNED_ELEMENT instead of the offsetof
+		const D3D11_INPUT_ELEMENT_DESC layoutDesc[] = {
+			{
+				.SemanticName = "Position",
+				.SemanticIndex = 0,
+				.Format = DXGI_FORMAT_R32G32_FLOAT,
+				.InputSlot = 0,
+				.AlignedByteOffset = offsetof(PtVert, pos),
+				.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
+				.InstanceDataStepRate = 0
+			},
+			{
+				.SemanticName = "TexturePos",
+				.SemanticIndex = 0,
+				.Format = DXGI_FORMAT_R32G32_FLOAT,
+				.InputSlot = 0,
+				.AlignedByteOffset = offsetof(PtVert, texturePos),
+				.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
+				.InstanceDataStepRate = 0
+			}
+		};
+		CHECK_WIN_HRESULT(gfx.device->CreateInputLayout(
+			layoutDesc,
+			static_cast<UINT>(std::size(layoutDesc)),
+			vsCircle.blob->GetBufferPointer(),
+			vsCircle.blob->GetBufferSize(),
+			ptLayout.GetAddressOf()
+		));
+	}
 
 	const D3D11_RASTERIZER_DESC rasterizerDesc{
 		.FillMode = D3D11_FILL_SOLID,
@@ -77,7 +66,6 @@ Renderer::Renderer(Gfx& gfx) {
 	ComPtr<ID3D11RasterizerState> rasterizerState;
 	CHECK_WIN_HRESULT(gfx.device->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf()));
 	gfx.ctx->RSSetState(rasterizerState.Get());
-	
 	
 	const D3D11_BLEND_DESC blendDesc{
 		.AlphaToCoverageEnable = FALSE,
@@ -100,9 +88,19 @@ Renderer::Renderer(Gfx& gfx) {
 	gfx.ctx->OMSetBlendState(blendState.Get(), nullptr, 0xffffffff);
 }
 
-#include <stdio.h>
-
 auto Renderer::update(Gfx& gfx) -> void {
+	if (Window::resized()) {
+		const D3D11_VIEWPORT viewport{
+			.TopLeftX = 0.0f,
+			.TopLeftY = 0.0f,
+			.Width = Window::size().x,
+			.Height = Window::size().y,
+			.MinDepth = 0.0f,
+			.MaxDepth = 1.0f,
+		};
+		gfx.ctx->RSSetViewports(1, &viewport);
+	}
+
 	gfx.ctx->OMSetRenderTargets(1, gfx.backBufferRenderTargetView.GetAddressOf(), nullptr);
 
 	{
@@ -115,49 +113,82 @@ auto Renderer::update(Gfx& gfx) -> void {
 		const UINT stride{ sizeof(PtVert) }, offset{ 0 };
 		gfx.ctx->IASetVertexBuffers(0, 1, fullscreenQuadPtVb.GetAddressOf(), &stride, &offset);
 	}
+
 	gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
-
-	if (Window::resized()) {
-		const D3D11_VIEWPORT viewport{
-			.TopLeftX = 0.0f,
-			.TopLeftY = 0.0f,
-			.Width = Window::size().x,
-			.Height = Window::size().y,
-			.MinDepth = 0.0f,
-			.MaxDepth = 1.0f,
-		};
-		gfx.ctx->RSSetViewports(1, &viewport);
-	}
-	
 	gfx.ctx->IASetInputLayout(ptLayout.Get());
-	gfx.ctx->VSSetShader(transformQuadPtShader.Get(), nullptr, 0);
-	gfx.ctx->PSSetShader(circleShader.Get(), nullptr, 0);
 
-	const auto s = Mat3x2::scale(Vec2{ 1.0f, Window::size().x / Window::size().y });
-
-	CircleShaderConstantBuffer constantBuffer; 	// Pointless initialization. Could store inside the class.
-	UINT circlesToDraw = 0;
-	auto drawCircles = [&] {
-		D3D11_MAPPED_SUBRESOURCE resource{};
-		CHECK_WIN_HRESULT(gfx.ctx->Map(circleShaderConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource));
-		memcpy(resource.pData, &constantBuffer, sizeof(constantBuffer));
-		gfx.ctx->Unmap(circleShaderConstantBuffer.Get(), 0);
-		// TODO: Check if this needs to be called for every draw.
-		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBuffer.GetAddressOf());
-		gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), circlesToDraw, 0, 0, 0);
+	const auto aspectRatio = Window::size().x / Window::size().y;
+	const auto screenCorrectScale = Mat3x2::scale(Vec2{ 1.0f, aspectRatio });
+	auto makeTransform = [&screenCorrectScale, aspectRatio](Vec2 translation, float orientation, float scale) -> Mat3x2 {
+		return Mat3x2::rotate(orientation)* screenCorrectScale* Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio });
 	};
-	for (const auto& circle : circleEntites) {
-		if (circlesToDraw >= std::size(constantBuffer.instanceData)) {
-			drawCircles();
-			circlesToDraw = 0;
-		}
 
-		constantBuffer.instanceData[circlesToDraw] = {
-			.radiusInverse = 1.0f / circle.radius,
-			.transform = Mat3x2::rotate(circle.rotation) * s * Mat3x2::scale(Vec2{ circle.radius }) * Mat3x2::translate(Vec2{ circle.pos.x, circle.pos.y * (Window::size().x / Window::size().y)}),
-			.color = Vec3{ 1.0, 0.0f, 0.0f }
+	{
+		gfx.ctx->VSSetShader(vsCircle.shader.Get(), nullptr, 0);
+		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
+		UINT toDraw = 0;
+		auto draw = [&] {
+			gfx.updateConstantBuffer(circleShaderConstantBufferResource, &circleShaderConstantBuffer, sizeof(circleShaderConstantBuffer));
+			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
 		};
-		circlesToDraw++;
+		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
+		for (const auto& circle : circleEntites) {
+			if (toDraw >= std::size(circleShaderConstantBuffer.instanceData)) {
+				draw();
+				toDraw = 0;
+			}
+			// TODO: Maybe make a function transformToMatrix(Transform, Vec2 scale)
+			circleShaderConstantBuffer.instanceData[toDraw] = {
+				.invRadius = 1.0f / circle.collider.radius,
+				.transform = makeTransform(circle.transform.pos, circle.transform.orientation, circle.collider.radius),
+				.color = Vec3{ 1.0, 0.0f, 0.0f }
+			};
+			toDraw++;
+		}
+		draw();
 	}
-	drawCircles();
+
+	gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
+	gfx.ctx->PSSetShader(psLine.Get(), nullptr, 0);
+	{
+		UINT toDraw = 0;
+		auto draw = [&] {
+			gfx.updateConstantBuffer(lineShaderConstantBufferResource, &lineShaderConstantBuffer, sizeof(lineShaderConstantBuffer));
+			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
+		};
+		// Can be called last in loops because zero sized arrays are not allowed.
+		auto checkDraw = [&] {
+			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
+				draw();
+				toDraw = 0;
+			}
+			toDraw++;
+		};
+		const auto extraLength = 0.006f; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
+
+		gfx.ctx->VSSetConstantBuffers(0, 1, lineShaderConstantBufferResource.GetAddressOf());
+		for (const auto& line : lineEntites) {
+			const auto length = line.collider.halfLength * 2.0f;
+			const auto start = line.transform.pos - Vec2{ cos(line.transform.orientation), sin(line.transform.orientation) } * line.collider.halfLength;
+			lineShaderConstantBuffer.instanceData[toDraw] = {
+				.invScale = 1.0f / length,
+				.transform = makeTransform(start, line.transform.orientation, length + extraLength),
+				.color = Vec3{ 1.0, 0.0f, 0.0f },
+			};
+			checkDraw();
+		}
+		for (const auto& line : Debug::lines) {
+			const auto lineVector = line.end - line.start;
+			const auto length = lineVector.length();
+			const auto orientation = atan2(lineVector.y, lineVector.x);
+
+			lineShaderConstantBuffer.instanceData[toDraw] = {
+				.invScale = 1.0f / length,
+				.transform = makeTransform(line.start, orientation, length + extraLength),
+				.color = line.color,
+			};
+			checkDraw();
+		}
+		draw();
+	}
 }

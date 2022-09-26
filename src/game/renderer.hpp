@@ -17,8 +17,8 @@ private:
 
 	static constexpr PtVert fullscreenQuadVerts[]{
 		{ Vec2{ -1.0f, 1.0f }, Vec2{ 0.0f, 0.0f } },
-		{ Vec2{ 1.0f, 1.0f }, Vec2{ 0.0f, 1.0f } },
-		{ Vec2{ -1.0f, -1.0f }, Vec2{ 1.0f, 0.0f } },
+		{ Vec2{ 1.0f, 1.0f }, Vec2{ 1.0f, 0.0f } },
+		{ Vec2{ -1.0f, -1.0f }, Vec2{ 0.0f, 1.0f } },
 		{ Vec2{ 1.0f, -1.0f }, Vec2{ 1.0f, 1.0f } },
 	};
 	static constexpr u16 fullscreenQuadIndices[]{
@@ -27,18 +27,30 @@ private:
 	ComPtr<ID3D11Buffer> fullscreenQuadPtVb;
 	ComPtr<ID3D11Buffer> fullscreenQuadIb;
 
-	ComPtr<ID3D11VertexShader> transformQuadPtShader;
-
-	ComPtr<ID3D11PixelShader> circleShader;
-
+	VertexShader vsCircle;
+	ComPtr<ID3D11PixelShader> psCircle;
 	struct CircleInstance {
-		float radiusInverse;
-		float3x2 transform;
+		float invRadius;
+		float3x2 transform; // Scale has to be uniform.
 		float3 color;
 	};
-	ComPtr<ID3D11Buffer> circleShaderConstantBuffer;
+	ComPtr<ID3D11Buffer> circleShaderConstantBufferResource;
 	struct CircleShaderConstantBuffer {
 		// Can use designed initializers {[0 ... <n>] = <value>};
 		CircleInstance instanceData[100];
 	};
+	CircleShaderConstantBuffer circleShaderConstantBuffer;
+
+	VertexShader vsLine;
+	ComPtr<ID3D11PixelShader> psLine;
+	struct LineInstance {
+		float invScale;
+		float3x2 transform; // Scale has to be uniform.
+		float3 color;
+	};
+	ComPtr<ID3D11Buffer> lineShaderConstantBufferResource;
+	struct LineShaderConstantBuffer {
+		LineInstance instanceData[100];
+	};
+	LineShaderConstantBuffer lineShaderConstantBuffer;
 };

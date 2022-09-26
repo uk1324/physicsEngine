@@ -4,6 +4,12 @@
 
 #include <pch.hpp>
 
+// TODO: Maybe overload '->' for these types.
+struct VertexShader {
+	ComPtr<ID3D11VertexShader> shader;
+	ComPtr<ID3DBlob> blob;
+};
+
 class Gfx
 {
 public:
@@ -11,6 +17,12 @@ public:
 
 	auto update() -> void;
 	auto present() -> void;
+
+	auto createConstantBuffer(UINT sizeBytes) -> ComPtr<ID3D11Buffer>;
+	auto updateConstantBuffer(ComPtr<ID3D11Buffer>& buffer, void* data, usize dataSize) -> void;
+
+	auto vsFromFile(LPCWSTR filename) -> VertexShader;
+	auto psFromFile(LPCWSTR filename) -> ComPtr<ID3D11PixelShader>;
 
 	auto createVb(const void* data, UINT byteSize, UINT byteStride) -> ComPtr<ID3D11Buffer>;
 	auto createIb(const void* data, UINT byteSize, UINT byteStride) -> ComPtr<ID3D11Buffer>;

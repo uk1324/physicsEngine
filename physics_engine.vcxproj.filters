@@ -60,6 +60,12 @@
     <ClCompile Include="src\engine\frameAllocator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\math\line.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\debug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -122,9 +128,17 @@
     <ClInclude Include="src\engine\frameAllocator.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\math\line.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\debug.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\game\shaders\vsTransformQuadPt.hlsl" />
     <FxCompile Include="src\game\shaders\psCircle.hlsl" />
+    <FxCompile Include="src\game\shaders\vsCircle.hlsl" />
+    <FxCompile Include="src\game\shaders\vsLine.hlsl" />
+    <FxCompile Include="src\game\shaders\psLine.hlsl" />
   </ItemGroup>
 </Project>

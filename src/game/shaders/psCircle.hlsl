@@ -21,9 +21,9 @@ float4 main(
 	);
 
 	if (distance < 1.0) {
-		float2 normal = float2(1.0, 0.0);
-		float2 direction = float2(-normal.y, normal.x);
-		float projectionLength = dot(pos, direction);
+		float2 normal = float2(0.0, 1.0);
+		float2 direction = float2(normal.y, -normal.x);
+		float projectionLength = dot(pos, direction); // Could just use determinant.
 		if (projectionLength > 0.0 && projectionLength < 1.0 - iterpolationWidth) {
 			float distance = abs(dot(pos, normal));
 			circleColor += lerp(color, colorTransparent, smoothstep(width - iterpolationWidth, width, distance));
