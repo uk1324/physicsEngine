@@ -156,8 +156,8 @@ auto Game::update(Gfx& gfx) -> void {
 	if (Input::isButtonHeld(GameButton::LEFT)) {
 		dir.x -= 1.0f;
 	}
-	//circleEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
-	lineEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
+	circleEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
+	//lineEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
 
 	if (Input::isKeyDown(Keycode::R)) {
 		circleEntites[0].physics.angularVel += 0.2f + circleEntites[0].physics.angularVel * 2.0f;

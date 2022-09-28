@@ -5,6 +5,7 @@
 #include <game/debug.hpp>
 #include <engine/time.hpp>
 #include <engine/window.hpp>
+#include <engine/audio.hpp>
 #include <engine/input.hpp>
 #include <engine/frameAllocator.hpp>
 
@@ -42,6 +43,7 @@ auto testAreaAllocator() -> void {
 auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
 	Window::init("game", Vec2(640, 480));
 	Gfx gfx{ Window::hWnd() };
+	Audio::init();
 	Game game{ gfx };
 
 	auto currentTime = []() -> float {
@@ -64,6 +66,7 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 
 			Input::update();
 			Window::update();
+			Audio::update();
 			// Without this the window doesn't close instantly.
 			// TODO: Maybe find a better way to do this. The current way still has to wait untill the frame finishes.
 			if (!Window::running())

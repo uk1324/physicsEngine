@@ -117,8 +117,8 @@ auto Renderer::update(Gfx& gfx) -> void {
 	gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
 	gfx.ctx->IASetInputLayout(ptLayout.Get());
 
-	const auto aspectRatio = Window::size().x / Window::size().y;
-	const auto screenCorrectScale = Mat3x2::scale(Vec2{ 1.0f, aspectRatio });
+	const auto aspectRatio{ Window::size().x / Window::size().y };
+	const auto screenCorrectScale{ Mat3x2::scale(Vec2{ 1.0f, aspectRatio }) };
 	auto makeTransform = [&screenCorrectScale, aspectRatio](Vec2 translation, float orientation, float scale) -> Mat3x2 {
 		return Mat3x2::rotate(orientation)* screenCorrectScale* Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio });
 	};
@@ -148,9 +148,9 @@ auto Renderer::update(Gfx& gfx) -> void {
 		draw();
 	}
 
-	gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
-	gfx.ctx->PSSetShader(psLine.Get(), nullptr, 0);
 	{
+		gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
+		gfx.ctx->PSSetShader(psLine.Get(), nullptr, 0);
 		UINT toDraw = 0;
 		auto draw = [&] {
 			gfx.updateConstantBuffer(lineShaderConstantBufferResource, &lineShaderConstantBuffer, sizeof(lineShaderConstantBuffer));
