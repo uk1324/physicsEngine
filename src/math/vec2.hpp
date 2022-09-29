@@ -3,11 +3,14 @@
 #include <utils/asserts.hpp>
 #include <utils/int.hpp>
 
+#include <cmath>
+
 template<typename T>
 struct Vec2T {
 	constexpr Vec2T();
 	constexpr explicit Vec2T(T all);
 	constexpr Vec2T(T x, T y);
+	static auto oriented(T angle) -> Vec2T;
 
 	auto lengthSq() const -> T;
 	auto length() const -> T;
@@ -72,6 +75,11 @@ template<typename T>
 constexpr Vec2T<T>::Vec2T(T x, T y)
 	: x(x)
 	, y(y) {}
+
+template<typename T>
+auto Vec2T<T>::oriented(T angle) -> Vec2T {
+	return Vec2{ cos(angle), sin(angle) };
+}
 
 template<typename T>
 auto Vec2T<T>::lengthSq() const -> T {

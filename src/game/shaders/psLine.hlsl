@@ -1,3 +1,4 @@
+// TODO: Maybe try using the triangles derivative for scaling. Don't know how that would work yet.
 float4 main(float2 texturePos : TexturePos, float invScale : InvScale, float3 color : Color) : Sv_Target {
 	float2 pos = (texturePos - float2(0.5, 0.5)) * 2.0;
 

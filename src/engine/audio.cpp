@@ -106,16 +106,16 @@ auto Audio::update() -> void {
 	}
 
 	for (u32 i = 0; i < std::size(keys); i++) {
-		if (Input::isKeyDown(keys[i])) {
-			CHECK_WIN_HRESULT(sourceVoice->SetFrequencyRatio(pow(pow(2.0f, 1.0f / 12.0f) * scale, static_cast<float>(i))));
-			CHECK_WIN_HRESULT(sourceVoice->FlushSourceBuffers());
-			CHECK_WIN_HRESULT(sourceVoice->SubmitSourceBuffer(&buffer));
-			CHECK_WIN_HRESULT(sourceVoice->Start());
-			break;
-		}
-		else if (Input::isKeyUp(keys[i])) {
-			CHECK_WIN_HRESULT(sourceVoice->Stop());
-			break;
-		}
+		//if (Input::isKeyDown(keys[i])) {
+		//	CHECK_WIN_HRESULT(sourceVoice->SetFrequencyRatio(pow(pow(2.0f, 1.0f / 12.0f) * scale, static_cast<float>(i))));
+		//	CHECK_WIN_HRESULT(sourceVoice->FlushSourceBuffers());
+		//	CHECK_WIN_HRESULT(sourceVoice->SubmitSourceBuffer(&buffer));
+		//	CHECK_WIN_HRESULT(sourceVoice->Start());
+		//	break;
+		//}
+		//else if (Input::isKeyUp(keys[i])) {
+		//	CHECK_WIN_HRESULT(sourceVoice->Stop());
+		//	break;
+		//}
 	}
 }
