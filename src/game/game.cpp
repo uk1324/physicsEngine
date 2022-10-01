@@ -90,7 +90,7 @@ static auto collisionResponse(
 	a = F / m = (P / t) / m = (m0v / tm1)
 
 	Assume that the friction is applied for the whole frame.
-	Problems arise when doing time of impact calculations.
+	Problems might arise when doing time of impact calculations because the friction would not be applied for long enough or would be applied to quickly.
 	*/
 	const auto ra = (hitPoint - aTransform.pos).rotBy90deg();
 	const auto rb = (hitPoint - bTransform.pos).rotBy90deg();
@@ -101,14 +101,12 @@ static auto collisionResponse(
 	const auto aForce = (dot(1.0f / aPhysics.invMass * aVel, parallel) * parallel) * 0.9f;
 	const auto bForce = (dot(1.0f / bPhysics.invMass * bVel, parallel) * parallel) * 0.9f;
 
-	//aPhysics.vel -= bForce * Time::deltaTime();
-	//bPhysics.vel += aForce * Time::deltaTime();
+	Debug::drawLine(aTransform.pos, aTransform.pos - aForce * Time::deltaTime() * 10.0f);
+
+	aPhysics.vel -= bForce * Time::deltaTime();
+	bPhysics.vel -= aForce * Time::deltaTime();
 	aPhysics.angularVel += det(hitNormal, aForce) * Time::deltaTime();
 	bPhysics.angularVel += det(hitNormal, bForce) * Time::deltaTime();
-
-
-	/*const auto aMomentum = (1.0f / aPhysics.invMass * aPhysics.vel) / Time::deltaTime() * bPhysics.invMass;
-	const auto bMomentum = (1.0f / bPhysics.invMass * bPhysics.vel) / Time::deltaTime() * aPhysics.invMass;*/
 
 	/*
 	Variables with a prime refer to post collision variables.
@@ -274,13 +272,11 @@ auto Game::update(Gfx& gfx) -> void {
 	for (auto& line : lineEntites) {
 		line.physics.angularVel = 0.0f;
 		line.physics.vel = Vec2{ 0.0f };
-		line.physics.vel.y += Time::deltaTime() * 1.0f * 0.98f;
+		//line.physics.vel.y += Time::deltaTime() * 1.0f * 0.98f;
 	}
 
 	for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
-	for (auto& line : lineEntites) integrate(line.transform, line.physics);
-
-	//Debug::drawLine(circleEntites[0].transform.pos, circleEntites[1].transform.pos);
+	//for (auto& line : lineEntites) integrate(line.transform, line.physics);
 
 	renderer.update(gfx);
 }

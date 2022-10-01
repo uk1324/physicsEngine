@@ -52,7 +52,7 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 	};
 
 	auto previousFrameStart{ currentTime() }, accumulated{ 0.0f };
-	static constexpr auto FRAME_TIME = 1.0f / 60.0f;
+	static constexpr auto FRAME_TIME = 1.0f / 240.0f;
 	while (Window::running()) {
 		const auto frameStart{ currentTime() };
 		const auto elapsed{ frameStart - previousFrameStart };
