@@ -23,6 +23,7 @@ struct Vec2T {
 	auto operator-=(const Vec2T& v) -> Vec2T&;
 	auto operator*(T s) const -> Vec2T;
 	auto operator*=(T s) -> Vec2T&;
+	auto operator*(const Vec2T& v) const -> Vec2T;
 	auto operator/(T s) const -> Vec2T;
 	auto operator/(const Vec2T& v) const -> Vec2T;
 	auto operator/=(const Vec2T& v) -> Vec2T&;
@@ -43,6 +44,11 @@ using Vec2 = Vec2T<float>;
 template<typename T>
 auto operator*(T s, const Vec2T<T>& v) -> Vec2T<T> {
 	return v * s;
+}
+
+template<typename T>
+auto operator/(T s, const Vec2T<T>& v) -> Vec2T<T> {
+	return Vec2{ s / v.x, s / v.y };
 }
 
 template<typename T>
@@ -138,6 +144,11 @@ template<typename T>
 auto Vec2T<T>::operator*=(T s) -> Vec2T& {
 	*this = *this * s;
 	return *this;
+}
+
+template<typename T>
+auto Vec2T<T>::operator*(const Vec2T& v) const -> Vec2T {
+	return Vec2{ x * v.x, y * v.y };
 }
 
 template<typename T>

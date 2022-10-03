@@ -12,6 +12,8 @@ Game::Game(Gfx& gfx)
 	: renderer{ gfx }
 	, material0{ .bounciness = 0.9f }
 	, material1{ .bounciness = 0.1f } {
+	Window::maximize();
+
 	Input::registerKeyButton(Keycode::W, GameButton::UP);
 	Input::registerKeyButton(Keycode::S, GameButton::DOWN);
 	Input::registerKeyButton(Keycode::A, GameButton::LEFT);
@@ -187,7 +189,6 @@ static auto integrate(Transform& transform, PhysicsInfo& physics) {
 	F = G(m1m2/r^2)
 	F = ma
 	a = F/m 
-	// TODO: What about inifnite mass?
 	a = G(m1m2/r^2) / m1 = Gm1m2/r^2m1 = Gm2/r^2
 	*/
 	physics.vel.y -= Time::deltaTime() * 1.0f;
@@ -197,86 +198,205 @@ static auto integrate(Transform& transform, PhysicsInfo& physics) {
 }
 
 auto Game::update(Gfx& gfx) -> void {
-	Vec2 dir{ 0.0f };
-	if (Input::isButtonHeld(GameButton::UP)) {
-		dir.y += 1.0f;
-	}
-	if (Input::isButtonHeld(GameButton::DOWN)) {
-		dir.y -= 1.0f;
-	}
+	//Vec2 dir{ 0.0f };
+	//if (Input::isButtonHeld(GameButton::UP)) {
+	//	dir.y += 1.0f;
+	//}
+	//if (Input::isButtonHeld(GameButton::DOWN)) {
+	//	dir.y -= 1.0f;
+	//}
 
-	if (Input::isButtonHeld(GameButton::RIGHT)) {
-		dir.x += 1.0f;
-	}
-	if (Input::isButtonHeld(GameButton::LEFT)) {
-		dir.x -= 1.0f;
-	}
-	//circleEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
-	lineEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
+	//if (Input::isButtonHeld(GameButton::RIGHT)) {
+	//	dir.x += 1.0f;
+	//}
+	//if (Input::isButtonHeld(GameButton::LEFT)) {
+	//	dir.x -= 1.0f;
+	//}
+	////circleEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
+	//lineEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
 
-	if (Input::isKeyDown(Keycode::R)) {
-		circleEntites[0].physics.angularVel += 0.2f + circleEntites[0].physics.angularVel * 2.0f;
-	}
+	//if (Input::isKeyDown(Keycode::R)) {
+	//	circleEntites[0].physics.angularVel += 0.2f + circleEntites[0].physics.angularVel * 2.0f;
+	//}
 
-	{
-		auto start{ circleEntites.begin() };
-		for (auto& a : circleEntites) {
-			start++;
-			for (auto it = start; it != circleEntites.end(); it++) {
-				auto& b{ *it };
-				if ((a.transform.pos - b.transform.pos).lengthSq() < pow(a.collider.radius + b.collider.radius, 2)) {
-					const auto normal{ (a.transform.pos - b.transform.pos).normalized() };
-					const auto hitPoint = a.transform.pos + normal * a.collider.radius;
-					collisionResponse(hitPoint, normal, a.transform, b.transform, a.physics, b.physics);
-				}
-			}
-			for (auto& b : lineEntites) {
-				/*const Line line{ Vec2::oriented(b.transform.orientation), 0.0 };
-				b.transform.pos*/
-				Line line{ Vec2::oriented(b.transform.orientation).rotBy90deg(), 0.0 };
-				line = line.translated(b.transform.pos);
-				line.n = line.n.normalized();
-				const auto centerOffsetAlongLine = det(line.n, b.transform.pos);
+	//{
+	//	auto start{ circleEntites.begin() };
+	//	for (auto& a : circleEntites) {
+	//		start++;
+	//		for (auto it = start; it != circleEntites.end(); it++) {
+	//			auto& b{ *it };
+	//			if ((a.transform.pos - b.transform.pos).lengthSq() < pow(a.collider.radius + b.collider.radius, 2)) {
+	//				const auto normal{ (a.transform.pos - b.transform.pos).normalized() };
+	//				const auto hitPoint = a.transform.pos + normal * a.collider.radius;
+	//				collisionResponse(hitPoint, normal, a.transform, b.transform, a.physics, b.physics);
+	//			}
+	//		}
+	//		for (auto& b : lineEntites) {
+	//			/*const Line line{ Vec2::oriented(b.transform.orientation), 0.0 };
+	//			b.transform.pos*/
+	//			Line line{ Vec2::oriented(b.transform.orientation).rotBy90deg(), 0.0 };
+	//			line = line.translated(b.transform.pos);
+	//			line.n = line.n.normalized();
+	//			const auto centerOffsetAlongLine = det(line.n, b.transform.pos);
 
-				const auto signedDistance = ::signedDistance(line, a.transform.pos);
-				if (abs(signedDistance) <= a.collider.radius) {
-					const auto offsetAlongLine = det(line.n, a.transform.pos);
-					// Can't just check if the offsetAlongLine is in the range because this would only work if this was an OBB oriented in the same way as the line and not a sphere.
-					
-					const auto vectorAlongLine = line.n.rotBy90deg();
-					/*const auto possibleHitPoint = vectorAlongLine * std::clamp(offsetAlongLine, centerOffsetAlongLine - b.collider.halfLength, centerOffsetAlongLine + b.collider.halfLength) + line.n * dot(line.n, b.transform.pos);*/
+	//			const auto signedDistance = ::signedDistance(line, a.transform.pos);
+	//			if (abs(signedDistance) <= a.collider.radius) {
+	//				const auto offsetAlongLine = det(line.n, a.transform.pos);
+	//				// Can't just check if the offsetAlongLine is in the range because this would only work if this was an OBB oriented in the same way as the line and not a sphere.
+	//				
+	//				const auto vectorAlongLine = line.n.rotBy90deg();
+	//				/*const auto possibleHitPoint = vectorAlongLine * std::clamp(offsetAlongLine, centerOffsetAlongLine - b.collider.halfLength, centerOffsetAlongLine + b.collider.halfLength) + line.n * dot(line.n, b.transform.pos);*/
 
-					const auto hitNormal = (signedDistance < 0) ? -line.n.normalized() : line.n.normalized();
-					const auto possibleHitPoint = a.transform.pos - hitNormal * a.collider.radius;
-					if (const auto hitNonCorner = offsetAlongLine > centerOffsetAlongLine - b.collider.halfLength
-						&& offsetAlongLine < centerOffsetAlongLine + b.collider.halfLength) {
-						collisionResponse(possibleHitPoint, hitNormal, a.transform, b.transform, a.physics, b.physics);
-						// @Hack
-						a.transform.pos += (a.collider.radius - abs(signedDistance)) * hitNormal;
-					} else {
-						const auto corner = -vectorAlongLine * std::clamp(offsetAlongLine, centerOffsetAlongLine - b.collider.halfLength, centerOffsetAlongLine + b.collider.halfLength) - line.n * line.d;
-						const auto distanceFromCorner = distance(corner, a.transform.pos);
-						const auto normal = (a.transform.pos - corner).normalized();
-						if (const auto hitCorner = distanceFromCorner <= a.collider.radius) {
-							collisionResponse(corner, normal, a.transform, b.transform, a.physics, b.physics);
-							// @Hack
-							a.transform.pos += (a.collider.radius - (corner - a.transform.pos).length()) * normal;
-						}
-					}
-				}
+	//				const auto hitNormal = (signedDistance < 0) ? line.n.normalized() : -line.n.normalized();
+	//				const auto possibleHitPoint = a.transform.pos - hitNormal * a.collider.radius;
+	//				if (const auto hitNonCorner = offsetAlongLine > centerOffsetAlongLine - b.collider.halfLength
+	//					&& offsetAlongLine < centerOffsetAlongLine + b.collider.halfLength) {
+	//					collisionResponse(possibleHitPoint, hitNormal, a.transform, b.transform, a.physics, b.physics);
+	//					// @Hack
+	//					a.transform.pos += (a.collider.radius - abs(signedDistance)) * hitNormal;
+	//				} else {
+	//					// TODO: This code might be broken because of the sign change in Line. Check it.
+	//					const auto corner = -vectorAlongLine * std::clamp(offsetAlongLine, centerOffsetAlongLine - b.collider.halfLength, centerOffsetAlongLine + b.collider.halfLength) - line.n * line.d;
+	//					const auto distanceFromCorner = distance(corner, a.transform.pos);
+	//					const auto normal = (a.transform.pos - corner).normalized();
+	//					if (const auto hitCorner = distanceFromCorner <= a.collider.radius) {
+	//						collisionResponse(corner, normal, a.transform, b.transform, a.physics, b.physics);
+	//						// @Hack
+	//						a.transform.pos += (a.collider.radius - (corner - a.transform.pos).length()) * normal;
+	//					}
+	//				}
+	//			}
+	//		}
+	//	}
+	//}
+	//
+	//// @Hack
+	//for (auto& line : lineEntites) {
+	//	line.physics.angularVel = 0.0f;
+	//	line.physics.vel = Vec2{ 0.0f };
+	//	//line.physics.vel.y += Time::deltaTime() * 1.0f * 0.98f;
+	//}
+
+	//for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
+	////for (auto& line : lineEntites) integrate(line.transform, line.physics);
+
+	auto draw = [this](const std::vector<Vec2>& vertices, Vec2 pos, Vec3 color) {
+		for (size_t i = 0; i < vertices.size(); i++) {
+			Debug::drawLine((vertices[i] + pos), (i + 1 < vertices.size() ? vertices[i + 1] : vertices[0]) + pos, color);
+		}
+	};
+
+	std::vector<Vec2> a{ Vec2{ -0.1f, -0.3f }, Vec2{ -0.1f, 0.2f }, Vec2{ 0.05f, 0.2f }, Vec2{ 0.3f, -0.1f } };
+	
+	Vec2 aPos{ renderer.mousePosToScreenPos(Input::cursorPos()) };
+	const std::vector<Vec2> b{ Vec2{ -0.2f, -0.3f }, Vec2{ -0.2f, 0.1f }, Vec2{ 0.01f, 0.2f }, Vec2{ 0.2f, -0.1f } };
+	Vec2 bPos{ 0.0f };
+
+	auto support = [](Vec2 dir, const std::vector<Vec2>& vertices, Vec2 pos) -> Vec2 {
+		ASSERT(vertices.size() != 0);
+		auto pointFurthestOnPolygonInDirection = vertices[0] + pos;
+		auto distance = dot(pointFurthestOnPolygonInDirection, dir);
+		for (usize i = 1; i < vertices.size(); i++) {
+			if (const auto thisDistance = dot(vertices[i] + pos, dir); thisDistance > distance) {
+				distance = thisDistance;
+				pointFurthestOnPolygonInDirection = vertices[i] + pos;
 			}
 		}
+		return pointFurthestOnPolygonInDirection;
+	};
+
+	Vec2 direction{ 1.0f, 0.0f };
+	std::vector<Vec2> simplex{ support(direction, a, aPos) - support(direction, b, bPos) };
+
+	/*for (;;)*/ {
+		struct LineBarycentric {
+			float u, v;
+		};
+
+		auto lineBarycentric = [](Vec2 a, Vec2 b) {
+			// Line barycentric coordinate for the origin projected onto the line a b.
+			const auto normalize = 1.0f / pow(distance(a, b), 2);
+			return LineBarycentric{
+				.u = dot(b - a, /* Vec2{ 0.0f } */ -a) * normalize,
+				.v = dot(a - b, /* Vec2{ 0.0f } */ -b) * normalize,
+			};
+		};
+
+		// Rounding, exact computations, epsilon check.
+
+
+		simplex = {
+			Vec2{ 0.0f, -0.0f } + renderer.mousePosToScreenPos(Input::cursorPos()),
+			Vec2{ 0.5f, -0.5f } + renderer.mousePosToScreenPos(Input::cursorPos()),
+			Vec2{ 0.0f, -0.2f } + renderer.mousePosToScreenPos(Input::cursorPos()),
+		};
+
+		Vec2 closestPoint;
+
+
+		if (simplex.size() == 1) {
+			closestPoint = simplex[0];
+		} else if (simplex.size() == 2) {
+			/*
+			u * b + v * a
+			*/
+			const auto [u, v] = lineBarycentric(simplex[0], simplex[1]);
+			if (u < 0.0f) {
+				closestPoint = simplex[0];
+			} else if (v < 0.0f) {
+				closestPoint = simplex[1];
+			} else {
+				closestPoint = u * simplex[1] + v * simplex[0];
+			}
+		} else {
+
+			const auto
+				e0 = simplex[1] - simplex[0],
+				e1 = simplex[2] - simplex[1],
+				e2 = simplex[0] - simplex[2];
+			const auto
+				l0 = /* Vec2{ 0.0f } */ -simplex[0],
+				l1 = /* Vec2{ 0.0f } */ -simplex[1],
+				l2 = /* Vec2{ 0.0f } */ -simplex[2];
+			const auto area = det(e0, e1);
+			const auto
+				uabc = det(e0, l0) / area,
+				vabc = det(e1, l1) / area,
+				wabc = det(e2, l2) / area;
+			if (uabc > 0.0f && vabc > 0.0f && wabc > 0.0f) {
+				closestPoint = Vec2{ 0.0f };
+			} 
+
+			const auto [uab, vab] = lineBarycentric(simplex[0], simplex[1]);
+			const auto [ubc, vbc] = lineBarycentric(simplex[1], simplex[2]);
+			const auto [uca, vca] = lineBarycentric(simplex[2], simplex[0]);
+
+			if (uab < 0.0f && vca < 0.0f) {
+				closestPoint = simplex[0];
+			} else if (ubc < 0.0f && vab < 0.0f) {
+				closestPoint = simplex[1];
+			} else if (uca < 0.0f && vbc < 0.0f) {
+				closestPoint = simplex[2];
+			} else if (uab >= 0.0f && vab >= 0.0f && uabc <= 0.0f) {
+				closestPoint = uab * simplex[1] + vab * simplex[0];
+			} else if (ubc >= 0.0f && vbc >= 0.0f && vabc <= 0.0f) {
+				closestPoint = ubc * simplex[2] + vbc * simplex[1];
+			} else if (uca >= 0.0f && vca >= 0.0f && wabc <= 0.0f) {
+				closestPoint = uca * simplex[0] + vca * simplex[2];
+			}
+		}
+		draw(simplex, Vec2{ 0.0f }, Vec3{ 1.0f });
+		Debug::drawLine(closestPoint, Vec2{ 0.0f }, Vec3{ 0.0f, 0.0f, 1.0f });
 	}
 	
-	// @Hack
-	for (auto& line : lineEntites) {
-		line.physics.angularVel = 0.0f;
-		line.physics.vel = Vec2{ 0.0f };
-		//line.physics.vel.y += Time::deltaTime() * 1.0f * 0.98f;
-	}
 
-	for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
-	//for (auto& line : lineEntites) integrate(line.transform, line.physics);
+
+	// TODO: Try computing the point and not vertex furthest in one direction. This will probably be worse and it might not actually converge.
+
+	// From what is understand the mathematically collision would be always detected when the first one simplex is constructed, but due to numerical precison this wouldn't atucally work because it would need to check if a point lies directly on a line segment (the outside case is easy).  
+	// From the definition of a convex polygon (non self intersecting) a line going throught it goes through at most 2 points. If I pick a random direction and get the point furthest on the polygon in that direction and then find a point furthest in the direction from that random point to the checked point then if the point is inside the polygon it has to lie on the line from the 2 points in the selected directions.
+
+	// Circles can be treated as points.
 
 	renderer.update(gfx);
 }

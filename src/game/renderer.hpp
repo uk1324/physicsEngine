@@ -8,7 +8,11 @@ public:
 	Renderer(Gfx& gfx);
 	auto update(Gfx& gfx) -> void;
 
+	auto mousePosToScreenPos(Vec2 v) -> Vec2;
+
 private:
+	Vec2 screenCorrectScale;
+
 	struct PtVert {
 		Vec2 pos;
 		Vec2 texturePos;
@@ -28,6 +32,7 @@ private:
 	ComPtr<ID3D11Buffer> fullscreenQuadIb;
 
 	VertexShader vsCircle;
+	ComPtr<ID3D11PixelShader> psCircleCollider;
 	ComPtr<ID3D11PixelShader> psCircle;
 	struct CircleInstance {
 		float invRadius;
@@ -35,11 +40,10 @@ private:
 		float3 color;
 	};
 	ComPtr<ID3D11Buffer> circleShaderConstantBufferResource;
-	struct CircleShaderConstantBuffer {
-		// Can use designed initializers {[0 ... <n>] = <value>};
+	struct CircleConstantBuffer {
 		CircleInstance instanceData[100];
 	};
-	CircleShaderConstantBuffer circleShaderConstantBuffer;
+	CircleConstantBuffer circleShaderConstantBuffer;
 
 	VertexShader vsLine;
 	ComPtr<ID3D11PixelShader> psLine;

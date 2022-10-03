@@ -69,6 +69,9 @@
     <ClCompile Include="src\engine\audio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\math\collision.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -140,11 +143,15 @@
     <ClInclude Include="src\engine\audio.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\math\collision.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\game\shaders\psCircle.hlsl" />
-    <FxCompile Include="src\game\shaders\vsCircle.hlsl" />
     <FxCompile Include="src\game\shaders\vsLine.hlsl" />
     <FxCompile Include="src\game\shaders\psLine.hlsl" />
+    <FxCompile Include="src\game\shaders\psCircleCollider.hlsl" />
+    <FxCompile Include="src\game\shaders\vsCircle.hlsl" />
+    <FxCompile Include="src\game\shaders\psCircle.hlsl" />
   </ItemGroup>
 </Project>

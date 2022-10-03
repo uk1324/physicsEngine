@@ -82,6 +82,10 @@ auto Window::update() -> void {
 	}
 }
 
+auto Window::maximize() -> void {
+	PostMessage(hWnd_, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+}
+
 auto WINAPI Window::windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
 	switch (msg) {
 	case WM_CLOSE:

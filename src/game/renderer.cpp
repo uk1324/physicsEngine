@@ -11,6 +11,7 @@
 
 Renderer::Renderer(Gfx& gfx) {
 	vsCircle = gfx.vsFromFile(BUILD_DIR L"vsCircle.cso");
+	psCircleCollider = gfx.psFromFile(BUILD_DIR L"psCircleCollider.cso");
 	psCircle = gfx.psFromFile(BUILD_DIR L"psCircle.cso");
 	circleShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(circleShaderConstantBuffer));
 
@@ -118,49 +119,71 @@ auto Renderer::update(Gfx& gfx) -> void {
 	gfx.ctx->IASetInputLayout(ptLayout.Get());
 
 	const auto aspectRatio{ Window::size().x / Window::size().y };
-	const auto screenCorrectScale{ Mat3x2::scale(Vec2{ 1.0f, aspectRatio }) };
-	auto makeTransform = [&screenCorrectScale, aspectRatio](Vec2 translation, float orientation, float scale) -> Mat3x2 {
-		return Mat3x2::rotate(orientation)* screenCorrectScale* Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio });
+	this->screenCorrectScale = Vec2{ 1.0f, aspectRatio };
+	const auto screenScale{ Mat3x2::scale(this->screenCorrectScale) };
+
+	auto makeTransform = [&screenScale, aspectRatio](Vec2 translation, float orientation, float scale) -> Mat3x2 {
+		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio });
 	};
 
+	// checkDraw can be called last in loops because zero sized arrays are not allowed.
+
+	// Circle
 	{
 		gfx.ctx->VSSetShader(vsCircle.shader.Get(), nullptr, 0);
-		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
+		gfx.ctx->PSSetShader(psCircleCollider.Get(), nullptr, 0);
 		UINT toDraw = 0;
 		auto draw = [&] {
 			gfx.updateConstantBuffer(circleShaderConstantBufferResource, &circleShaderConstantBuffer, sizeof(circleShaderConstantBuffer));
 			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
+			if (toDraw == 0)
+				return;
+			toDraw = 0;
+		};
+		auto checkDraw = [&] {
+			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
+				draw();
+			}
+			toDraw++;
 		};
 		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
 		for (const auto& circle : circleEntites) {
-			if (toDraw >= std::size(circleShaderConstantBuffer.instanceData)) {
-				draw();
-				toDraw = 0;
-			}
-			// TODO: Maybe make a function transformToMatrix(Transform, Vec2 scale)
 			circleShaderConstantBuffer.instanceData[toDraw] = {
 				.invRadius = 1.0f / circle.collider.radius,
 				.transform = makeTransform(circle.transform.pos, circle.transform.orientation, circle.collider.radius),
 				.color = Vec3{ 1.0, 0.0f, 0.0f }
 			};
-			toDraw++;
+			checkDraw();
 		}
+		draw();
+
+		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
+		for (const auto& circle : Debug::circles) {
+			circleShaderConstantBuffer.instanceData[toDraw] = {
+				.invRadius = 1.0f / circle.radius,
+				.transform = makeTransform(circle.pos, 0.0f, circle.radius),
+				.color = circle.color
+			};
+			checkDraw();
+		}
+
 		draw();
 	}
 
+	// Line
 	{
 		gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
 		gfx.ctx->PSSetShader(psLine.Get(), nullptr, 0);
 		UINT toDraw = 0;
 		auto draw = [&] {
+			if (toDraw == 0)
+				return;
 			gfx.updateConstantBuffer(lineShaderConstantBufferResource, &lineShaderConstantBuffer, sizeof(lineShaderConstantBuffer));
 			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
 		};
-		// Can be called last in loops because zero sized arrays are not allowed.
 		auto checkDraw = [&] {
 			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
 				draw();
-				toDraw = 0;
 			}
 			toDraw++;
 		};
@@ -191,4 +214,8 @@ auto Renderer::update(Gfx& gfx) -> void {
 		}
 		draw();
 	}
+}
+
+auto Renderer::mousePosToScreenPos(Vec2 v) -> Vec2 {
+	return v * (1.0f / screenCorrectScale);
 }

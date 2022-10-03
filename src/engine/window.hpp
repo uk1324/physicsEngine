@@ -19,6 +19,8 @@ public:
 	static auto running() -> bool { return running_; };
 	static auto exitCode() -> int { return exitCode_; };
 
+	static auto maximize() -> void;
+
 private:
 	static auto WINAPI windowMessageCallback(HWND hWnd_, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT;
 

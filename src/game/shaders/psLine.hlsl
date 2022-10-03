@@ -7,7 +7,7 @@ float4 main(float2 texturePos : TexturePos, float invScale : InvScale, float3 co
 
 	float2 vectorParallelToLine = float2(1.0, 0.0);
 	float distanceAlongLine = dot(vectorParallelToLine, pos);
-	distanceAlongLine = clamp(distanceAlongLine, 0.0, 1.0 - halfWidth /* Read renderer.cpp extraLength */);
+	distanceAlongLine = clamp(distanceAlongLine, 0.0, 1.0 - halfWidth - iterpolationWidth /* Read renderer.cpp extraLength */);
 	float2 closestPointToPosOnLine = vectorParallelToLine * distanceAlongLine;
 
 	float distanceToLine = distance(pos, closestPointToPosOnLine);
