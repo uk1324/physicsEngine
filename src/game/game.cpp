@@ -289,6 +289,9 @@ auto Game::update(Gfx& gfx) -> void {
 	std::vector<Vec2> a{ Vec2{ -0.1f, -0.3f }, Vec2{ -0.1f, 0.2f }, Vec2{ 0.05f, 0.2f }, Vec2{ 0.3f, -0.1f } };
 	
 	Vec2 aPos{ renderer.mousePosToScreenPos(Input::cursorPos()) };
+	for (auto& v : a) {
+		v += aPos;
+	}
 	const std::vector<Vec2> b{ Vec2{ -0.2f, -0.3f }, Vec2{ -0.2f, 0.1f }, Vec2{ 0.01f, 0.2f }, Vec2{ 0.2f, -0.1f } };
 	Vec2 bPos{ 0.0f };
 
@@ -305,16 +308,26 @@ auto Game::update(Gfx& gfx) -> void {
 		return pointFurthestOnPolygonInDirection;
 	};
 
-	Vec2 direction{ 1.0f, 0.0f };
-	std::vector<Vec2> simplex{ support(direction, a, aPos) - support(direction, b, bPos) };
+	auto minkowskiDifferenceSupport = [support](Vec2 dir, const std::vector<Vec2>& a, const std::vector<Vec2>& b) -> Vec2 {
+		return -(support(dir, a, Vec2{ 0.0f }) - support(-dir, b, Vec2{ 0.0f }));
+	};
 
-	/*for (;;)*/ {
+	Vec2 direction{ 1.0f, 0.0f };
+	std::vector<Vec2> simplex{ minkowskiDifferenceSupport(direction, a, b) };
+
+	if (Input::isKeyDown(Keycode::D)) {
+		__debugbreak();
+	}
+
+	bool collision = false;
+	Vec2 closestPointOnSimplexToOrigin;
+	for (;;) {
 		struct LineBarycentric {
 			float u, v;
 		};
-
-		auto lineBarycentric = [](Vec2 a, Vec2 b) {
+		auto lineBarycentric = [](Vec2 a, Vec2 b) -> LineBarycentric {
 			// Line barycentric coordinate for the origin projected onto the line a b.
+			// Vec2{ 0.0f } = u * b + v * a
 			const auto normalize = 1.0f / pow(distance(a, b), 2);
 			return LineBarycentric{
 				.u = dot(b - a, /* Vec2{ 0.0f } */ -a) * normalize,
@@ -322,74 +335,129 @@ auto Game::update(Gfx& gfx) -> void {
 			};
 		};
 
-		// Rounding, exact computations, epsilon check.
-
-
-		simplex = {
-			Vec2{ 0.0f, -0.0f } + renderer.mousePosToScreenPos(Input::cursorPos()),
-			Vec2{ 0.5f, -0.5f } + renderer.mousePosToScreenPos(Input::cursorPos()),
-			Vec2{ 0.0f, -0.2f } + renderer.mousePosToScreenPos(Input::cursorPos()),
-		};
-
-		Vec2 closestPoint;
-
-
-		if (simplex.size() == 1) {
-			closestPoint = simplex[0];
-		} else if (simplex.size() == 2) {
-			/*
-			u * b + v * a
-			*/
-			const auto [u, v] = lineBarycentric(simplex[0], simplex[1]);
-			if (u < 0.0f) {
-				closestPoint = simplex[0];
-			} else if (v < 0.0f) {
-				closestPoint = simplex[1];
+		{
+			if (simplex.size() == 1) {
+				closestPointOnSimplexToOrigin = simplex[0];
+				const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
+				simplex.push_back(newSupport);
+			} else if (simplex.size() == 2) {
+				const auto [u, v] = lineBarycentric(simplex[0], simplex[1]);
+				if (u < 0.0f) {
+					closestPointOnSimplexToOrigin = simplex[0];
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						break;
+					}
+					else {
+						simplex.erase(simplex.begin() + 1);
+					}
+				}
+				else if (v < 0.0f) {
+					closestPointOnSimplexToOrigin = simplex[1];
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						break;
+					}
+					else {
+						simplex.erase(simplex.begin() + 0);
+					}
+				}
+				else {
+					closestPointOnSimplexToOrigin = u * simplex[1] + v * simplex[0];
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						break;
+					}
+					else {
+						simplex.push_back(newSupport);
+					}
+				};
 			} else {
-				closestPoint = u * simplex[1] + v * simplex[0];
-			}
-		} else {
+				const auto
+					e0 = simplex[1] - simplex[0],
+					e1 = simplex[2] - simplex[1],
+					e2 = simplex[0] - simplex[2];
+				const auto
+					l0 = /* Vec2{ 0.0f } */ -simplex[0],
+					l1 = /* Vec2{ 0.0f } */ -simplex[1],
+					l2 = /* Vec2{ 0.0f } */ -simplex[2];
+				const auto area = det(e0, e1);
+				if (area == 0.0f) {
+					// Don't think this should happen but it does.
+					break;
+				}
+				const auto
+					uabc = det(e0, l0) / area,
+					vabc = det(e1, l1) / area,
+					wabc = det(e2, l2) / area;
 
-			const auto
-				e0 = simplex[1] - simplex[0],
-				e1 = simplex[2] - simplex[1],
-				e2 = simplex[0] - simplex[2];
-			const auto
-				l0 = /* Vec2{ 0.0f } */ -simplex[0],
-				l1 = /* Vec2{ 0.0f } */ -simplex[1],
-				l2 = /* Vec2{ 0.0f } */ -simplex[2];
-			const auto area = det(e0, e1);
-			const auto
-				uabc = det(e0, l0) / area,
-				vabc = det(e1, l1) / area,
-				wabc = det(e2, l2) / area;
-			if (uabc > 0.0f && vabc > 0.0f && wabc > 0.0f) {
-				closestPoint = Vec2{ 0.0f };
-			} 
+				if (uabc > 0.0f && vabc > 0.0f && wabc > 0.0f) {
+					collision = true;
+					break;
+				}
 
-			const auto [uab, vab] = lineBarycentric(simplex[0], simplex[1]);
-			const auto [ubc, vbc] = lineBarycentric(simplex[1], simplex[2]);
-			const auto [uca, vca] = lineBarycentric(simplex[2], simplex[0]);
+				const auto [uab, vab] = lineBarycentric(simplex[0], simplex[1]);
+				const auto [ubc, vbc] = lineBarycentric(simplex[1], simplex[2]);
+				const auto [uca, vca] = lineBarycentric(simplex[2], simplex[0]);
 
-			if (uab < 0.0f && vca < 0.0f) {
-				closestPoint = simplex[0];
-			} else if (ubc < 0.0f && vab < 0.0f) {
-				closestPoint = simplex[1];
-			} else if (uca < 0.0f && vbc < 0.0f) {
-				closestPoint = simplex[2];
-			} else if (uab >= 0.0f && vab >= 0.0f && uabc <= 0.0f) {
-				closestPoint = uab * simplex[1] + vab * simplex[0];
-			} else if (ubc >= 0.0f && vbc >= 0.0f && vabc <= 0.0f) {
-				closestPoint = ubc * simplex[2] + vbc * simplex[1];
-			} else if (uca >= 0.0f && vca >= 0.0f && wabc <= 0.0f) {
-				closestPoint = uca * simplex[0] + vca * simplex[2];
+				auto vertexCase = [&](usize pointIndex, usize remove1, usize remove2) {
+					closestPointOnSimplexToOrigin = simplex[pointIndex];
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						return true;
+					} else {
+						simplex.erase(simplex.begin() + remove1);
+						simplex.erase(simplex.begin() + remove2);
+					}
+					return false;
+				};
+
+				auto edgeCase = [&](Vec2 point, usize remove) {
+					closestPointOnSimplexToOrigin = point;
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						return true;
+					}
+					else {
+						simplex.erase(simplex.begin() + remove);
+					}
+					return false;
+				};
+
+				if (uab < 0.0f && vca < 0.0f) {
+					if (vertexCase(0, 1, 2)) break;
+				} 
+				else if (ubc < 0.0f && vab < 0.0f) {
+					if (vertexCase(1, 0, 2)) break;
+				}
+				else if (uca < 0.0f && vbc < 0.0f) {
+					if (vertexCase(2, 1, 0)) break;
+				}
+				else if (uab >= 0.0f && vab >= 0.0f && uabc <= 0.0f) {
+					if (edgeCase(uab * simplex[1] + vab * simplex[0], 2)) break;
+				}
+				else if (ubc >= 0.0f && vbc >= 0.0f && vabc <= 0.0f) {
+					if (edgeCase(ubc * simplex[2] + vbc * simplex[1], 0)) break;
+				}
+				else if (uca >= 0.0f && vca >= 0.0f && wabc <= 0.0f) {
+					if (edgeCase(uca * simplex[0] + vca * simplex[2], 1)) break;
+				}
 			}
 		}
-		draw(simplex, Vec2{ 0.0f }, Vec3{ 1.0f });
-		Debug::drawLine(closestPoint, Vec2{ 0.0f }, Vec3{ 0.0f, 0.0f, 1.0f });
 	}
 	
+	Vec3 color{ 1.0f };
 
+	if (collision) {
+		color = Vec3{ 0.0f, 1.0f, 0.0f };
+	}
+	draw(a, Vec2{ 0.0f }, color);
+	draw(b, Vec2{ 0.0f }, color);
+
+	draw(simplex, Vec2{ 0.0f }, Vec3{ 0.0f, 0.0f, 1.0f });
+	Debug::drawPoint(closestPointOnSimplexToOrigin);
+
+	// Rounding, exact computations, epsilon check.
 
 	// TODO: Try computing the point and not vertex furthest in one direction. This will probably be worse and it might not actually converge.
 
