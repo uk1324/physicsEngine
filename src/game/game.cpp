@@ -4,9 +4,22 @@
 #include <engine/window.hpp>
 #include <game/debug.hpp>
 #include <math/utils.hpp>
+#include <math/mat2.hpp>
 
 #include <optional>
 #include <random>
+
+// For the physics to run correctly it has to be updated always at the same rate when the time scale is halved for the game to run smoothly the engine should save 2 physics game states and interpolate between them. If time scale is doubled the physics has to run at double the rate. The whole game should run at twice the rate for it to be correct.
+
+/*
+Checking collision between polygons could be done by checking if the new position intersects.
+if intersects(pos + vel) {
+	normal, hitPoint = gjk(pos)
+}
+*/
+
+// When using polling you have to save all the state and then the user can decide what information they actually need to use. When using callbacks the user can store the state they need and use it later.
+
 
 Game::Game(Gfx& gfx)
 	: renderer{ gfx }
@@ -93,6 +106,11 @@ static auto collisionResponse(
 
 	Assume that the friction is applied for the whole frame.
 	Problems might arise when doing time of impact calculations because the friction would not be applied for long enough or would be applied to quickly.
+	*/
+
+	/*
+	Would it make sense to base the time the friction is applied based on the coefficient of restitution of the two materials?
+	The normal force is bigger the more deformed the bodies become so this would probably make the friction be longer?
 	*/
 	const auto ra = (hitPoint - aTransform.pos).rotBy90deg();
 	const auto rb = (hitPoint - bTransform.pos).rotBy90deg();
@@ -286,41 +304,239 @@ auto Game::update(Gfx& gfx) -> void {
 		}
 	};
 
-	std::vector<Vec2> a{ Vec2{ -0.1f, -0.3f }, Vec2{ -0.1f, 0.2f }, Vec2{ 0.05f, 0.2f }, Vec2{ 0.3f, -0.1f } };
+	auto randomConvexPolygon = [](i32 verticesCount, int seed) -> std::vector<Vec2> {
+		ASSERT(verticesCount >= 3);
+		std::default_random_engine random(seed);
+
+		const auto trianglesCount = verticesCount - 2; // Every convex n-gon can be divided into n - 2 triangles	
+
+		//const auto minAngle = (PI<float> - 0.1f) / trianglesCount;
+		std::vector<float> angles;
+		const auto fanVertexAngle = std::uniform_real_distribution(TAU<float> / 6.0f, std::min(PI<float> -0.1f, PI<float> / 2.0f))(random);
+		//auto generateAngles =  [&angles, &random](auto self, i32 numbersToGenerate, float numbersMustSumUpTo) mutable -> void {
+		//	if (numbersToGenerate == 1) {
+		//		angles.push_back(numbersMustSumUpTo);
+		//		return;
+		//	}
+		//	const auto half = numbersToGenerate / 2;
+		//	const auto biggerHalf = numbersToGenerate - half;
+
+		//	/*const auto biggerHalfSum = std::uniform_real_distribution(biggerHalf * minAngle, std::min(numbersMustSumUpTo - half * minAngle, PI<float> / 2.0f))(random);*/
+		//	const auto maxAngle = std::min(numbersMustSumUpTo / biggerHalf, (PI<float> / 2.0f) - 0.1f);
+		//	const auto biggerHalfSum = std::uniform_real_distribution(maxAngle / 4.0f, maxAngle)(random);
+
+		//	self(self, biggerHalf, biggerHalfSum);
+		//	self(self, half, numbersMustSumUpTo - biggerHalfSum);
+		//};
+		//generateAngles(generateAngles, verticesCount - 2, fanVertexAngle);
+		for (int i = 0; i < trianglesCount; i++) {
+			angles.push_back(fanVertexAngle / trianglesCount);
+		}
+
+		std::uniform_real_distribution<float> generateLength(0.2f, 0.4f);
+		std::vector<Vec2> vertices;
+		vertices.push_back(Vec2{ 0.0f } /* Shared vertex */);
+		vertices.push_back(Vec2{ generateLength(random), 0.0f });
+
+		auto currentAngle = 0.0f;
+		Vec2 v0{ 0.0f, 1.0f };
+		for (const auto& angle : angles) {
+			// TODO: Change the generation
+			ASSERT(angle < PI<float> / 2.0f);
+			currentAngle += angle;
+			const Vec2 v1{ cos(currentAngle), sin(currentAngle) };
+			const auto& p0 = vertices.back();
+			const auto& p1 = Vec2{ 0.0f };
+			/*
+			p0 + a * v0 = p1 + b * v1
+			a * v0 - b * v1 = p1 - p0
+			[a, b] * mat2(v0, -v1) = p1 - p0
+			*/
+			const auto x{ p1 - p0 };
+			const auto mDet{ Mat2{ v0, -v1 }.det() };
+			ASSERT(mDet != 0.0f);
+			const auto a = Mat2{ x, -v1 }.det() / mDet;
+			//ASSERT(a > 0.0f);
+			const auto intersection = p0 + a * v0;
+			const auto maxLength = intersection.length();
+			std::uniform_real_distribution<float> generateLength(std::min(maxLength / 2.0f, 0.3f), std::min(maxLength, 0.5f));
+			vertices.push_back(v1 * generateLength(random));
+			v0 = vertices.back() - vertices[vertices.size() - 2];
+		}
+
+		Vec2 centerOfMass{ 0.0f };
+		for (const auto& vertex : vertices) {
+			centerOfMass += vertex;
+		}
+		centerOfMass /= vertices.size();
+
+		for (auto& vertex : vertices) {
+			vertex -= centerOfMass;
+		}
+
+		return vertices;
+		//std::vector<float> angles;
+		//float sumOfAnglesInsideConxexPolygon{ PI<float> * static_cast<float>((verticesCount - 2)) };
+		//for (i32 i = 0; i < verticesCount; i++) {
+		//	angles.push_back(generateAngle(random));
+		//	sumOfAnglesInsideConxexPolygon -= angles.back();
+		//}
+		//while (abs(sumOfAnglesInsideConxexPolygon) >= 0.01f) {
+		//	const auto divided = sumOfAnglesInsideConxexPolygon / verticesCount;
+		//	for (auto& angle : angles) {
+		//		const auto newAngle = angle + divided;
+		//		if (newAngle < PI<float> - 0.1f || newAngle > 0.1f) {
+		//			angle = newAngle;
+		//			sumOfAnglesInsideConxexPolygon -= divided;
+		//		}
+		//	}
+		//}
+
+		//std::uniform_real_distribution<float> generateLength(0.3f, 0.6f);
+		//auto currentRotation = 0.0f;
+		//const auto startingRotation = generateAngle(random);
+		///*auto currentPoint{ Vec2{ cos(startingRotation), sin(startingRotation) } * generateLength(random) };*/
+		//Vec2 currentPoint{ 0.0f };
+		//for (i32 i = 0; i < 2; i++) {
+		//	currentRotation += angles[i];
+		//	currentPoint += Vec2{ cos(currentRotation), sin(currentRotation) } * generateLength(random);
+		//	vertices.push_back(currentPoint);
+		//}
+
+		////for (i32 i = 2; i < verticesCount - 1; i++) {
+		////	currentRotation += angles[i];
+		////	float maxLength{ vertices[0] -  };
+		////	std::uniform_real_distribution<float> generateLength(0.3f, 0.6f);
+		////	currentPoint += Vec2{ cos(currentRotation), sin(currentRotation) } * generateLength(random);
+		////	vertices.push_back(currentPoint);
+		////}
+
+		//const auto 
+		//	angle0{ currentRotation + angles[angles.size() - 3] },
+		//	angle1{ angle0 + angles[angles.size() - 2] };
+
+		//Vec2
+		//	v0{ cos(angle0), sin(angle0) },
+		//	v1{ cos(angle1), sin(angle1) };
+
+		//const auto& p0 = vertices.back();
+		//const auto& p1 = vertices[0];
+		///*
+		//p0 + a * v0 = p1 + b * -v1
+
+		//p0.x + a * v0.x = p1.x + b * -v1.x
+		//p0.y + a * v0.y = p1.y + b * -v1.y
+
+		//p0.x + a * v0.x = p1.x + b * -v1.x
+		//p0.y + a * v0.y = p1.y + b * -v1.y
+		// p0.x +  = p1.x + b * -v1.x
+
+		//a * v0.x = p1.x + b * -v1.x - p0.x
+		//a = (p1.x + b * -v1.x - p0.x) / v0.x
+
+		//p0.y + ((p1.x + b * -v1.x - p0.x) / v0.x) * v0.y = p1.y + b * -v1.y
+		//p0.y + ((p1.x + b * -v1.x - p0.x) / v0.x) * v0.y = p1.y + b * -v1.y
+
+		//p0.y + (p1.x * v0.y + b * -v1.x * v0.y - p0.x * v0.y) / v0.x = p1.y + b * -v1.y
+		//p0.y * v0.x + p1.x * v0.y + b * -v1.x * v0.y - p0.x * v0.y = p1.y * v0.x + b * -v1.y * v0.x
+		//p0.y * v0.x + p1.x * v0.y - p0.x * v0.y - p1.y * v0.x = b * -v1.y * v0.x - b * -v1.x * v0.y
+		//p0.y * v0.x + p1.x * v0.y - p0.x * v0.y - p1.y * v0.x = b * (-v1.y * v0.x + v1.x * v0.y)
+		//b = (p0.y * v0.x + p1.x * v0.y - p0.x * v0.y - p1.y * v0.x) / (-v1.y * v0.x + v1.x * v0.y)
+		//*/
+		//
+		//ASSERT((-v1.y * v0.x + v1.x * v0.y) != 0);
+		//const auto b = (p0.y * v0.x + p1.x * v0.y - p0.x * v0.y - p1.y * v0.x) / (-v1.y * v0.x + v1.x * v0.y);
+
+		//const auto point = p1 + b * -v1;
+		//vertices.push_back(point);
+
+		////const auto a = (p1.x + b * -v1.x - p0.x) / v0.x;
+
+
+		////vertices
+		///*
+		//
+		//*/
+
+		////for (i32 i = 0; i < verticesCount; i++) {
+		////	angles.push_back(generate(random));
+		////	if (sumOfAnglesInsideConxexPolygon - angles.back() <= 0.0f && i != (verticesCount - 1)) {
+		////		break;
+		////	}
+		////	sumOfAnglesInsideConxexPolygon -= angles.back();
+		////}
+		////while (vertices.size() != verticesCount) {
+		////	const auto left{ verticesCount - vertices.size() };
+		////	for (int i = 0; i < left; i++) {
+
+		////	}
+		////}
+		//return vertices;
+	};
+
+	/*std::vector<Vec2> a{ Vec2{ -0.1f, -0.3f }, Vec2{ -0.1f, 0.2f }, Vec2{ 0.05f, 0.2f }, Vec2{ 0.3f, -0.1f } };*/
 	
+	static int seed = 0;
+	if (Input::isKeyDown(Keycode::F)) {
+		seed += 1;
+	}
+
+	auto a = randomConvexPolygon(3, seed);
 	Vec2 aPos{ renderer.mousePosToScreenPos(Input::cursorPos()) };
 	for (auto& v : a) {
+		//v *= 4.0f;
 		v += aPos;
 	}
 	const std::vector<Vec2> b{ Vec2{ -0.2f, -0.3f }, Vec2{ -0.2f, 0.1f }, Vec2{ 0.01f, 0.2f }, Vec2{ 0.2f, -0.1f } };
 	Vec2 bPos{ 0.0f };
 
-	auto support = [](Vec2 dir, const std::vector<Vec2>& vertices, Vec2 pos) -> Vec2 {
+	auto support = [](Vec2 dir, const std::vector<Vec2>& vertices) -> i32 {
 		ASSERT(vertices.size() != 0);
-		auto pointFurthestOnPolygonInDirection = vertices[0] + pos;
-		auto distance = dot(pointFurthestOnPolygonInDirection, dir);
+		size_t furthest{ 0 };
+		auto biggestValue{ dot(vertices[furthest], dir) };
 		for (usize i = 1; i < vertices.size(); i++) {
-			if (const auto thisDistance = dot(vertices[i] + pos, dir); thisDistance > distance) {
-				distance = thisDistance;
-				pointFurthestOnPolygonInDirection = vertices[i] + pos;
+			if (const auto value = dot(vertices[i], dir); value > biggestValue) {
+				biggestValue = value;
+				furthest = i;
 			}
 		}
-		return pointFurthestOnPolygonInDirection;
+		return furthest;
 	};
 
-	auto minkowskiDifferenceSupport = [support](Vec2 dir, const std::vector<Vec2>& a, const std::vector<Vec2>& b) -> Vec2 {
-		return -(support(dir, a, Vec2{ 0.0f }) - support(-dir, b, Vec2{ 0.0f }));
+	struct SimplexVertex {
+		i32 aIndex;
+		i32 bIndex;
+		Vec2 pos;
+
+		auto operator==(const SimplexVertex& other) const -> bool {
+			return pos == other.pos;
+		};
+	};
+
+	auto minkowskiDifferenceSupport = [&](Vec2 dir, const std::vector<Vec2>& a, const std::vector<Vec2>& b) -> SimplexVertex {
+		const auto aIndex = support(dir, a);
+		const auto bIndex = support(-dir, b);
+		return SimplexVertex{
+			aIndex,
+			bIndex,
+			// Try without minus at end becuase it shouldn't be there it is there to return the direction from the origin to the actual support.
+			-(a[aIndex] - b[bIndex])
+		};
 	};
 
 	Vec2 direction{ 1.0f, 0.0f };
-	std::vector<Vec2> simplex{ minkowskiDifferenceSupport(direction, a, b) };
 
-	if (Input::isKeyDown(Keycode::D)) {
-		__debugbreak();
-	}
+	std::vector<SimplexVertex> simplex{ minkowskiDifferenceSupport(direction, a, b) };
+
+	//if (Input::isKeyDown(Keycode::D)) {
+	//	__debugbreak();
+	//}
 
 	bool collision = false;
 	Vec2 closestPointOnSimplexToOrigin;
+	int count = 0;
+	SimplexVertex p0;
+	SimplexVertex p1;
 	for (;;) {
 		struct LineBarycentric {
 			float u, v;
@@ -337,15 +553,22 @@ auto Game::update(Gfx& gfx) -> void {
 
 		{
 			if (simplex.size() == 1) {
-				closestPointOnSimplexToOrigin = simplex[0];
+				closestPointOnSimplexToOrigin = simplex[0].pos;
 				const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
+				if (simplex[0] == newSupport) {
+					count = 1;
+					p0 = simplex[0];
+					break;
+				}
 				simplex.push_back(newSupport);
 			} else if (simplex.size() == 2) {
-				const auto [u, v] = lineBarycentric(simplex[0], simplex[1]);
+				const auto [u, v] = lineBarycentric(simplex[0].pos, simplex[1].pos);
 				if (u < 0.0f) {
-					closestPointOnSimplexToOrigin = simplex[0];
+					closestPointOnSimplexToOrigin = simplex[0].pos;
 					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
 					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						count = 1;
+						p0 = simplex[0];
 						break;
 					}
 					else {
@@ -353,9 +576,11 @@ auto Game::update(Gfx& gfx) -> void {
 					}
 				}
 				else if (v < 0.0f) {
-					closestPointOnSimplexToOrigin = simplex[1];
+					closestPointOnSimplexToOrigin = simplex[1].pos;
 					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
 					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						count = 1;
+						p0 = simplex[1];
 						break;
 					}
 					else {
@@ -363,9 +588,12 @@ auto Game::update(Gfx& gfx) -> void {
 					}
 				}
 				else {
-					closestPointOnSimplexToOrigin = u * simplex[1] + v * simplex[0];
+					closestPointOnSimplexToOrigin = u * simplex[1].pos + v * simplex[0].pos;
 					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
 					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						count = 2;
+						p0 = simplex[0];
+						p1 = simplex[1];
 						break;
 					}
 					else {
@@ -374,13 +602,13 @@ auto Game::update(Gfx& gfx) -> void {
 				};
 			} else {
 				const auto
-					e0 = simplex[1] - simplex[0],
-					e1 = simplex[2] - simplex[1],
-					e2 = simplex[0] - simplex[2];
+					e0 = simplex[1].pos - simplex[0].pos,
+					e1 = simplex[2].pos - simplex[1].pos,
+					e2 = simplex[0].pos - simplex[2].pos;
 				const auto
-					l0 = /* Vec2{ 0.0f } */ -simplex[0],
-					l1 = /* Vec2{ 0.0f } */ -simplex[1],
-					l2 = /* Vec2{ 0.0f } */ -simplex[2];
+					l0 = /* Vec2{ 0.0f } */ -simplex[0].pos,
+					l1 = /* Vec2{ 0.0f } */ -simplex[1].pos,
+					l2 = /* Vec2{ 0.0f } */ -simplex[2].pos;
 				const auto area = det(e0, e1);
 				if (area == 0.0f) {
 					// Don't think this should happen but it does.
@@ -396,14 +624,16 @@ auto Game::update(Gfx& gfx) -> void {
 					break;
 				}
 
-				const auto [uab, vab] = lineBarycentric(simplex[0], simplex[1]);
-				const auto [ubc, vbc] = lineBarycentric(simplex[1], simplex[2]);
-				const auto [uca, vca] = lineBarycentric(simplex[2], simplex[0]);
+				const auto [uab, vab] = lineBarycentric(simplex[0].pos, simplex[1].pos);
+				const auto [ubc, vbc] = lineBarycentric(simplex[1].pos, simplex[2].pos);
+				const auto [uca, vca] = lineBarycentric(simplex[2].pos, simplex[0].pos);
 
 				auto vertexCase = [&](usize pointIndex, usize remove1, usize remove2) {
-					closestPointOnSimplexToOrigin = simplex[pointIndex];
+					closestPointOnSimplexToOrigin = simplex[pointIndex].pos;
 					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
 					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						count = 1;
+						p0 = simplex[pointIndex];
 						return true;
 					} else {
 						simplex.erase(simplex.begin() + remove1);
@@ -434,13 +664,28 @@ auto Game::update(Gfx& gfx) -> void {
 					if (vertexCase(2, 1, 0)) break;
 				}
 				else if (uab >= 0.0f && vab >= 0.0f && uabc <= 0.0f) {
-					if (edgeCase(uab * simplex[1] + vab * simplex[0], 2)) break;
+					if (edgeCase(uab * simplex[1].pos + vab * simplex[0].pos, 2)) {
+						count = 2;
+						p0 = simplex[0];
+						p1 = simplex[1];
+						break;
+					}
 				}
 				else if (ubc >= 0.0f && vbc >= 0.0f && vabc <= 0.0f) {
-					if (edgeCase(ubc * simplex[2] + vbc * simplex[1], 0)) break;
+					if (edgeCase(ubc * simplex[2].pos + vbc * simplex[1].pos, 0)) {
+						count = 2;
+						p0 = simplex[1];
+						p1 = simplex[2];
+						break;
+					}
 				}
 				else if (uca >= 0.0f && vca >= 0.0f && wabc <= 0.0f) {
-					if (edgeCase(uca * simplex[0] + vca * simplex[2], 1)) break;
+					if (edgeCase(uca * simplex[0].pos + vca * simplex[2].pos, 1)) {
+						count = 2;
+						p0 = simplex[2];
+						p1 = simplex[0];
+						break;
+					}
 				}
 			}
 		}
@@ -450,12 +695,28 @@ auto Game::update(Gfx& gfx) -> void {
 
 	if (collision) {
 		color = Vec3{ 0.0f, 1.0f, 0.0f };
+		
+	} else {
+		if (count == 1) {
+			Debug::drawPoint(a[p0.aIndex], Vec3{ 1, 0, 0 });
+			Debug::drawPoint(b[p0.bIndex], Vec3{ 0, 0, 1 });
+		} else {
+			Debug::drawPoint(a[p0.aIndex], Vec3{ 1, 0, 0 });
+			Debug::drawPoint(b[p0.bIndex], Vec3{ 0, 0, 1 });
+			Debug::drawPoint(a[p1.aIndex], Vec3{ 1, 0, 0 });
+			Debug::drawPoint(b[p1.bIndex], Vec3{ 0, 0, 1 });
+		}
 	}
 	draw(a, Vec2{ 0.0f }, color);
 	draw(b, Vec2{ 0.0f }, color);
+	/*for (const auto& v : a) {
+		Debug::drawLine(aPos, v);
+	}*/
+	auto distance = closestPointOnSimplexToOrigin.length();
+	//dbg(distance);
 
-	draw(simplex, Vec2{ 0.0f }, Vec3{ 0.0f, 0.0f, 1.0f });
-	Debug::drawPoint(closestPointOnSimplexToOrigin);
+	//draw(simplex, Vec2{ 0.0f }, Vec3{ 0.0f, 0.0f, 1.0f });
+	//Debug::drawPoint(closestPointOnSimplexToOrigin);
 
 	// Rounding, exact computations, epsilon check.
 

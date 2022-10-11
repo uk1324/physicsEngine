@@ -128,6 +128,51 @@ auto Renderer::update(Gfx& gfx) -> void {
 
 	// checkDraw can be called last in loops because zero sized arrays are not allowed.
 
+	// Line
+	{
+		gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
+		gfx.ctx->PSSetShader(psLine.Get(), nullptr, 0);
+		UINT toDraw = 0;
+		auto draw = [&] {
+			if (toDraw == 0)
+				return;
+			gfx.updateConstantBuffer(lineShaderConstantBufferResource, &lineShaderConstantBuffer, sizeof(lineShaderConstantBuffer));
+			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
+		};
+		auto checkDraw = [&] {
+			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
+				draw();
+			}
+			toDraw++;
+		};
+		const auto extraLength = 0.006f; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
+
+		gfx.ctx->VSSetConstantBuffers(0, 1, lineShaderConstantBufferResource.GetAddressOf());
+		for (const auto& line : lineEntites) {
+			const auto length = line.collider.halfLength * 2.0f;
+			const auto start = line.transform.pos - Vec2{ cos(line.transform.orientation), sin(line.transform.orientation) } *line.collider.halfLength;
+			lineShaderConstantBuffer.instanceData[toDraw] = {
+				.invScale = 1.0f / length,
+				.transform = makeTransform(start, line.transform.orientation, length + extraLength),
+				.color = Vec3{ 1.0, 0.0f, 0.0f },
+			};
+			checkDraw();
+		}
+		for (const auto& line : Debug::lines) {
+			const auto lineVector = line.end - line.start;
+			const auto length = lineVector.length();
+			const auto orientation = atan2(lineVector.y, lineVector.x);
+
+			lineShaderConstantBuffer.instanceData[toDraw] = {
+				.invScale = 1.0f / length,
+				.transform = makeTransform(line.start, orientation, length + extraLength),
+				.color = line.color,
+			};
+			checkDraw();
+		}
+		draw();
+	}
+
 	// Circle
 	{
 		gfx.ctx->VSSetShader(vsCircle.shader.Get(), nullptr, 0);
@@ -167,51 +212,6 @@ auto Renderer::update(Gfx& gfx) -> void {
 			checkDraw();
 		}
 
-		draw();
-	}
-
-	// Line
-	{
-		gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
-		gfx.ctx->PSSetShader(psLine.Get(), nullptr, 0);
-		UINT toDraw = 0;
-		auto draw = [&] {
-			if (toDraw == 0)
-				return;
-			gfx.updateConstantBuffer(lineShaderConstantBufferResource, &lineShaderConstantBuffer, sizeof(lineShaderConstantBuffer));
-			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
-		};
-		auto checkDraw = [&] {
-			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
-				draw();
-			}
-			toDraw++;
-		};
-		const auto extraLength = 0.006f; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
-
-		gfx.ctx->VSSetConstantBuffers(0, 1, lineShaderConstantBufferResource.GetAddressOf());
-		for (const auto& line : lineEntites) {
-			const auto length = line.collider.halfLength * 2.0f;
-			const auto start = line.transform.pos - Vec2{ cos(line.transform.orientation), sin(line.transform.orientation) } * line.collider.halfLength;
-			lineShaderConstantBuffer.instanceData[toDraw] = {
-				.invScale = 1.0f / length,
-				.transform = makeTransform(start, line.transform.orientation, length + extraLength),
-				.color = Vec3{ 1.0, 0.0f, 0.0f },
-			};
-			checkDraw();
-		}
-		for (const auto& line : Debug::lines) {
-			const auto lineVector = line.end - line.start;
-			const auto length = lineVector.length();
-			const auto orientation = atan2(lineVector.y, lineVector.x);
-
-			lineShaderConstantBuffer.instanceData[toDraw] = {
-				.invScale = 1.0f / length,
-				.transform = makeTransform(line.start, orientation, length + extraLength),
-				.color = line.color,
-			};
-			checkDraw();
-		}
 		draw();
 	}
 }
