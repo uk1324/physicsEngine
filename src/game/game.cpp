@@ -700,7 +700,30 @@ auto Game::update(Gfx& gfx) -> void {
 	for (auto& line : lineEntites) integrate(line.transform, line.physics);
 	for (auto& polygon : convexPolygonEntites) integrate(polygon.transform, polygon.physics);
 
-	renderer.update(gfx);
+	//if (Input::isKeyHeld(Keycode::UP)) {
+	//	cameraPos.y += 0.05f;
+	//}
+	//if (Input::isKeyHeld(Keycode::DOWN)) {
+	//	cameraPos.y -= 0.05f;
+	//}
+
+	//if (Input::isKeyHeld(Keycode::LEFT)) {
+	//	cameraPos.x += 0.05f;
+	//}
+	//if (Input::isKeyHeld(Keycode::RIGHT)) {
+	//	cameraPos.x -= 0.05f;
+	//}
+
+	if (Input::isKeyHeld(Keycode::K)) {
+		cameraZoom *= 1.05f;
+	}
+	if (Input::isKeyHeld(Keycode::J)) {
+		cameraZoom /= 1.05f;
+	}
+
+	cameraPos = lerp(cameraPos, convexPolygonEntites[0].transform.pos, 0.1f);
+
+	renderer.update(gfx, cameraPos, cameraZoom);
 }
 
 auto Game::integrate(Transform& transform, PhysicsInfo& physics) const -> void {
@@ -792,6 +815,21 @@ auto Game::twoConvexPolygonsScene() -> void {
 		.collider = { randomNiceConvexPolygon(3, 0.2f) },
 		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
 	});
+
+	convexPolygonEntites.push_back(ConvexPolygonEntity{
+		.transform = { Vec2{ -0.2f, 0.43f }, -0.2f },
+		.collider = { randomNiceConvexPolygon(8, 0.2f) },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
+	});
+
+
+	//for (i32 i = 0; i < 20; i++) {
+	//	convexPolygonEntites.push_back(ConvexPolygonEntity{
+	//		.transform = { Vec2{ randomInRange(-2.0f, 2.0f), randomInRange(-2.0f, 2.0f) }, -0.0f },
+	//		.collider = { randomNiceConvexPolygon(i32(round(randomInRange(3, 7))), 0.1f) },
+	//		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
+	//	});
+	//}
 
 	gravityAcceleration = 0.0f;
 	controlledVel = &convexPolygonEntites[0].physics.vel;

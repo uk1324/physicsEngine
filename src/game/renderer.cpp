@@ -89,7 +89,9 @@ Renderer::Renderer(Gfx& gfx) {
 	gfx.ctx->OMSetBlendState(blendState.Get(), nullptr, 0xffffffff);
 }
 
-auto Renderer::update(Gfx& gfx) -> void {
+#include <utils/io.hpp>
+
+auto Renderer::update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void {
 	if (Window::resized()) {
 		const D3D11_VIEWPORT viewport{
 			.TopLeftX = 0.0f,
@@ -122,11 +124,14 @@ auto Renderer::update(Gfx& gfx) -> void {
 	this->screenCorrectScale = Vec2{ 1.0f, aspectRatio };
 	const auto screenScale{ Mat3x2::scale(this->screenCorrectScale) };
 
-	auto makeTransform = [&screenScale, aspectRatio](Vec2 translation, float orientation, float scale) -> Mat3x2 {
-		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio });
+	const auto cameraTransform = Mat3x2::translate(-cameraPos * screenScale) * Mat3x2::scale(Vec2{ cameraZoom });
+
+	auto makeTransform = [&screenScale, aspectRatio, &cameraTransform](Vec2 translation, float orientation, float scale) -> Mat3x2 {
+		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
 	};
 
 	// checkDraw can be called last in loops because zero sized arrays are not allowed.
+	// remember to put a draw or checkDraw after a loop.
 
 	// Line
 	{
@@ -138,26 +143,28 @@ auto Renderer::update(Gfx& gfx) -> void {
 				return;
 			gfx.updateConstantBuffer(lineShaderConstantBufferResource, &lineShaderConstantBuffer, sizeof(lineShaderConstantBuffer));
 			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
+			toDraw = 0;
 		};
 		auto checkDraw = [&] {
 			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
 				draw();
 			}
-			toDraw++;
 		};
 		const auto extraLength = 0.006f; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, lineShaderConstantBufferResource.GetAddressOf());
 		for (const auto& line : lineEntites) {
 			const auto length = line.collider.halfLength * 2.0f;
-			const auto start = line.transform.pos - Vec2{ cos(line.transform.orientation), sin(line.transform.orientation) } *line.collider.halfLength;
+			const auto start = line.transform.pos - Vec2{ cos(line.transform.orientation), sin(line.transform.orientation) } * line.collider.halfLength;
 			lineShaderConstantBuffer.instanceData[toDraw] = {
 				.invScale = 1.0f / length,
 				.transform = makeTransform(start, line.transform.orientation, length + extraLength),
 				.color = Vec3{ 1.0, 0.0f, 0.0f },
 			};
+			toDraw++;
 			checkDraw();
 		}
+		checkDraw();
 
 		auto lineInstanceFromStartAndEnd = [&](Vec2 start, Vec2 end, const Vec3& color) -> LineInstance {
 			const auto lineVector = end - start;
@@ -176,8 +183,10 @@ auto Renderer::update(Gfx& gfx) -> void {
 			const auto length = lineVector.length();
 			const auto orientation = atan2(lineVector.y, lineVector.x);
 			lineShaderConstantBuffer.instanceData[toDraw] = lineInstanceFromStartAndEnd(line.start, line.end, line.color);
+			toDraw++;
 			checkDraw();
 		}
+		checkDraw();
 
 		for (const auto& convexPolygon : convexPolygonEntites) {
 			for (usize i = 0; i < convexPolygon.collider.vertices.size(); i++) {
@@ -185,9 +194,11 @@ auto Renderer::update(Gfx& gfx) -> void {
 				const auto& vertices = convexPolygon.collider.vertices;
 				const auto start{ vertices[i] * transform }, end{ ((i + 1 < vertices.size()) ? vertices[i + 1] : vertices[0]) * transform };
 				lineShaderConstantBuffer.instanceData[toDraw] = lineInstanceFromStartAndEnd(start, end, Vec3{ 1.0, 0.0f, 0.0f });
+				toDraw++;
 				checkDraw();
 			}
 		}
+		checkDraw();
 
 		draw();
 	}
@@ -198,18 +209,18 @@ auto Renderer::update(Gfx& gfx) -> void {
 		gfx.ctx->PSSetShader(psCircleCollider.Get(), nullptr, 0);
 		UINT toDraw = 0;
 		auto draw = [&] {
-			gfx.updateConstantBuffer(circleShaderConstantBufferResource, &circleShaderConstantBuffer, sizeof(circleShaderConstantBuffer));
-			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
 			if (toDraw == 0)
 				return;
+			gfx.updateConstantBuffer(circleShaderConstantBufferResource, &circleShaderConstantBuffer, sizeof(circleShaderConstantBuffer));
+			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
 			toDraw = 0;
 		};
 		auto checkDraw = [&] {
 			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
 				draw();
 			}
-			toDraw++;
 		};
+
 		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
 		for (const auto& circle : circleEntites) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
@@ -217,6 +228,7 @@ auto Renderer::update(Gfx& gfx) -> void {
 				.transform = makeTransform(circle.transform.pos, circle.transform.orientation, circle.collider.radius),
 				.color = Vec3{ 1.0, 0.0f, 0.0f }
 			};
+			toDraw++;
 			checkDraw();
 		}
 		draw();
@@ -228,6 +240,7 @@ auto Renderer::update(Gfx& gfx) -> void {
 				.transform = makeTransform(circle.pos, 0.0f, circle.radius),
 				.color = circle.color
 			};
+			toDraw++;
 			checkDraw();
 		}
 

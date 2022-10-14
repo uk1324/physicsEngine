@@ -6,7 +6,7 @@
 class Renderer {
 public:
 	Renderer(Gfx& gfx);
-	auto update(Gfx& gfx) -> void;
+	auto update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void;
 
 	auto mousePosToScreenPos(Vec2 v) -> Vec2;
 

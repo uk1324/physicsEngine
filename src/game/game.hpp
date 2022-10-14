@@ -15,11 +15,14 @@ public:
 	auto lineAndCircleScene() -> void;
 	auto twoConvexPolygonsScene() -> void;
 
+	Vec2 cameraPos{ 0.0f };
+	float cameraZoom{ 1.0f };
+
 	Vec2* controlledVel;
 
 	Renderer renderer;
 
-	float gravityAcceleration;
+	float gravityAcceleration{ 0.0f };
 
 	PhysicsMaterial material0;
 	PhysicsMaterial material1;
