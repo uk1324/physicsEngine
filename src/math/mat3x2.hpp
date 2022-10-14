@@ -30,6 +30,8 @@ auto operator*(const Vec3T<T>& v, const Mat3x2T<T>& m) -> Vec2T<T>;
 
 template<typename T>
 auto operator*(const Vec2T<T>& v, const Mat3x2T<T>& m) -> Vec2T<T>;
+template<typename T>
+auto operator*=(Vec2T<T>& v, const Mat3x2T<T>& m) -> Vec2T<T>&;
 
 template<typename T>
 constexpr Mat3x2T<T>::Mat3x2T(const Vec2T<T>& x, const Vec2T<T>& y, const Vec2T<T>& w)
@@ -89,4 +91,10 @@ auto operator*(const Vec3T<T>& v, const Mat3x2T<T>& m) -> Vec2T<T> {
 template<typename T>
 auto operator*(const Vec2T<T>& v, const Mat3x2T<T>& m) -> Vec2T<T> {
 	return Vec3{ v.x, v.y, 1 } * m;
+}
+
+template<typename T>
+auto operator*=(Vec2T<T>& v, const Mat3x2T<T>& m) -> Vec2T<T>& {
+	v = v * m;
+	return v;
 }

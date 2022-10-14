@@ -27,7 +27,6 @@ constexpr Mat2T<T>::Mat2T(const Vec2T<T>& x, const Vec2T<T>& y)
 
 template<typename T>
 auto Mat2T<T>::det() const -> float {
-	const auto& m = *this;
 	return m[0][0] * m[1][1] - m[1][0] * m[0][1];
 }
 

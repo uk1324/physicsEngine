@@ -158,18 +158,37 @@ auto Renderer::update(Gfx& gfx) -> void {
 			};
 			checkDraw();
 		}
+
+		auto lineInstanceFromStartAndEnd = [&](Vec2 start, Vec2 end, const Vec3& color) -> LineInstance {
+			const auto lineVector = end - start;
+			const auto length = lineVector.length();
+			const auto orientation = atan2(lineVector.y, lineVector.x);
+			return {
+				.invScale = 1.0f / length,
+				.transform = makeTransform(start, orientation, length + extraLength),
+				.color = color,
+			};
+		};
+
+
 		for (const auto& line : Debug::lines) {
 			const auto lineVector = line.end - line.start;
 			const auto length = lineVector.length();
 			const auto orientation = atan2(lineVector.y, lineVector.x);
-
-			lineShaderConstantBuffer.instanceData[toDraw] = {
-				.invScale = 1.0f / length,
-				.transform = makeTransform(line.start, orientation, length + extraLength),
-				.color = line.color,
-			};
+			lineShaderConstantBuffer.instanceData[toDraw] = lineInstanceFromStartAndEnd(line.start, line.end, line.color);
 			checkDraw();
 		}
+
+		for (const auto& convexPolygon : convexPolygonEntites) {
+			for (usize i = 0; i < convexPolygon.collider.vertices.size(); i++) {
+				const auto transform = Mat3x2::rotate(convexPolygon.transform.orientation) * Mat3x2::translate(convexPolygon.transform.pos);
+				const auto& vertices = convexPolygon.collider.vertices;
+				const auto start{ vertices[i] * transform }, end{ ((i + 1 < vertices.size()) ? vertices[i + 1] : vertices[0]) * transform };
+				lineShaderConstantBuffer.instanceData[toDraw] = lineInstanceFromStartAndEnd(start, end, Vec3{ 1.0, 0.0f, 0.0f });
+				checkDraw();
+			}
+		}
+
 		draw();
 	}
 

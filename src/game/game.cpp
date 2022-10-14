@@ -33,12 +33,14 @@ struct ClosestPoints {
 
 // When using SAT the separating axis can be cached between frames. At tested as the first axis on the next frame
 
+// Circles can be treated as points.
 static auto gjk(Span<const Vec2> aVertices, Span<const Vec2> bVertices) -> std::optional<ClosestPoints> {
 	auto support = [](Vec2 dir, Span<const Vec2> vertices) -> i32 {
 		ASSERT(vertices.size() != 0);
 		i32 furthest{ 0 };
 		auto biggestValue{ dot(vertices[furthest], dir) };
 		for (i32 i = 1; i < static_cast<i32>(vertices.size()); i++) {
+			// A vertex is always the furthest point in any direction on a convex polytope.
 			if (const auto value = dot(vertices[i], dir); value > biggestValue) {
 				biggestValue = value;
 				furthest = i;
@@ -259,16 +261,151 @@ static auto gjk(Span<const Vec2> aVertices, Span<const Vec2> bVertices) -> std::
 			.closestPointOnB = simplexU * bVertices[p1.bIndex] + simplexV * bVertices[p0.bIndex]
 		};
 	}
+	ASSERT_NOT_REACHED();
 }
 
 struct Collision {
 	Vec2 normal;
 	Vec2 hitPoint;
+	float penetrationDepth;
 };
 
-static auto convexPolygonVsConvexPolygon(Span<const Vec2> aVertices, Span<const Vec2> bVertices) -> std::optional<Collision> {
+auto circleVsCircle(
+	const CircleCollider& aCollider, 
+	const Transform& aTransform, 
+	const CircleCollider& bCollider,
+	const Transform& bTransform) -> std::optional<Collision> {
 
+	const auto distanceSquared = (aTransform.pos - bTransform.pos).lengthSq();
+	if (distanceSquared < pow(aCollider.radius + bCollider.radius, 2)) {
+		const auto normal = (aTransform.pos - bTransform.pos).normalized();
+		return Collision{
+			.normal = normal,
+			.hitPoint = aTransform.pos + normal * aCollider.radius,
+			.penetrationDepth = aCollider.radius + bCollider.radius - sqrt(distanceSquared)
+		};
+	}
+
+	return std::nullopt;
 }
+
+auto circleVsLine(
+	const CircleCollider& aCollider,
+	const Transform& aTransform,
+	const LineCollider& bCollider,
+	const Transform& bTransform) -> std::optional<Collision> {
+
+	const auto line = Line{ Vec2::oriented(bTransform.orientation).rotBy90deg(), 0.0 }.translated(bTransform.pos);
+	const auto centerOffsetAlongLine = det(line.n, bTransform.pos);
+
+	const auto signedDistance = ::signedDistance(line, aTransform.pos);
+	if (abs(signedDistance) <= aCollider.radius) {
+		const auto offsetAlongLine = det(line.n, aTransform.pos);
+		// Can't just check if the offsetAlongLine is in the range because this would only work if this was an OBB oriented in the same way as the line and not a sphere.
+
+		const auto hitNormal = (signedDistance < 0) ? line.n.normalized() : -line.n.normalized();
+		const auto possibleHitPoint = aTransform.pos - hitNormal * aCollider.radius;
+		if (const auto hitNonCorner = offsetAlongLine > centerOffsetAlongLine - bCollider.halfLength
+			&& offsetAlongLine < centerOffsetAlongLine + bCollider.halfLength) {
+			return Collision{ 
+				.normal = hitNormal, 
+				.hitPoint = possibleHitPoint,
+				.penetrationDepth = aCollider.radius - abs(signedDistance)
+			};
+		}
+		else {
+			// minus because det computes sin and sin(pi/2 - angle) = cos(angle).
+			const auto vectorAlongLine = -line.n.rotBy90deg();
+			const auto corner = vectorAlongLine * std::clamp(offsetAlongLine, centerOffsetAlongLine - bCollider.halfLength, centerOffsetAlongLine + bCollider.halfLength) + line.n * line.d;
+			const auto distanceFromCorner = distance(corner, aTransform.pos);
+			const auto normal = (aTransform.pos - corner).normalized();
+			if (const auto hitCorner = distanceFromCorner <= aCollider.radius) {
+				return Collision{ 
+					.normal = normal, 
+					.hitPoint = corner, 					
+					.penetrationDepth = aCollider.radius - (corner - aTransform.pos).length()
+				};
+			}
+		}
+	}
+	return std::nullopt;
+}
+
+auto convexPolygonVsConvexPolygon(
+	const ConvexPolygonCollider& aCollider,
+	const Transform& aTransform,
+	const ConvexPolygonCollider& bCollider,
+	const Transform& bTransform) -> std::optional<Collision> {
+
+	auto transform = [](Span<Vec2> vertices, const Transform& transform) {
+		for (auto& vertex : vertices) {
+			vertex *= Mat3x2::rotate(transform.orientation);
+			vertex += transform.pos;
+		}
+	};
+	auto undoTransform = [](const Vec2& vertex, const Transform& transform) {
+		return (vertex - transform.pos) * Mat3x2::rotate(-transform.orientation);
+	};
+	auto transformVertex = [](const Vec2& vertex, const Transform& transform) {
+		return vertex * Mat3x2::rotate(transform.orientation) + transform.pos;
+	};
+	auto aVertices = aCollider.vertices;
+	transform(aVertices, aTransform);
+	auto bVertices = bCollider.vertices;
+	transform(bVertices, bTransform);
+
+	if (gjk(aVertices, bVertices).has_value())
+		return std::nullopt;
+
+	auto scale = [](Span<Vec2> vertices, float scale) {
+		for (auto& vertex : vertices)
+			vertex *= scale;
+	};
+
+	const auto scaling = 0.75f;
+	aVertices = aCollider.vertices;
+	scale(aVertices, scaling);
+	transform(aVertices, aTransform);
+	bVertices = bCollider.vertices;
+	scale(bVertices, scaling);
+	transform(bVertices, bTransform);
+
+	auto draw = [](Span<const Vec2> vertices) {
+		for (usize i = 0; i < vertices.size(); i++) {
+			Debug::drawLine(vertices[i], i + 1 < vertices.size() ? vertices[i + 1] : vertices[0]);
+		}
+	};
+
+
+	const auto result = gjk(aVertices, bVertices);
+	//return std::nullopt;
+	// Assume bigger penetrations can't happen. If they do maybe try using expanding polytope algorithm.
+	ASSERT(result.has_value());
+
+	const auto& [aClosest, bClosest] = *result;
+
+	// All of this is just an approximation
+	const auto a = undoTransform(aClosest, aTransform) / scaling;
+	const auto b = undoTransform(bClosest, bTransform) / scaling;
+	const auto at = transformVertex(a, aTransform);
+	const auto bt = transformVertex(b, bTransform);
+
+	//draw(aVertices);
+	//draw(bVertices);
+	//Debug::drawLine(at, bt);
+	//Debug::drawLine(aClosest, bClosest, Vec3{ 1.0f, 0.0f, 0.0f });
+	//Debug::drawPoint((aClosest + bClosest) / 2.0f);
+
+
+	//return std::nullopt;
+	const auto normal{ (aClosest - bClosest).normalized() };
+	return Collision{
+		.normal = normal,
+		.hitPoint = (at + bt) / 2.0f,
+		.penetrationDepth = dot(bt - at, normal),
+	};
+}
+
 
 static auto randomConvexPolygon(i32 vertexCount) -> std::vector<Vec2> {
 	ASSERT(vertexCount >= 3);
@@ -335,7 +472,7 @@ static auto randomConvexPolygon(i32 vertexCount) -> std::vector<Vec2> {
 	return vertices;
 }
 
-auto randomNiceConvexPolygon(i32 vertexCount) -> std::vector<Vec2> {
+auto randomNiceConvexPolygon(i32 vertexCount, float scale) -> std::vector<Vec2> {
 	auto vertices = randomConvexPolygon(vertexCount);
 	for (;;) {
 		auto minDistanceToCenter = std::numeric_limits<float>::infinity();
@@ -355,9 +492,12 @@ auto randomNiceConvexPolygon(i32 vertexCount) -> std::vector<Vec2> {
 			break;
 		}
 	}
+
+	for (auto& vertex : vertices)
+		vertex *= scale;
+
 	return vertices;
 }
-
 
 Game::Game(Gfx& gfx)
 	: renderer{ gfx }
@@ -375,62 +515,13 @@ Game::Game(Gfx& gfx)
 	Input::registerKeyButton(Keycode::LEFT, GameButton::LEFT);
 	Input::registerKeyButton(Keycode::RIGHT, GameButton::RIGHT);
 	
-	//circleEntites.push_back(CircleEntity{
-	//	.transform = { Vec2{ 0.0f, 0.0f }, 0.0f },
-	//	.collider = /* CircleCollider (causes some interal compiler error */ { .radius = 0.2f },
-	//	.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f }
-	//});
-
-	//circleEntites.push_back(CircleEntity{
-	//	.transform = { Vec2{ 0.3f, 0.4f }, 0.0f },
-	//	.collider = { .radius = 0.3f },
-	//	.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f },
-	//});
-
-	circleEntites.push_back(CircleEntity{
-		.transform = { Vec2{ 0.4f, 0.3f }, 0.0f },
-		.collider = /* CircleCollider (causes some interal compiler error */ {.radius = 0.2f },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f }
-	});
-
-	//circleEntites.push_back(CircleEntity{
-	//	.transform = { Vec2{ 0.3f, 0.4f }, 0.0f },
-	//	.collider = {.radius = 0.3f },
-	//	.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f },
-	//	});
-
-	lineEntites.push_back(LineEntity{
-		.transform = { Vec2{ 0.4f, 0.1f }, 0.2f },
-		.collider = { .halfLength = 0.4f },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f },
-	});
-
-	lineEntites.push_back(LineEntity{
-		.transform = { Vec2{ -0.4f, -0.4f }, -0.2f },
-		.collider = {.halfLength = 0.8f },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f },
-	});
-
-	//std::uniform_real_distribution random(-0.0f, 1.0f);
-	//std::default_random_engine engine;
-	//for (i32 i = 0; i < 20; i++) {
-	//	circleEntites.push_back(CircleEntity{
-	//		.pos = Vec2{ random(engine), random(engine) },
-	//		.vel = Vec2{ 0.0f, 0.0f },
-	//		.rotation = 0.3f,
-	//		.angularVel = 0.0f,
-	//		.mass = PI<float> * 0.3f * 0.3f,
-	//		.radius = 0.07f,
-	//		.material = &material0
-	//	});
-	//}
+	twoConvexPolygonsScene();
 }
 
 #include <utils/io.hpp>
 
 static auto collisionResponse(
-	Vec2 hitPoint, 
-	Vec2 hitNormal, 
+	const Collision& collision,
 	Transform& aTransform, 
 	Transform& bTransform, 
 	PhysicsInfo& aPhysics, 
@@ -447,24 +538,19 @@ static auto collisionResponse(
 	*/
 
 	/*
-	Would it make sense to base the time the friction is applied based on the coefficient of restitution of the two materials?
+	Would it make sense to base the time for which the friction is applied based on the coefficient of restitution of the two materials?
 	The normal force is bigger the more deformed the bodies become so this would probably make the friction be longer?
 	*/
-	const auto ra = (hitPoint - aTransform.pos).rotBy90deg();
-	const auto rb = (hitPoint - bTransform.pos).rotBy90deg();
+	const auto ra = (collision.hitPoint - aTransform.pos).rotBy90deg();
+	const auto rb = (collision.hitPoint - bTransform.pos).rotBy90deg();
 
-	const auto parallel = hitNormal.rotBy90deg().normalized();
+	const auto parallel = collision.normal.rotBy90deg().normalized();
 	const auto aVel = -ra * aPhysics.angularVel + aPhysics.vel;
 	const auto bVel = -rb * bPhysics.angularVel + bPhysics.vel;
 	const auto aForce = (dot(1.0f / aPhysics.invMass * aVel, parallel) * parallel) * 0.9f;
 	const auto bForce = (dot(1.0f / bPhysics.invMass * bVel, parallel) * parallel) * 0.9f;
 
 	Debug::drawLine(aTransform.pos, aTransform.pos - aForce * Time::deltaTime() * 10.0f);
-
-	aPhysics.vel -= bForce * Time::deltaTime();
-	bPhysics.vel -= aForce * Time::deltaTime();
-	aPhysics.angularVel += det(hitNormal, aForce) * Time::deltaTime();
-	bPhysics.angularVel += det(hitNormal, bForce) * Time::deltaTime();
 
 	/*
 	Variables with a prime refer to post collision variables.
@@ -524,21 +610,105 @@ static auto collisionResponse(
 	const auto lb = rb.length();
 	const Vec2 uRel{ (aPhysics.vel + aPhysics.angularVel * ra) - (bPhysics.vel + bPhysics.angularVel * rb) };
 
-	const auto k = (-coefficientOfRestitution - 1.0f) * dot(uRel, hitNormal) / (dot((1.0f * aPhysics.invMass + 1.0f * bPhysics.invMass) * hitNormal + (dot(ra, hitNormal) * aPhysics.invMass / la) * ra + (dot(rb, hitNormal) * bPhysics.invMass / lb) * rb, hitNormal));
+	const auto k = (-coefficientOfRestitution - 1.0f) * dot(uRel, collision.normal) / (dot((1.0f * aPhysics.invMass + 1.0f * bPhysics.invMass) * collision.normal + (dot(ra, collision.normal) * aPhysics.invMass / la) * ra + (dot(rb, collision.normal) * bPhysics.invMass / lb) * rb, collision.normal));
 
-	aPhysics.vel += hitNormal * (k * aPhysics.invMass);
-	bPhysics.vel -= hitNormal * (k * bPhysics.invMass);
+	// Maybe make function response that would allow reversing the normal.
+	if (aPhysics.bodyType == BodyType::DYNAMIC) {
+		if (bPhysics.bodyType == BodyType::STATIC)
+			aTransform.pos += collision.penetrationDepth * collision.normal;
 
-	aPhysics.angularVel -= k * dot(ra, hitNormal) * aPhysics.invMass / la;
-	bPhysics.angularVel += k * dot(rb, hitNormal) * bPhysics.invMass / lb;
+		aPhysics.vel -= bForce * Time::deltaTime();
+		aPhysics.angularVel += det(collision.normal, aForce) * Time::deltaTime();
 
-	//aTransform.pos += hitNormal * 0.001f;
-	//bTransform.pos -= hitNormal * 0.001f;
+		aPhysics.vel += collision.normal * (k * aPhysics.invMass);
+		aPhysics.angularVel -= k * dot(ra, collision.normal) * aPhysics.invMass / la;
+	}
+	if (bPhysics.bodyType == BodyType::DYNAMIC) {
+		if (aPhysics.bodyType == BodyType::STATIC)
+			bTransform.pos -= collision.penetrationDepth * collision.normal;
+
+		bPhysics.vel -= aForce * Time::deltaTime();
+		bPhysics.angularVel += det(collision.normal, bForce) * Time::deltaTime();
+
+		bPhysics.vel -= collision.normal * (k * bPhysics.invMass);
+		bPhysics.angularVel += k * dot(rb, collision.normal) * bPhysics.invMass / lb;
+	}
+
+	if (aPhysics.bodyType == BodyType::DYNAMIC && bPhysics.bodyType == BodyType::DYNAMIC) {
+		const auto seperate = (collision.penetrationDepth / 2.0f) * collision.normal;
+		aTransform.pos += seperate;
+		bTransform.pos -= seperate;
+	}
 }
 
-static auto integrate(Transform& transform, PhysicsInfo& physics) {
+auto Game::update(Gfx& gfx) -> void {
+	Vec2 dir{ 0.0f };
+	if (Input::isButtonHeld(GameButton::UP)) {
+		dir.y += 1.0f;
+	}
+	if (Input::isButtonHeld(GameButton::DOWN)) {
+		dir.y -= 1.0f;
+	}
+
+	if (Input::isButtonHeld(GameButton::RIGHT)) {
+		dir.x += 1.0f;
+	}
+	if (Input::isButtonHeld(GameButton::LEFT)) {
+		dir.x -= 1.0f;
+	}
+	if (controlledVel != nullptr)
+		(*controlledVel) += dir.normalized() * 0.5f * Time::deltaTime();
+
+	if (Input::isKeyDown(Keycode::R)) {
+		circleEntites[0].physics.angularVel += 0.2f + circleEntites[0].physics.angularVel * 2.0f;
+	}
+
+	// circle vs x
+	{
+		auto start{ circleEntites.begin() };
+		for (auto& a : circleEntites) {
+			start++;
+			for (auto it = start; it != circleEntites.end(); it++) {
+				auto& b{ *it };
+				if (const auto collision = circleVsCircle(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
+					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
+				}
+			}
+			for (auto& b : lineEntites) {
+				if (const auto collision = circleVsLine(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
+					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
+				}
+			}
+		}
+	}
+	// convex polygon vs x
+	{
+		auto start{ convexPolygonEntites.begin() };
+		for (auto& a : convexPolygonEntites) {
+			start++;
+			for (auto it = start; it != convexPolygonEntites.end(); it++) {
+				auto& b{ *it };
+				if (const auto collision = convexPolygonVsConvexPolygon(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
+					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
+				}
+			}
+		
+		}
+	}
+
+	for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
+	for (auto& line : lineEntites) integrate(line.transform, line.physics);
+	for (auto& polygon : convexPolygonEntites) integrate(polygon.transform, polygon.physics);
+
+	renderer.update(gfx);
+}
+
+auto Game::integrate(Transform& transform, PhysicsInfo& physics) const -> void {
+	if (physics.bodyType == BodyType::STATIC)
+		return;
+
 	static constexpr float groundFriction{ 0.98f };
-	static constexpr float gravity = 10.0f;
+	static constexpr float gravity = 1.0f;
 	transform.pos += physics.vel * Time::deltaTime();
 	/*
 	Gravity is a constant acceleration because the formula for gravity is 
@@ -547,125 +717,83 @@ static auto integrate(Transform& transform, PhysicsInfo& physics) {
 	a = F/m 
 	a = G(m1m2/r^2) / m1 = Gm1m2/r^2m1 = Gm2/r^2
 	*/
-	physics.vel.y -= Time::deltaTime() * 1.0f;
+	physics.vel.y -= Time::deltaTime() * gravityAcceleration;
 	physics.vel *= pow(groundFriction, Time::deltaTime());
 	transform.orientation += physics.angularVel * Time::deltaTime();
-	//circle.angularVel *= pow(0.94f, Time::deltaTime());
 }
 
-auto Game::update(Gfx& gfx) -> void {
-	//Vec2 dir{ 0.0f };
-	//if (Input::isButtonHeld(GameButton::UP)) {
-	//	dir.y += 1.0f;
-	//}
-	//if (Input::isButtonHeld(GameButton::DOWN)) {
-	//	dir.y -= 1.0f;
-	//}
+auto Game::rollingSphereScene() -> void {
+	circleEntites.push_back(CircleEntity{
+		.transform = { Vec2{ 0.4f, 0.3f }, 0.0f },
+		.collider = {.radius = 0.2f },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
+	});
 
-	//if (Input::isButtonHeld(GameButton::RIGHT)) {
-	//	dir.x += 1.0f;
-	//}
-	//if (Input::isButtonHeld(GameButton::LEFT)) {
-	//	dir.x -= 1.0f;
-	//}
-	////circleEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
-	//lineEntites[0].physics.vel += dir.normalized() * 0.5f * Time::deltaTime();
+	lineEntites.push_back(LineEntity{
+		.transform = { Vec2{ 0.4f, 0.1f }, 0.2f },
+		.collider = {.halfLength = 0.4f },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
+	});
 
-	//if (Input::isKeyDown(Keycode::R)) {
-	//	circleEntites[0].physics.angularVel += 0.2f + circleEntites[0].physics.angularVel * 2.0f;
-	//}
+	lineEntites.push_back(LineEntity{
+		.transform = { Vec2{ -0.4f, -0.4f }, -0.2f },
+		.collider = {.halfLength = 0.8f },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
+	});
 
-	//{
-	//	auto start{ circleEntites.begin() };
-	//	for (auto& a : circleEntites) {
-	//		start++;
-	//		for (auto it = start; it != circleEntites.end(); it++) {
-	//			auto& b{ *it };
-	//			if ((a.transform.pos - b.transform.pos).lengthSq() < pow(a.collider.radius + b.collider.radius, 2)) {
-	//				const auto normal{ (a.transform.pos - b.transform.pos).normalized() };
-	//				const auto hitPoint = a.transform.pos + normal * a.collider.radius;
-	//				collisionResponse(hitPoint, normal, a.transform, b.transform, a.physics, b.physics);
-	//			}
-	//		}
-	//		for (auto& b : lineEntites) {
-	//			/*const Line line{ Vec2::oriented(b.transform.orientation), 0.0 };
-	//			b.transform.pos*/
-	//			Line line{ Vec2::oriented(b.transform.orientation).rotBy90deg(), 0.0 };
-	//			line = line.translated(b.transform.pos);
-	//			line.n = line.n.normalized();
-	//			const auto centerOffsetAlongLine = det(line.n, b.transform.pos);
-
-	//			const auto signedDistance = ::signedDistance(line, a.transform.pos);
-	//			if (abs(signedDistance) <= a.collider.radius) {
-	//				const auto offsetAlongLine = det(line.n, a.transform.pos);
-	//				// Can't just check if the offsetAlongLine is in the range because this would only work if this was an OBB oriented in the same way as the line and not a sphere.
-	//				
-	//				const auto vectorAlongLine = line.n.rotBy90deg();
-	//				/*const auto possibleHitPoint = vectorAlongLine * std::clamp(offsetAlongLine, centerOffsetAlongLine - b.collider.halfLength, centerOffsetAlongLine + b.collider.halfLength) + line.n * dot(line.n, b.transform.pos);*/
-
-	//				const auto hitNormal = (signedDistance < 0) ? line.n.normalized() : -line.n.normalized();
-	//				const auto possibleHitPoint = a.transform.pos - hitNormal * a.collider.radius;
-	//				if (const auto hitNonCorner = offsetAlongLine > centerOffsetAlongLine - b.collider.halfLength
-	//					&& offsetAlongLine < centerOffsetAlongLine + b.collider.halfLength) {
-	//					collisionResponse(possibleHitPoint, hitNormal, a.transform, b.transform, a.physics, b.physics);
-	//					// @Hack
-	//					a.transform.pos += (a.collider.radius - abs(signedDistance)) * hitNormal;
-	//				} else {
-	//					// TODO: This code might be broken because of the sign change in Line. Check it.
-	//					const auto corner = -vectorAlongLine * std::clamp(offsetAlongLine, centerOffsetAlongLine - b.collider.halfLength, centerOffsetAlongLine + b.collider.halfLength) - line.n * line.d;
-	//					const auto distanceFromCorner = distance(corner, a.transform.pos);
-	//					const auto normal = (a.transform.pos - corner).normalized();
-	//					if (const auto hitCorner = distanceFromCorner <= a.collider.radius) {
-	//						collisionResponse(corner, normal, a.transform, b.transform, a.physics, b.physics);
-	//						// @Hack
-	//						a.transform.pos += (a.collider.radius - (corner - a.transform.pos).length()) * normal;
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-	//}
-	//
-	//// @Hack
-	//for (auto& line : lineEntites) {
-	//	line.physics.angularVel = 0.0f;
-	//	line.physics.vel = Vec2{ 0.0f };
-	//	//line.physics.vel.y += Time::deltaTime() * 1.0f * 0.98f;
-	//}
-
-	//for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
-	////for (auto& line : lineEntites) integrate(line.transform, line.physics);
-
-	auto draw = [this](const std::vector<Vec2>& vertices, Vec3 color) {
-		for (size_t i = 0; i < vertices.size(); i++) {
-			Debug::drawLine((vertices[i]), i + 1 < vertices.size() ? vertices[i + 1] : vertices[0], color);
-		}
-	};
-
-	std::vector<Vec2> a{ Vec2{ -0.2f, -0.3f }, Vec2{ -0.2f, 0.1f }, Vec2{ 0.01f, 0.2f }, Vec2{ 0.2f, -0.1f } };
-	Vec2 aPos{ renderer.mousePosToScreenPos(Input::cursorPos()) };
-	for (auto& v : a) {
-		v += aPos;
-	}
-	const std::vector<Vec2> b{ Vec2{ -0.2f, -0.3f }, Vec2{ -0.2f, 0.1f }, Vec2{ 0.01f, 0.2f }, Vec2{ 0.2f, -0.1f } };
-	Vec2 bPos{ 0.0f };
-
-
-	const auto result = gjk(std::as_const(a), b);
-	if (result.has_value()) {
-		Debug::drawLine(result->closestPointOnA, result->closestPointOnB);
-	}
-	draw(a, Vec3{ 1.0f });
-	draw(b, Vec3{ 1.0f });
-
-	// Rounding, exact computations, epsilon check.
-
-	// TODO: Try computing the point and not vertex furthest in one direction. This will probably be worse and it might not actually converge.
-
-	// From what is understand the mathematically collision would be always detected when the first one simplex is constructed, but due to numerical precison this wouldn't atucally work because it would need to check if a point lies directly on a line segment (the outside case is easy).  
-	// From the definition of a convex polygon (non self intersecting) a line going throught it goes through at most 2 points. If I pick a random direction and get the point furthest on the polygon in that direction and then find a point furthest in the direction from that random point to the checked point then if the point is inside the polygon it has to lie on the line from the 2 points in the selected directions.
-
-	// Circles can be treated as points.
-
-	renderer.update(gfx);
+	gravityAcceleration = 1.0f;
+	controlledVel = nullptr;
 }
+
+auto Game::lineAndCircleScene() -> void {
+
+	/*circleEntites.push_back(CircleEntity{
+		.transform = { Vec2{ 0.0f, 0.0f }, 0.0f },
+		.collider = {.radius = 0.2f },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
+	});*/
+	
+	lineEntites.push_back(LineEntity{
+		.transform = { Vec2{ 0.4f, 0.3f }, -0.2f },
+		.collider = { .halfLength = 0.3f },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.1f * 0.1f * 20.0f, BodyType::DYNAMIC },
+	});
+
+	std::uniform_real_distribution random(0.0f, 0.5f);
+	std::default_random_engine engine;
+	for (i32 i = 0; i < 20; i++) {
+		circleEntites.push_back(CircleEntity{
+			.transform = { Vec2{ random(engine), random(engine) }, 0.0f },
+			.collider = {.radius = 0.07f },
+			.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
+		});
+	}
+
+	gravityAcceleration = 0.0f;
+	controlledVel = &lineEntites[0].physics.vel; 
+}
+
+auto Game::twoConvexPolygonsScene() -> void {
+
+	convexPolygonEntites.push_back(ConvexPolygonEntity{
+		.transform = { Vec2{ 0.4f, 0.3f }, -0.2f },
+		.collider = { randomNiceConvexPolygon(5, 0.2f) },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.1f * 0.1f * 20.0f, BodyType::DYNAMIC },
+	});
+
+	convexPolygonEntites.push_back(ConvexPolygonEntity{
+		.transform = { Vec2{ 0.0f, 0.0f }, -0.2f },
+		.collider = { randomNiceConvexPolygon(6, 0.2f) },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
+	});
+
+	convexPolygonEntites.push_back(ConvexPolygonEntity{
+		.transform = { Vec2{ -0.2f, -0.33f }, -0.2f },
+		.collider = { randomNiceConvexPolygon(3, 0.2f) },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
+	});
+
+	gravityAcceleration = 0.0f;
+	controlledVel = &convexPolygonEntites[0].physics.vel;
+}
+

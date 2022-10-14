@@ -168,31 +168,31 @@ static AdsrEnvelope enveolpe[8];
 #include <utils/io.hpp>
 
 auto Audio::update() -> void {
-	const Keycode keys[] = { Keycode::A, Keycode::S, Keycode::D, Keycode::F, Keycode::G, Keycode::H, Keycode::J, Keycode::K };
+	//const Keycode keys[] = { Keycode::A, Keycode::S, Keycode::D, Keycode::F, Keycode::G, Keycode::H, Keycode::J, Keycode::K };
 
-	static float scale = 1.0;
-	float s = 1.2f;
-	if (Input::isKeyDown(Keycode::UP)) {
-		scale *= s;
-	} else if (Input::isKeyDown(Keycode::DOWN)) {
-		scale /= s;
-	}
+	//static float scale = 1.0;
+	//float s = 1.2f;
+	//if (Input::isKeyDown(Keycode::UP)) {
+	//	scale *= s;
+	//} else if (Input::isKeyDown(Keycode::DOWN)) {
+	//	scale /= s;
+	//}
 
-	for (i32 i = 0; i < std::size(enveolpe); i++) {
-		enveolpe[i].update(Time::deltaTime());
-		CHECK_WIN_HRESULT(sourceVoice[i]->SetVolume(enveolpe[i].getAplitude() * 8.0f));
-	}
+	//for (i32 i = 0; i < std::size(enveolpe); i++) {
+	//	enveolpe[i].update(Time::deltaTime());
+	//	CHECK_WIN_HRESULT(sourceVoice[i]->SetVolume(enveolpe[i].getAplitude() * 8.0f));
+	//}
 
-	for (u32 i = 0; i < std::size(keys); i++) {
-		if (Input::isKeyDown(keys[i])) {
-			CHECK_WIN_HRESULT(sourceVoice[i]->SetFrequencyRatio(pow(pow(2.0f, 1.0f / 12.0f) * scale, static_cast<float>(i))));
-			enveolpe[i].isHeld = true;
-			enveolpe[i].timeElapsed = 0.0f;
-			break;
-		} else if (Input::isKeyUp(keys[i])) {
-			enveolpe[i].isHeld = false;
-			enveolpe[i].releaseStart = enveolpe[i].timeElapsed;
-			break;
-		}
-	}
+	//for (u32 i = 0; i < std::size(keys); i++) {
+	//	if (Input::isKeyDown(keys[i])) {
+	//		CHECK_WIN_HRESULT(sourceVoice[i]->SetFrequencyRatio(pow(pow(2.0f, 1.0f / 12.0f) * scale, static_cast<float>(i))));
+	//		enveolpe[i].isHeld = true;
+	//		enveolpe[i].timeElapsed = 0.0f;
+	//		break;
+	//	} else if (Input::isKeyUp(keys[i])) {
+	//		enveolpe[i].isHeld = false;
+	//		enveolpe[i].releaseStart = enveolpe[i].timeElapsed;
+	//		break;
+	//	}
+	//}
 }

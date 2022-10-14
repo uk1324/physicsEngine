@@ -9,14 +9,20 @@ struct PhysicsMaterial {
 	float bounciness;
 };
 
+enum class BodyType {
+	STATIC,
+	DYNAMIC,
+};
+
 struct PhysicsInfo {
-	PhysicsInfo(const PhysicsMaterial* material, float mass);
+	PhysicsInfo(const PhysicsMaterial* material, float mass, BodyType bodyType);
 
 	Vec2 vel;
 	float angularVel;
 	// Should this be const? Changing the mass would also change the momentum of the system (probably doesn't matter).
 	float invMass;
 	const PhysicsMaterial* material;
+	BodyType bodyType;
 };
 
 struct Transform {
@@ -57,4 +63,4 @@ struct ConvexPolygonEntity {
 
 extern std::vector<CircleEntity> circleEntites;
 extern std::vector<LineEntity> lineEntites;
-extern std::vector<ConvexPolygonCollider> convexPolygonEntites;
+extern std::vector<ConvexPolygonEntity> convexPolygonEntites;

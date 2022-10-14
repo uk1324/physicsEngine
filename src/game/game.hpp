@@ -9,7 +9,17 @@ public:
 
 	auto update(Gfx& gfx) -> void;
 
+	auto integrate(Transform& transform, PhysicsInfo& physics) const -> void;
+
+	auto rollingSphereScene() -> void;
+	auto lineAndCircleScene() -> void;
+	auto twoConvexPolygonsScene() -> void;
+
+	Vec2* controlledVel;
+
 	Renderer renderer;
+
+	float gravityAcceleration;
 
 	PhysicsMaterial material0;
 	PhysicsMaterial material1;
