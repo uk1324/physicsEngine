@@ -14,7 +14,7 @@ struct PhysicsInfo {
 
 	Vec2 vel;
 	float angularVel;
-	// Should this be const? Changing the mass would also change the momentum of the system.
+	// Should this be const? Changing the mass would also change the momentum of the system (probably doesn't matter).
 	float invMass;
 	const PhysicsMaterial* material;
 };
@@ -45,5 +45,16 @@ struct LineEntity {
 	PhysicsInfo physics;
 };
 
+struct ConvexPolygonCollider {
+	std::vector<Vec2> vertices;
+};
+
+struct ConvexPolygonEntity {
+	Transform transform;
+	ConvexPolygonCollider collider;
+	PhysicsInfo physics;
+};
+
 extern std::vector<CircleEntity> circleEntites;
 extern std::vector<LineEntity> lineEntites;
+extern std::vector<ConvexPolygonCollider> convexPolygonEntites;

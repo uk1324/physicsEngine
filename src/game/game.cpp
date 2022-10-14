@@ -5,6 +5,8 @@
 #include <game/debug.hpp>
 #include <math/utils.hpp>
 #include <math/mat2.hpp>
+#include <utils/random.hpp>
+#include <utils/span.hpp>
 
 #include <optional>
 #include <random>
@@ -19,6 +21,342 @@ if intersects(pos + vel) {
 */
 
 // When using polling you have to save all the state and then the user can decide what information they actually need to use. When using callbacks the user can store the state they need and use it later.
+
+// Another idea I had is to generate random points in square or some other shape untill a n sided convex hull can be made from it.
+
+// For some cases it might be better to not transform all the shape's points and only do it in the support function and also rotate the support direction.
+
+struct ClosestPoints {
+	Vec2 closestPointOnA;
+	Vec2 closestPointOnB;
+};
+
+// When using SAT the separating axis can be cached between frames. At tested as the first axis on the next frame
+
+static auto gjk(Span<const Vec2> aVertices, Span<const Vec2> bVertices) -> std::optional<ClosestPoints> {
+	auto support = [](Vec2 dir, Span<const Vec2> vertices) -> i32 {
+		ASSERT(vertices.size() != 0);
+		i32 furthest{ 0 };
+		auto biggestValue{ dot(vertices[furthest], dir) };
+		for (i32 i = 1; i < static_cast<i32>(vertices.size()); i++) {
+			if (const auto value = dot(vertices[i], dir); value > biggestValue) {
+				biggestValue = value;
+				furthest = i;
+			}
+		}
+		return furthest;
+	};
+
+	struct SimplexVertex {
+		i32 aIndex;
+		i32 bIndex;
+		Vec2 pos;
+
+		auto operator==(const SimplexVertex& other) const -> bool {
+			return pos == other.pos;
+		};
+	};
+
+	float simplexU, simplexV;
+	auto minkowskiDifferenceSupport = [&](Vec2 dir, Span<const Vec2> a, Span<const Vec2> b) -> SimplexVertex {
+		const auto aIndex = support(dir, aVertices);
+		const auto bIndex = support(-dir, bVertices);
+		return SimplexVertex{
+			aIndex,
+			bIndex,
+			// Try without minus at end becuase it shouldn't be there it is there to return the direction from the origin to the actual support.
+			-(a[aIndex] - b[bIndex])
+		};
+	};
+
+	Vec2 direction{ 1.0f, 0.0f };
+
+	std::vector<SimplexVertex> simplex{ minkowskiDifferenceSupport(direction, aVertices, bVertices) };
+
+	bool collision = false;
+	Vec2 closestPointOnSimplexToOrigin;
+	int count = 0;
+	SimplexVertex p0;
+	SimplexVertex p1;
+	for (;;) {
+		struct LineBarycentric {
+			float u, v;
+		};
+		auto lineBarycentric = [](Vec2 a, Vec2 b) -> LineBarycentric {
+			// Line barycentric coordinate for the origin projected onto the line a b.
+			// Vec2{ 0.0f } = u * b + v * a
+			const auto normalize = 1.0f / pow(distance(a, b), 2);
+			return LineBarycentric{
+				.u = dot(b - a, /* Vec2{ 0.0f } */ -a) * normalize,
+				.v = dot(a - b, /* Vec2{ 0.0f } */ -b) * normalize,
+			};
+		};
+
+		{
+			if (simplex.size() == 1) {
+				closestPointOnSimplexToOrigin = simplex[0].pos;
+				const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, aVertices, bVertices);
+				if (simplex[0] == newSupport) {
+					count = 1;
+					p0 = simplex[0];
+					break;
+				}
+				simplex.push_back(newSupport);
+			}
+			else if (simplex.size() == 2) {
+				const auto [u, v] = lineBarycentric(simplex[0].pos, simplex[1].pos);
+				if (u < 0.0f) {
+					closestPointOnSimplexToOrigin = simplex[0].pos;
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, aVertices, bVertices);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						count = 1;
+						p0 = simplex[0];
+						break;
+					}
+					else {
+						simplex.erase(simplex.begin() + 1);
+					}
+				}
+				else if (v < 0.0f) {
+					closestPointOnSimplexToOrigin = simplex[1].pos;
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, aVertices, bVertices);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						count = 1;
+						p0 = simplex[1];
+						break;
+					}
+					else {
+						simplex.erase(simplex.begin() + 0);
+					}
+				}
+				else {
+					closestPointOnSimplexToOrigin = u * simplex[1].pos + v * simplex[0].pos;
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, aVertices, bVertices);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						count = 2;
+						p0 = simplex[0];
+						p1 = simplex[1];
+						simplexU = u;
+						simplexV = v;
+						break;
+					}
+					else {
+						simplex.push_back(newSupport);
+					}
+				};
+			}
+			else {
+				const auto
+					e0 = simplex[1].pos - simplex[0].pos,
+					e1 = simplex[2].pos - simplex[1].pos,
+					e2 = simplex[0].pos - simplex[2].pos;
+				const auto
+					l0 = /* Vec2{ 0.0f } */ -simplex[0].pos,
+					l1 = /* Vec2{ 0.0f } */ -simplex[1].pos,
+					l2 = /* Vec2{ 0.0f } */ -simplex[2].pos;
+				const auto area = det(e0, e1);
+				if (area == 0.0f) {
+					// Don't think this should happen but it does.
+					break;
+				}
+				const auto
+					uabc = det(e0, l0) / area,
+					vabc = det(e1, l1) / area,
+					wabc = det(e2, l2) / area;
+
+				if (uabc > 0.0f && vabc > 0.0f && wabc > 0.0f) {
+					collision = true;
+					break;
+				}
+
+				const auto [uab, vab] = lineBarycentric(simplex[0].pos, simplex[1].pos);
+				const auto [ubc, vbc] = lineBarycentric(simplex[1].pos, simplex[2].pos);
+				const auto [uca, vca] = lineBarycentric(simplex[2].pos, simplex[0].pos);
+
+				auto vertexCase = [&](usize pointIndex, usize remove1, usize remove2) {
+					closestPointOnSimplexToOrigin = simplex[pointIndex].pos;
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, aVertices, bVertices);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						count = 1;
+						p0 = simplex[pointIndex];
+						return true;
+					}
+					else {
+						simplex.erase(simplex.begin() + remove1);
+						simplex.erase(simplex.begin() + remove2);
+					}
+					return false;
+				};
+
+				auto edgeCase = [&](Vec2 point, usize remove) {
+					closestPointOnSimplexToOrigin = point;
+					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, aVertices, bVertices);
+					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
+						return true;
+					}
+					else {
+						simplex.erase(simplex.begin() + remove);
+					}
+					return false;
+				};
+
+				if (uab < 0.0f && vca < 0.0f) {
+					if (vertexCase(0, 1, 2)) break;
+				}
+				else if (ubc < 0.0f && vab < 0.0f) {
+					if (vertexCase(1, 0, 2)) break;
+				}
+				else if (uca < 0.0f && vbc < 0.0f) {
+					if (vertexCase(2, 1, 0)) break;
+				}
+				else if (uab >= 0.0f && vab >= 0.0f && uabc <= 0.0f) {
+					if (edgeCase(uab * simplex[1].pos + vab * simplex[0].pos, 2)) {
+						count = 2;
+						p0 = simplex[0];
+						p1 = simplex[1];
+						simplexU = uab;
+						simplexV = vab;
+						break;
+					}
+				}
+				else if (ubc >= 0.0f && vbc >= 0.0f && vabc <= 0.0f) {
+					if (edgeCase(ubc * simplex[2].pos + vbc * simplex[1].pos, 0)) {
+						count = 2;
+						p0 = simplex[1];
+						p1 = simplex[2];
+						simplexU = ubc;
+						simplexV = vbc;
+						break;
+					}
+				}
+				else if (uca >= 0.0f && vca >= 0.0f && wabc <= 0.0f) {
+					if (edgeCase(uca * simplex[0].pos + vca * simplex[2].pos, 1)) {
+						count = 2;
+						p0 = simplex[2];
+						p1 = simplex[0];
+						simplexU = uca;
+						simplexV = vca;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	if (collision) {
+		return std::nullopt;
+	}
+
+	Vec2 closestA;
+	Vec2 closestB;
+
+	if (count == 1) {
+		return ClosestPoints{ .closestPointOnA = aVertices[p0.aIndex], .closestPointOnB = bVertices[p0.bIndex] };
+	}
+	else if (count == 2) {
+		return ClosestPoints{ 
+			.closestPointOnA = simplexU * aVertices[p1.aIndex] + simplexV * aVertices[p0.aIndex],
+			.closestPointOnB = simplexU * bVertices[p1.bIndex] + simplexV * bVertices[p0.bIndex]
+		};
+	}
+}
+
+struct Collision {
+	Vec2 normal;
+	Vec2 hitPoint;
+};
+
+static auto convexPolygonVsConvexPolygon(Span<const Vec2> aVertices, Span<const Vec2> bVertices) -> std::optional<Collision> {
+
+}
+
+static auto randomConvexPolygon(i32 vertexCount) -> std::vector<Vec2> {
+	ASSERT(vertexCount >= 3);
+	const auto triangleCount = vertexCount - 2; // Every convex n-gon can be divided into n - 2 triangles	
+	const auto fanAngle = randomInRange(TAU<float> / 6.0f, PI<float> -0.1f);
+
+	std::uniform_real_distribution<float> generateLength(0.2f, 0.3f);
+	std::vector<Vec2> vertices;
+	vertices.push_back(Vec2{ 0.0f } /* Shared vertex */);
+	auto currentAngle = randomInRange(0.0f, TAU<float>);
+	vertices.push_back(Vec2::oriented(currentAngle) * randomInRange(0.2f, 0.3f));
+	auto v0 = vertices.back().rotBy90deg();
+	for (i32 i = 0; i < triangleCount; i++) {
+		// This just makes all the fan angles equal. Random numbers whose sum is equal to some number can be generated using a divide and conquer algorithm, but making them equal makes the shapes nicer because the vertices have to be separated from eachother.
+		const auto angle = fanAngle / triangleCount;
+		currentAngle += angle;
+
+		const auto v1 = Vec2::oriented(currentAngle);
+		const auto& p0 = vertices.back();
+		const auto& p1 = Vec2{ 0.0f };
+		/*
+		p0 + a * v0 = p1 + b * v1
+		a * v0 - b * v1 = p1 - p0
+		[a, b] * mat2(v0, -v1) = p1 - p0
+		*/
+		// Solve using Cramer's rule.
+		const auto x{ p1 - p0 };
+		const auto mDet{ Mat2{ v0, -v1 }.det() };
+		ASSERT(mDet != 0.0f);
+		const auto a = Mat2{ x, -v1 }.det() / mDet;
+		const auto intersection = p0 + a * v0;
+		const auto maxLength = intersection.length();
+		vertices.push_back(v1 * randomInRange(std::min(maxLength / 2.0f, 0.3f), std::min(maxLength, 0.5f)));
+		v0 = vertices.back() - vertices[vertices.size() - 2];
+	}
+
+	Vec2 centerOfMass{ 0.0f };
+	for (const auto& vertex : vertices) {
+		centerOfMass += vertex;
+	}
+	centerOfMass /= static_cast<float>(vertices.size());
+
+	/*auto maxDistanceFromCenter = 0.0f;
+	for (auto& vertex : vertices) {
+		vertex -= centerOfMass;
+		const auto distanceFromCenter = vertex.length();
+		if (vertex.length() > maxDistanceFromCenter) {
+			maxDistanceFromCenter = distanceFromCenter;
+		}
+	}*/
+
+	auto averageDistanceToCenter = 0.0f;
+	for (auto& vertex : vertices) {
+		vertex -= centerOfMass;
+		const auto distanceToCenter = vertex.length();
+		averageDistanceToCenter += distanceToCenter;
+	}
+	averageDistanceToCenter /= vertices.size();
+
+	for (auto& vertex : vertices) {
+		vertex /= averageDistanceToCenter;
+	}
+
+	return vertices;
+}
+
+auto randomNiceConvexPolygon(i32 vertexCount) -> std::vector<Vec2> {
+	auto vertices = randomConvexPolygon(vertexCount);
+	for (;;) {
+		auto minDistanceToCenter = std::numeric_limits<float>::infinity();
+		auto maxDistanceToCenter = 0.0f;
+		for (const auto& vertex : vertices) {
+			const auto distanceToCenter = vertex.length();
+			if (distanceToCenter < minDistanceToCenter)
+				minDistanceToCenter = distanceToCenter;
+
+			if (distanceToCenter > maxDistanceToCenter)
+				maxDistanceToCenter = distanceToCenter;
+		}
+
+		if (abs(minDistanceToCenter - maxDistanceToCenter) > 0.6f) {
+			vertices = randomConvexPolygon(vertexCount);
+		} else {
+			break;
+		}
+	}
+	return vertices;
+}
 
 
 Game::Game(Gfx& gfx)
@@ -298,425 +636,27 @@ auto Game::update(Gfx& gfx) -> void {
 	//for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
 	////for (auto& line : lineEntites) integrate(line.transform, line.physics);
 
-	auto draw = [this](const std::vector<Vec2>& vertices, Vec2 pos, Vec3 color) {
+	auto draw = [this](const std::vector<Vec2>& vertices, Vec3 color) {
 		for (size_t i = 0; i < vertices.size(); i++) {
-			Debug::drawLine((vertices[i] + pos), (i + 1 < vertices.size() ? vertices[i + 1] : vertices[0]) + pos, color);
+			Debug::drawLine((vertices[i]), i + 1 < vertices.size() ? vertices[i + 1] : vertices[0], color);
 		}
 	};
 
-	auto randomConvexPolygon = [](i32 verticesCount, int seed) -> std::vector<Vec2> {
-		ASSERT(verticesCount >= 3);
-		std::default_random_engine random(seed);
-
-		const auto trianglesCount = verticesCount - 2; // Every convex n-gon can be divided into n - 2 triangles	
-
-		//const auto minAngle = (PI<float> - 0.1f) / trianglesCount;
-		std::vector<float> angles;
-		const auto fanVertexAngle = std::uniform_real_distribution(TAU<float> / 6.0f, std::min(PI<float> -0.1f, PI<float> / 2.0f))(random);
-		//auto generateAngles =  [&angles, &random](auto self, i32 numbersToGenerate, float numbersMustSumUpTo) mutable -> void {
-		//	if (numbersToGenerate == 1) {
-		//		angles.push_back(numbersMustSumUpTo);
-		//		return;
-		//	}
-		//	const auto half = numbersToGenerate / 2;
-		//	const auto biggerHalf = numbersToGenerate - half;
-
-		//	/*const auto biggerHalfSum = std::uniform_real_distribution(biggerHalf * minAngle, std::min(numbersMustSumUpTo - half * minAngle, PI<float> / 2.0f))(random);*/
-		//	const auto maxAngle = std::min(numbersMustSumUpTo / biggerHalf, (PI<float> / 2.0f) - 0.1f);
-		//	const auto biggerHalfSum = std::uniform_real_distribution(maxAngle / 4.0f, maxAngle)(random);
-
-		//	self(self, biggerHalf, biggerHalfSum);
-		//	self(self, half, numbersMustSumUpTo - biggerHalfSum);
-		//};
-		//generateAngles(generateAngles, verticesCount - 2, fanVertexAngle);
-		for (int i = 0; i < trianglesCount; i++) {
-			angles.push_back(fanVertexAngle / trianglesCount);
-		}
-
-		std::uniform_real_distribution<float> generateLength(0.2f, 0.4f);
-		std::vector<Vec2> vertices;
-		vertices.push_back(Vec2{ 0.0f } /* Shared vertex */);
-		vertices.push_back(Vec2{ generateLength(random), 0.0f });
-
-		auto currentAngle = 0.0f;
-		Vec2 v0{ 0.0f, 1.0f };
-		for (const auto& angle : angles) {
-			// TODO: Change the generation
-			ASSERT(angle < PI<float> / 2.0f);
-			currentAngle += angle;
-			const Vec2 v1{ cos(currentAngle), sin(currentAngle) };
-			const auto& p0 = vertices.back();
-			const auto& p1 = Vec2{ 0.0f };
-			/*
-			p0 + a * v0 = p1 + b * v1
-			a * v0 - b * v1 = p1 - p0
-			[a, b] * mat2(v0, -v1) = p1 - p0
-			*/
-			const auto x{ p1 - p0 };
-			const auto mDet{ Mat2{ v0, -v1 }.det() };
-			ASSERT(mDet != 0.0f);
-			const auto a = Mat2{ x, -v1 }.det() / mDet;
-			//ASSERT(a > 0.0f);
-			const auto intersection = p0 + a * v0;
-			const auto maxLength = intersection.length();
-			std::uniform_real_distribution<float> generateLength(std::min(maxLength / 2.0f, 0.3f), std::min(maxLength, 0.5f));
-			vertices.push_back(v1 * generateLength(random));
-			v0 = vertices.back() - vertices[vertices.size() - 2];
-		}
-
-		Vec2 centerOfMass{ 0.0f };
-		for (const auto& vertex : vertices) {
-			centerOfMass += vertex;
-		}
-		centerOfMass /= vertices.size();
-
-		for (auto& vertex : vertices) {
-			vertex -= centerOfMass;
-		}
-
-		return vertices;
-		//std::vector<float> angles;
-		//float sumOfAnglesInsideConxexPolygon{ PI<float> * static_cast<float>((verticesCount - 2)) };
-		//for (i32 i = 0; i < verticesCount; i++) {
-		//	angles.push_back(generateAngle(random));
-		//	sumOfAnglesInsideConxexPolygon -= angles.back();
-		//}
-		//while (abs(sumOfAnglesInsideConxexPolygon) >= 0.01f) {
-		//	const auto divided = sumOfAnglesInsideConxexPolygon / verticesCount;
-		//	for (auto& angle : angles) {
-		//		const auto newAngle = angle + divided;
-		//		if (newAngle < PI<float> - 0.1f || newAngle > 0.1f) {
-		//			angle = newAngle;
-		//			sumOfAnglesInsideConxexPolygon -= divided;
-		//		}
-		//	}
-		//}
-
-		//std::uniform_real_distribution<float> generateLength(0.3f, 0.6f);
-		//auto currentRotation = 0.0f;
-		//const auto startingRotation = generateAngle(random);
-		///*auto currentPoint{ Vec2{ cos(startingRotation), sin(startingRotation) } * generateLength(random) };*/
-		//Vec2 currentPoint{ 0.0f };
-		//for (i32 i = 0; i < 2; i++) {
-		//	currentRotation += angles[i];
-		//	currentPoint += Vec2{ cos(currentRotation), sin(currentRotation) } * generateLength(random);
-		//	vertices.push_back(currentPoint);
-		//}
-
-		////for (i32 i = 2; i < verticesCount - 1; i++) {
-		////	currentRotation += angles[i];
-		////	float maxLength{ vertices[0] -  };
-		////	std::uniform_real_distribution<float> generateLength(0.3f, 0.6f);
-		////	currentPoint += Vec2{ cos(currentRotation), sin(currentRotation) } * generateLength(random);
-		////	vertices.push_back(currentPoint);
-		////}
-
-		//const auto 
-		//	angle0{ currentRotation + angles[angles.size() - 3] },
-		//	angle1{ angle0 + angles[angles.size() - 2] };
-
-		//Vec2
-		//	v0{ cos(angle0), sin(angle0) },
-		//	v1{ cos(angle1), sin(angle1) };
-
-		//const auto& p0 = vertices.back();
-		//const auto& p1 = vertices[0];
-		///*
-		//p0 + a * v0 = p1 + b * -v1
-
-		//p0.x + a * v0.x = p1.x + b * -v1.x
-		//p0.y + a * v0.y = p1.y + b * -v1.y
-
-		//p0.x + a * v0.x = p1.x + b * -v1.x
-		//p0.y + a * v0.y = p1.y + b * -v1.y
-		// p0.x +  = p1.x + b * -v1.x
-
-		//a * v0.x = p1.x + b * -v1.x - p0.x
-		//a = (p1.x + b * -v1.x - p0.x) / v0.x
-
-		//p0.y + ((p1.x + b * -v1.x - p0.x) / v0.x) * v0.y = p1.y + b * -v1.y
-		//p0.y + ((p1.x + b * -v1.x - p0.x) / v0.x) * v0.y = p1.y + b * -v1.y
-
-		//p0.y + (p1.x * v0.y + b * -v1.x * v0.y - p0.x * v0.y) / v0.x = p1.y + b * -v1.y
-		//p0.y * v0.x + p1.x * v0.y + b * -v1.x * v0.y - p0.x * v0.y = p1.y * v0.x + b * -v1.y * v0.x
-		//p0.y * v0.x + p1.x * v0.y - p0.x * v0.y - p1.y * v0.x = b * -v1.y * v0.x - b * -v1.x * v0.y
-		//p0.y * v0.x + p1.x * v0.y - p0.x * v0.y - p1.y * v0.x = b * (-v1.y * v0.x + v1.x * v0.y)
-		//b = (p0.y * v0.x + p1.x * v0.y - p0.x * v0.y - p1.y * v0.x) / (-v1.y * v0.x + v1.x * v0.y)
-		//*/
-		//
-		//ASSERT((-v1.y * v0.x + v1.x * v0.y) != 0);
-		//const auto b = (p0.y * v0.x + p1.x * v0.y - p0.x * v0.y - p1.y * v0.x) / (-v1.y * v0.x + v1.x * v0.y);
-
-		//const auto point = p1 + b * -v1;
-		//vertices.push_back(point);
-
-		////const auto a = (p1.x + b * -v1.x - p0.x) / v0.x;
-
-
-		////vertices
-		///*
-		//
-		//*/
-
-		////for (i32 i = 0; i < verticesCount; i++) {
-		////	angles.push_back(generate(random));
-		////	if (sumOfAnglesInsideConxexPolygon - angles.back() <= 0.0f && i != (verticesCount - 1)) {
-		////		break;
-		////	}
-		////	sumOfAnglesInsideConxexPolygon -= angles.back();
-		////}
-		////while (vertices.size() != verticesCount) {
-		////	const auto left{ verticesCount - vertices.size() };
-		////	for (int i = 0; i < left; i++) {
-
-		////	}
-		////}
-		//return vertices;
-	};
-
-	/*std::vector<Vec2> a{ Vec2{ -0.1f, -0.3f }, Vec2{ -0.1f, 0.2f }, Vec2{ 0.05f, 0.2f }, Vec2{ 0.3f, -0.1f } };*/
-	
-	static int seed = 0;
-	if (Input::isKeyDown(Keycode::F)) {
-		seed += 1;
-	}
-
-	auto a = randomConvexPolygon(3, seed);
+	std::vector<Vec2> a{ Vec2{ -0.2f, -0.3f }, Vec2{ -0.2f, 0.1f }, Vec2{ 0.01f, 0.2f }, Vec2{ 0.2f, -0.1f } };
 	Vec2 aPos{ renderer.mousePosToScreenPos(Input::cursorPos()) };
 	for (auto& v : a) {
-		//v *= 4.0f;
 		v += aPos;
 	}
 	const std::vector<Vec2> b{ Vec2{ -0.2f, -0.3f }, Vec2{ -0.2f, 0.1f }, Vec2{ 0.01f, 0.2f }, Vec2{ 0.2f, -0.1f } };
 	Vec2 bPos{ 0.0f };
 
-	auto support = [](Vec2 dir, const std::vector<Vec2>& vertices) -> i32 {
-		ASSERT(vertices.size() != 0);
-		size_t furthest{ 0 };
-		auto biggestValue{ dot(vertices[furthest], dir) };
-		for (usize i = 1; i < vertices.size(); i++) {
-			if (const auto value = dot(vertices[i], dir); value > biggestValue) {
-				biggestValue = value;
-				furthest = i;
-			}
-		}
-		return furthest;
-	};
 
-	struct SimplexVertex {
-		i32 aIndex;
-		i32 bIndex;
-		Vec2 pos;
-
-		auto operator==(const SimplexVertex& other) const -> bool {
-			return pos == other.pos;
-		};
-	};
-
-	auto minkowskiDifferenceSupport = [&](Vec2 dir, const std::vector<Vec2>& a, const std::vector<Vec2>& b) -> SimplexVertex {
-		const auto aIndex = support(dir, a);
-		const auto bIndex = support(-dir, b);
-		return SimplexVertex{
-			aIndex,
-			bIndex,
-			// Try without minus at end becuase it shouldn't be there it is there to return the direction from the origin to the actual support.
-			-(a[aIndex] - b[bIndex])
-		};
-	};
-
-	Vec2 direction{ 1.0f, 0.0f };
-
-	std::vector<SimplexVertex> simplex{ minkowskiDifferenceSupport(direction, a, b) };
-
-	//if (Input::isKeyDown(Keycode::D)) {
-	//	__debugbreak();
-	//}
-
-	bool collision = false;
-	Vec2 closestPointOnSimplexToOrigin;
-	int count = 0;
-	SimplexVertex p0;
-	SimplexVertex p1;
-	for (;;) {
-		struct LineBarycentric {
-			float u, v;
-		};
-		auto lineBarycentric = [](Vec2 a, Vec2 b) -> LineBarycentric {
-			// Line barycentric coordinate for the origin projected onto the line a b.
-			// Vec2{ 0.0f } = u * b + v * a
-			const auto normalize = 1.0f / pow(distance(a, b), 2);
-			return LineBarycentric{
-				.u = dot(b - a, /* Vec2{ 0.0f } */ -a) * normalize,
-				.v = dot(a - b, /* Vec2{ 0.0f } */ -b) * normalize,
-			};
-		};
-
-		{
-			if (simplex.size() == 1) {
-				closestPointOnSimplexToOrigin = simplex[0].pos;
-				const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
-				if (simplex[0] == newSupport) {
-					count = 1;
-					p0 = simplex[0];
-					break;
-				}
-				simplex.push_back(newSupport);
-			} else if (simplex.size() == 2) {
-				const auto [u, v] = lineBarycentric(simplex[0].pos, simplex[1].pos);
-				if (u < 0.0f) {
-					closestPointOnSimplexToOrigin = simplex[0].pos;
-					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
-					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
-						count = 1;
-						p0 = simplex[0];
-						break;
-					}
-					else {
-						simplex.erase(simplex.begin() + 1);
-					}
-				}
-				else if (v < 0.0f) {
-					closestPointOnSimplexToOrigin = simplex[1].pos;
-					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
-					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
-						count = 1;
-						p0 = simplex[1];
-						break;
-					}
-					else {
-						simplex.erase(simplex.begin() + 0);
-					}
-				}
-				else {
-					closestPointOnSimplexToOrigin = u * simplex[1].pos + v * simplex[0].pos;
-					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
-					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
-						count = 2;
-						p0 = simplex[0];
-						p1 = simplex[1];
-						break;
-					}
-					else {
-						simplex.push_back(newSupport);
-					}
-				};
-			} else {
-				const auto
-					e0 = simplex[1].pos - simplex[0].pos,
-					e1 = simplex[2].pos - simplex[1].pos,
-					e2 = simplex[0].pos - simplex[2].pos;
-				const auto
-					l0 = /* Vec2{ 0.0f } */ -simplex[0].pos,
-					l1 = /* Vec2{ 0.0f } */ -simplex[1].pos,
-					l2 = /* Vec2{ 0.0f } */ -simplex[2].pos;
-				const auto area = det(e0, e1);
-				if (area == 0.0f) {
-					// Don't think this should happen but it does.
-					break;
-				}
-				const auto
-					uabc = det(e0, l0) / area,
-					vabc = det(e1, l1) / area,
-					wabc = det(e2, l2) / area;
-
-				if (uabc > 0.0f && vabc > 0.0f && wabc > 0.0f) {
-					collision = true;
-					break;
-				}
-
-				const auto [uab, vab] = lineBarycentric(simplex[0].pos, simplex[1].pos);
-				const auto [ubc, vbc] = lineBarycentric(simplex[1].pos, simplex[2].pos);
-				const auto [uca, vca] = lineBarycentric(simplex[2].pos, simplex[0].pos);
-
-				auto vertexCase = [&](usize pointIndex, usize remove1, usize remove2) {
-					closestPointOnSimplexToOrigin = simplex[pointIndex].pos;
-					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
-					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
-						count = 1;
-						p0 = simplex[pointIndex];
-						return true;
-					} else {
-						simplex.erase(simplex.begin() + remove1);
-						simplex.erase(simplex.begin() + remove2);
-					}
-					return false;
-				};
-
-				auto edgeCase = [&](Vec2 point, usize remove) {
-					closestPointOnSimplexToOrigin = point;
-					const auto newSupport = minkowskiDifferenceSupport(closestPointOnSimplexToOrigin, a, b);
-					if (std::find(simplex.begin(), simplex.end(), newSupport) != simplex.end()) {
-						return true;
-					}
-					else {
-						simplex.erase(simplex.begin() + remove);
-					}
-					return false;
-				};
-
-				if (uab < 0.0f && vca < 0.0f) {
-					if (vertexCase(0, 1, 2)) break;
-				} 
-				else if (ubc < 0.0f && vab < 0.0f) {
-					if (vertexCase(1, 0, 2)) break;
-				}
-				else if (uca < 0.0f && vbc < 0.0f) {
-					if (vertexCase(2, 1, 0)) break;
-				}
-				else if (uab >= 0.0f && vab >= 0.0f && uabc <= 0.0f) {
-					if (edgeCase(uab * simplex[1].pos + vab * simplex[0].pos, 2)) {
-						count = 2;
-						p0 = simplex[0];
-						p1 = simplex[1];
-						break;
-					}
-				}
-				else if (ubc >= 0.0f && vbc >= 0.0f && vabc <= 0.0f) {
-					if (edgeCase(ubc * simplex[2].pos + vbc * simplex[1].pos, 0)) {
-						count = 2;
-						p0 = simplex[1];
-						p1 = simplex[2];
-						break;
-					}
-				}
-				else if (uca >= 0.0f && vca >= 0.0f && wabc <= 0.0f) {
-					if (edgeCase(uca * simplex[0].pos + vca * simplex[2].pos, 1)) {
-						count = 2;
-						p0 = simplex[2];
-						p1 = simplex[0];
-						break;
-					}
-				}
-			}
-		}
+	const auto result = gjk(std::as_const(a), b);
+	if (result.has_value()) {
+		Debug::drawLine(result->closestPointOnA, result->closestPointOnB);
 	}
-	
-	Vec3 color{ 1.0f };
-
-	if (collision) {
-		color = Vec3{ 0.0f, 1.0f, 0.0f };
-		
-	} else {
-		if (count == 1) {
-			Debug::drawPoint(a[p0.aIndex], Vec3{ 1, 0, 0 });
-			Debug::drawPoint(b[p0.bIndex], Vec3{ 0, 0, 1 });
-		} else {
-			Debug::drawPoint(a[p0.aIndex], Vec3{ 1, 0, 0 });
-			Debug::drawPoint(b[p0.bIndex], Vec3{ 0, 0, 1 });
-			Debug::drawPoint(a[p1.aIndex], Vec3{ 1, 0, 0 });
-			Debug::drawPoint(b[p1.bIndex], Vec3{ 0, 0, 1 });
-		}
-	}
-	draw(a, Vec2{ 0.0f }, color);
-	draw(b, Vec2{ 0.0f }, color);
-	/*for (const auto& v : a) {
-		Debug::drawLine(aPos, v);
-	}*/
-	auto distance = closestPointOnSimplexToOrigin.length();
-	//dbg(distance);
-
-	//draw(simplex, Vec2{ 0.0f }, Vec3{ 0.0f, 0.0f, 1.0f });
-	//Debug::drawPoint(closestPointOnSimplexToOrigin);
+	draw(a, Vec3{ 1.0f });
+	draw(b, Vec3{ 1.0f });
 
 	// Rounding, exact computations, epsilon check.
 

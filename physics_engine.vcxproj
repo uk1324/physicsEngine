@@ -209,6 +209,10 @@
     </ClCompile>
     <ClCompile Include="src\utils\areaAllocator.cpp" />
     <ClCompile Include="src\utils\io.cpp" />
+    <ClCompile Include="src\utils\random.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\winUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -236,6 +240,8 @@
     <ClInclude Include="src\gfx\gfx.hpp" />
     <ClInclude Include="src\utils\int.hpp" />
     <ClInclude Include="src\utils\io.hpp" />
+    <ClInclude Include="src\utils\random.hpp" />
+    <ClInclude Include="src\utils\span.hpp" />
     <ClInclude Include="src\winUtils.hpp" />
   </ItemGroup>
   <ItemGroup>
