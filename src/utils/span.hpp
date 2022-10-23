@@ -16,6 +16,7 @@ public:
 	auto data() -> T*;
 	auto data() const -> const T*;
 	auto size() const -> size_t;
+	auto back() const -> const T&;
 
 	auto begin() -> T*;
 	auto end() -> T*;
@@ -71,6 +72,11 @@ auto Span<T>::data() const -> const T* {
 template<typename T>
 auto Span<T>::size() const -> size_t {
 	return m_size;
+}
+
+template<typename T>
+auto Span<T>::back() const -> const T& {
+	return m_data[m_size - 1];
 }
 
 template<typename T>

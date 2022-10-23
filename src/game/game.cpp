@@ -378,9 +378,10 @@ auto convexPolygonVsConvexPolygon(
 
 
 	const auto result = gjk(aVertices, bVertices);
-	//return std::nullopt;
 	// Assume bigger penetrations can't happen. If they do maybe try using expanding polytope algorithm.
-	ASSERT(result.has_value());
+	//ASSERT(result.has_value());
+	if (!result.has_value())
+		return std::nullopt;
 
 	const auto& [aClosest, bClosest] = *result;
 
@@ -396,12 +397,32 @@ auto convexPolygonVsConvexPolygon(
 	//Debug::drawLine(aClosest, bClosest, Vec3{ 1.0f, 0.0f, 0.0f });
 	//Debug::drawPoint((aClosest + bClosest) / 2.0f);
 
+	const auto normal{ (aClosest - bClosest).normalized() };
+	auto penetrationDepth = dot(bt - at, normal);
+
+	/*auto aV = aCollider.vertices;
+	transform(aV, Transform{ aTransform.pos + normal * penetrationDepth, aTransform.orientation });
+	Debug::drawLines(aV);
+	auto bV = bCollider.vertices;
+	transform(bV, Transform{ bTransform.pos, bTransform.orientation });
+	Debug::drawLines(bV);*/
+
+	auto aV = aCollider.vertices;
+	transform(aV, aTransform);
+	auto bV = bCollider.vertices;
+	transform(bV, bTransform);
+
+	Debug::drawLines(aV);
+	Debug::drawLines(bV);
+
+	// It might be better to check which features of which shape are colliding if there is a face vertex collision it is better to use the closest point on face as the contant point the collision use the scaled down shapes and the vertices of those get translated.
+	//Debug::drawPoint(at + normal * penetrationDepth);
+	//Debug::drawPoint(bt - normal * penetrationDepth);
 
 	//return std::nullopt;
-	const auto normal{ (aClosest - bClosest).normalized() };
 	return Collision{
 		.normal = normal,
-		.hitPoint = (at + bt) / 2.0f,
+		.hitPoint = at + normal * penetrationDepth,
 		.penetrationDepth = dot(bt - at, normal),
 	};
 }
@@ -510,12 +531,8 @@ Game::Game(Gfx& gfx)
 	Input::registerKeyButton(Keycode::A, GameButton::LEFT);
 	Input::registerKeyButton(Keycode::D, GameButton::RIGHT);
 
-	Input::registerKeyButton(Keycode::UP, GameButton::UP);
-	Input::registerKeyButton(Keycode::DOWN, GameButton::DOWN);
-	Input::registerKeyButton(Keycode::LEFT, GameButton::LEFT);
-	Input::registerKeyButton(Keycode::RIGHT, GameButton::RIGHT);
-	
-	twoConvexPolygonsScene();
+	circlesScene();
+	//rollingSphereScene();
 }
 
 #include <utils/io.hpp>
@@ -544,13 +561,88 @@ static auto collisionResponse(
 	const auto ra = (collision.hitPoint - aTransform.pos).rotBy90deg();
 	const auto rb = (collision.hitPoint - bTransform.pos).rotBy90deg();
 
+	const auto coefficientOfRestitution{ (aPhysics.material->bounciness + bPhysics.material->bounciness) / 2.0f };
+	const auto la = ra.length();
+	const auto lb = rb.length();
+	const Vec2 uRel{ (aPhysics.vel + aPhysics.angularVel * ra) - (bPhysics.vel + bPhysics.angularVel * rb) };
+
+	//const auto bias{ -0.2f * (1.0f / Time::deltaTime()) * std::min(0.0f, -collision.penetrationDepth + 0.01f) };
+
+	auto k = (-coefficientOfRestitution - 1.0f) * dot(uRel, collision.normal) / (dot((1.0f * aPhysics.invMass + 1.0f * bPhysics.invMass) * collision.normal + (dot(ra, collision.normal) * aPhysics.invMass / la) * ra + (dot(rb, collision.normal) * bPhysics.invMass / lb) * rb, collision.normal));
+
+	//k = std::max(k, 0.0f);
+
+	const auto interia = ((PI<float> * pow(0.05f, 4.0f)) / 4.0f);
+
+	Debug::drawLine(aTransform.pos, aTransform.pos + Vec2(0.0, 1.0f) * aPhysics.angularVel * 0.001f);
+
 	const auto parallel = collision.normal.rotBy90deg().normalized();
+	// Minus to rotate by 180 deg.
 	const auto aVel = -ra * aPhysics.angularVel + aPhysics.vel;
 	const auto bVel = -rb * bPhysics.angularVel + bPhysics.vel;
-	const auto aForce = (dot(1.0f / aPhysics.invMass * aVel, parallel) * parallel) * 0.9f;
-	const auto bForce = (dot(1.0f / bPhysics.invMass * bVel, parallel) * parallel) * 0.9f;
 
-	Debug::drawLine(aTransform.pos, aTransform.pos - aForce * Time::deltaTime() * 10.0f);
+	/*const auto normalForce = std::min(dot(aVel - bVel, collision.normal), 0.0f);*/
+	const auto normalForce = std::min(dot(aVel - bVel, collision.normal), 0.0f);
+
+	const auto coefficientOfStaticFriction{ (aPhysics.material->staticFriction + bPhysics.material->staticFriction) / 2.0f };
+	const auto coefficientOfDynamicFriction{ (aPhysics.material->dynamicFriction + bPhysics.material->dynamicFriction) / 2.0f };
+
+	auto aFriction = normalForce / aPhysics.invMass * parallel * coefficientOfDynamicFriction * ((dot(parallel, aVel) >= 0.0f) ? 1.0f : -1.0f);
+	auto bFriction = normalForce / bPhysics.invMass * parallel * coefficientOfDynamicFriction * ((dot(parallel, bVel) >= 0.0f) ? 1.0f : -1.0f);
+
+	if (normalForce < coefficientOfStaticFriction) {
+		aFriction = -dot(aVel, parallel) * parallel * (Time::deltaTime());
+		bFriction = -dot(bVel, parallel) * parallel * Time::deltaTime();
+		///*aFriction = aVel * ((dot(parallel, aVel) >= 0.0f) ? 1.0f : -1.0f);*/
+		/*aFriction = dot(aVel / Time::deltaTime(), parallel) * parallel / aPhysics.invMass;
+		bFriction = dot(bVel / Time::deltaTime(), parallel) * parallel / bPhysics.invMass;*/
+		// This should be more correct but it works worse.
+		/*aFriction = parallel * (normalForce / aPhysics.invMass) * ((dot(parallel, aVel) >= 0.0f) ? 1.0f : -1.0f);
+		bFriction = parallel * (normalForce / bPhysics.invMass) * ((dot(parallel, bVel) >= 0.0f) ? 1.0f : -1.0f);*/
+	}
+
+	if (abs(dot(aVel, parallel)) < 0.01f)
+		aFriction = Vec2{ 0.0f };
+	if (abs(dot(bVel, parallel)) < 0.01f)
+		bFriction = Vec2{ 0.0f };
+
+	// Maybe make function response that would allow reversing the normal.
+	if (aPhysics.bodyType == BodyType::DYNAMIC) {
+		if (bPhysics.bodyType == BodyType::STATIC)
+			aTransform.pos += collision.penetrationDepth * collision.normal;
+
+		aPhysics.vel += aFriction * aPhysics.invMass * Time::deltaTime();
+		aPhysics.angularVel += det(collision.hitPoint - aTransform.pos, aFriction) * aPhysics.invMass / interia * Time::deltaTime();
+
+		aPhysics.vel += collision.normal * (k * aPhysics.invMass);
+		aPhysics.angularVel -= k * dot(ra, collision.normal) * aPhysics.invMass / interia;
+	}
+	if (bPhysics.bodyType == BodyType::DYNAMIC) {
+		if (aPhysics.bodyType == BodyType::STATIC)
+			bTransform.pos -= collision.penetrationDepth * collision.normal;
+
+		bPhysics.vel += bFriction * bPhysics.invMass * Time::deltaTime();
+		bPhysics.angularVel += det(collision.hitPoint - bTransform.pos, bFriction) * bPhysics.invMass / interia * Time::deltaTime();
+
+		bPhysics.vel -= collision.normal * (k * bPhysics.invMass);
+		bPhysics.angularVel += k * dot(rb, collision.normal) * bPhysics.invMass / interia;
+	}
+
+	Debug::drawLine(collision.hitPoint, collision.hitPoint + collision.normal * 0.f);
+	if (aPhysics.bodyType == BodyType::DYNAMIC && bPhysics.bodyType == BodyType::DYNAMIC) {
+		const auto seperate = ((collision.penetrationDepth / 2.0f) * collision.normal) * 1.02f;
+		aTransform.pos += seperate;
+		bTransform.pos -= seperate;
+	}
+
+	/*if (dot(aVel, aFriction) > 0.0f) {
+		dbg(dot(aVel, aFriction));
+		dbg(dot(parallel, aVel));
+	}
+	ASSERT(dot(aVel, aFriction) <= 0.03f);*/
+
+	//const auto aForce = (dot(1.0f / aPhysics.invMass * aVel, parallel) * parallel) * 0.9f;
+	//const auto bForce = (dot(1.0f / bPhysics.invMass * bVel, parallel) * parallel) * 0.9f;
 
 	/*
 	Variables with a prime refer to post collision variables.
@@ -605,40 +697,6 @@ static auto collisionResponse(
 	*/
 
 	// The coefficient of restitution is a property measured between two materials. The average of bounciness is only an approximation. For it to be correct it would need to be a lookup table with 2 materials as keys.
-	const auto coefficientOfRestitution{ (aPhysics.material->bounciness + bPhysics.material->bounciness) / 2.0f };
-	const auto la = ra.length();
-	const auto lb = rb.length();
-	const Vec2 uRel{ (aPhysics.vel + aPhysics.angularVel * ra) - (bPhysics.vel + bPhysics.angularVel * rb) };
-
-	const auto k = (-coefficientOfRestitution - 1.0f) * dot(uRel, collision.normal) / (dot((1.0f * aPhysics.invMass + 1.0f * bPhysics.invMass) * collision.normal + (dot(ra, collision.normal) * aPhysics.invMass / la) * ra + (dot(rb, collision.normal) * bPhysics.invMass / lb) * rb, collision.normal));
-
-	// Maybe make function response that would allow reversing the normal.
-	if (aPhysics.bodyType == BodyType::DYNAMIC) {
-		if (bPhysics.bodyType == BodyType::STATIC)
-			aTransform.pos += collision.penetrationDepth * collision.normal;
-
-		aPhysics.vel -= bForce * Time::deltaTime();
-		aPhysics.angularVel += det(collision.normal, aForce) * Time::deltaTime();
-
-		aPhysics.vel += collision.normal * (k * aPhysics.invMass);
-		aPhysics.angularVel -= k * dot(ra, collision.normal) * aPhysics.invMass / la;
-	}
-	if (bPhysics.bodyType == BodyType::DYNAMIC) {
-		if (aPhysics.bodyType == BodyType::STATIC)
-			bTransform.pos -= collision.penetrationDepth * collision.normal;
-
-		bPhysics.vel -= aForce * Time::deltaTime();
-		bPhysics.angularVel += det(collision.normal, bForce) * Time::deltaTime();
-
-		bPhysics.vel -= collision.normal * (k * bPhysics.invMass);
-		bPhysics.angularVel += k * dot(rb, collision.normal) * bPhysics.invMass / lb;
-	}
-
-	if (aPhysics.bodyType == BodyType::DYNAMIC && bPhysics.bodyType == BodyType::DYNAMIC) {
-		const auto seperate = (collision.penetrationDepth / 2.0f) * collision.normal;
-		aTransform.pos += seperate;
-		bTransform.pos -= seperate;
-	}
 }
 
 auto Game::update(Gfx& gfx) -> void {
@@ -675,8 +733,10 @@ auto Game::update(Gfx& gfx) -> void {
 				}
 			}
 			for (auto& b : lineEntites) {
-				if (const auto collision = circleVsLine(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
-					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
+				if (auto collision = circleVsLine(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
+					/*collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);*/
+					collision->normal = -collision->normal;
+					collisionResponse(*collision, b.transform, a.transform, b.physics, a.physics);
 				}
 			}
 		}
@@ -700,28 +760,39 @@ auto Game::update(Gfx& gfx) -> void {
 	for (auto& line : lineEntites) integrate(line.transform, line.physics);
 	for (auto& polygon : convexPolygonEntites) integrate(polygon.transform, polygon.physics);
 
-	//if (Input::isKeyHeld(Keycode::UP)) {
-	//	cameraPos.y += 0.05f;
-	//}
-	//if (Input::isKeyHeld(Keycode::DOWN)) {
-	//	cameraPos.y -= 0.05f;
-	//}
-
-	//if (Input::isKeyHeld(Keycode::LEFT)) {
-	//	cameraPos.x += 0.05f;
-	//}
-	//if (Input::isKeyHeld(Keycode::RIGHT)) {
-	//	cameraPos.x -= 0.05f;
-	//}
-
 	if (Input::isKeyHeld(Keycode::K)) {
-		cameraZoom *= 1.05f;
+		cameraZoom *= pow(3.0f, Time::deltaTime());
 	}
 	if (Input::isKeyHeld(Keycode::J)) {
-		cameraZoom /= 1.05f;
+		cameraZoom /= pow(3.0f, Time::deltaTime());
 	}
 
-	cameraPos = lerp(cameraPos, convexPolygonEntites[0].transform.pos, 0.1f);
+	/*static auto
+		a = ConvexPolygonCollider{ randomNiceConvexPolygon(6, 0.2f) },
+		b = ConvexPolygonCollider{ randomNiceConvexPolygon(6, 0.2f) };
+
+	Transform 
+		aT{ .pos = Vec2{ 0.0f }, .orientation = 0.0f },
+		bT{ .pos = renderer.mousePosToScreenPos(Input::cursorPos()) , .orientation = 0.0f };
+
+	const auto c = convexPolygonVsConvexPolygon(a, aT, b, bT);*/
+
+	if (followedPos == nullptr) {
+		Vec2 dir{ 0.0f };
+		if (Input::isKeyHeld(Keycode::UP))
+			dir.y += 1.0f;
+		if (Input::isKeyHeld(Keycode::DOWN))
+			dir.y -= 1.0f;
+		if (Input::isKeyHeld(Keycode::RIGHT)) 
+			dir.x += 1.0f;
+		if (Input::isKeyHeld(Keycode::LEFT))
+			dir.x -= 1.0f;
+		cameraPos += dir.normalized() * 0.5f * Time::deltaTime();
+
+	} else {
+		cameraPos = lerp(cameraPos, *followedPos, 2.0f * Time::deltaTime());
+	}
+		
 
 	renderer.update(gfx, cameraPos, cameraZoom);
 }
@@ -742,7 +813,38 @@ auto Game::integrate(Transform& transform, PhysicsInfo& physics) const -> void {
 	*/
 	physics.vel.y -= Time::deltaTime() * gravityAcceleration;
 	physics.vel *= pow(groundFriction, Time::deltaTime());
+	physics.angularVel *= pow(groundFriction, Time::deltaTime());
 	transform.orientation += physics.angularVel * Time::deltaTime();
+}
+
+auto Game::circlesScene() -> void {
+	for (i32 i = 0; i < 50; i++) {
+		circleEntites.push_back(CircleEntity{
+			.transform = { Vec2{ randomInRange(-0.02f, 0.02f), i * 0.12f }, 0.0f },
+			.collider = {.radius = 0.05f },
+			.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
+		});
+	}
+
+	const auto maxMin = 0.7f;
+	const auto y = -0.5f;
+	lineEntites.push_back(LineEntity{
+		.transform = { Vec2{ 0.0f, y }, 0.0f },
+		.collider = {.halfLength = maxMin },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
+	});
+
+	float halfHeight = 0.4f;
+	for (const auto& sign : SIGNS) {
+		lineEntites.push_back(LineEntity{
+			.transform = { Vec2{ maxMin * sign, y + halfHeight }, PI<float> / 2.0f },
+			.collider = {.halfLength = halfHeight },
+			.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
+		});
+	}
+
+	controlledVel = &circleEntites[0].physics.vel;
+	gravityAcceleration = 1.0f;
 }
 
 auto Game::rollingSphereScene() -> void {
@@ -752,20 +854,27 @@ auto Game::rollingSphereScene() -> void {
 		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
 	});
 
+	/*circleEntites.push_back(CircleEntity{
+		.transform = { Vec2{ 0.2f, 0.3f }, 0.0f },
+		.collider = {.radius = 0.2f },
+		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
+	});*/
+
 	lineEntites.push_back(LineEntity{
 		.transform = { Vec2{ 0.4f, 0.1f }, 0.2f },
-		.collider = {.halfLength = 0.4f },
+		.collider = { .halfLength = 0.4f },
 		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
 	});
 
 	lineEntites.push_back(LineEntity{
 		.transform = { Vec2{ -0.4f, -0.4f }, -0.2f },
-		.collider = {.halfLength = 0.8f },
+		/*.collider = {.halfLength = 0.8f },*/
+		.collider = {.halfLength = 1.8f },
 		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
 	});
 
+	controlledVel = &circleEntites[0].physics.vel;
 	gravityAcceleration = 1.0f;
-	controlledVel = nullptr;
 }
 
 auto Game::lineAndCircleScene() -> void {

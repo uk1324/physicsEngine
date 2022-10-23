@@ -11,6 +11,8 @@
 
 #include <chrono>
 
+// TODO: Could make Noita like physics.
+
 // TODO: Integrate ImGui use custom vector type and using namespace Im = ImGui
 
 // TODO: Use an actual testing framework.

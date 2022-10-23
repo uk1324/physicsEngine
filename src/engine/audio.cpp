@@ -21,7 +21,7 @@ static XAUDIO2_BUFFER buffer;
 
 static constexpr auto SAMPLES_PER_SECOND = 44100;
 
-//static auto hz()
+#include <utils/random.hpp>
 
 auto Audio::init() -> void {
 	CHECK_WIN_HRESULT(XAudio2Create(xAudio.GetAddressOf(), XAUDIO2_DEBUG_ENGINE));
@@ -49,6 +49,10 @@ auto Audio::init() -> void {
 		.cbSize = sizeof(WAVEFORMATEX),
 	};
 
+	float randomNumbers[10];
+	for (i32 i = 0; i < std::size(randomNumbers); i++)
+		randomNumbers[i] = randomInRange(100.0f, 400.0f);
+
 	static i16 wave[SAMPLES_COUNT];
 	for (auto i = 0; i < SAMPLES_COUNT; i++) {
 		if (i == SAMPLES_COUNT - 1) {
@@ -56,6 +60,9 @@ auto Audio::init() -> void {
 		}
 
 		auto t{ static_cast<float>(i) / static_cast<float>(SAMPLES_PER_SECOND) };
+		auto hz = [&t](float v) -> float {
+			return t * v * TAU<float>;
+		};
 		//float v{ sin(t * TAU<float> * 210.0f) };
 		/*float v = asin(sin(t * TAU<float> * 110.0f));*/
 		//float v = asin(sin(t * TAU<float> * 110.0f));
@@ -69,11 +76,38 @@ auto Audio::init() -> void {
 		if (v < 0.0f) v = -1.0f;
 		else v = 1.0f;*/
 
+		/*float v = 0.0f;
+		v += log(sin(hz(400.0f)) + 1.5f);*/
+
+		/*float v = 0.0f;
+		v += log(sin(hz(400.0f)) + 1.5f);*/
+
+		/*float v = 0.0f;
+		v += sin(hz(100.0f)) > 0.0f ? 1.0 : -1.0f;
+		v *= 0.3f;
+		v += asin(sin(hz(1000.0f)));*/
+
 		float v = 0.0f;
-		for (float i = 1.0f; i < 10.0f; i++) {
+		v -= log(fmod(hz(20.0f), 1.0f) + 0.1f) + 0.5f;
+		v += sin(hz(40.0f));
+		v += asin(sin(hz(100.0f)));
+		v /= 3.0f;
+
+		/*float v = 0.0f;
+		for (i32 i = 0; i < 5; i++) {
+			v += (sin(randomNumbers[i] / 10.0f + hz(randomNumbers[i])) > 0 ? 1.0f : 0.0f) / 10.0f;
+			v -= asin(sin(randomNumbers[i] / 10.0f + hz(randomNumbers[i]))) / 10.0f;
+		}*/
+		//v += asin(sin(hz(100.0f * 10.0f))) * 0.2f + sin(hz(100.0f));
+
+		/*for (float i = 1.0f; i < 10.0f; i++) {
 			v += sin(t * i * TAU<float> * 110.0f * 0.5f) / i;
 		}
-		v += sin(t * TAU<float> * 210.0f);
+		v += sin(t * TAU<float> * 410.0f);*/
+
+		// Trumptet
+		/*float v = 0.0f;
+		v += pow(asin(sin(hz(50.0f))) / (PI<float> / 2.0f), 4.0f);*/
 
 
 		//t += 0.2f;

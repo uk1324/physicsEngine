@@ -7,6 +7,8 @@
 
 struct PhysicsMaterial {
 	float bounciness;
+	float staticFriction = 0.7f;
+	float dynamicFriction = 1.0f;
 };
 
 enum class BodyType {
