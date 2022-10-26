@@ -9,6 +9,10 @@ auto Debug::drawLine(Vec2 start, Vec2 end, const Vec3& color) -> void {
 	lines.push_back({ start, end, color });
 }
 
+auto Debug::drawRay(Vec2 start, Vec2 ray, const Vec3& color) -> void {
+	lines.push_back({ start, start + ray, color });
+}
+
 auto Debug::drawCircle(Vec2 pos, float radius, const Vec3& color) -> void {
 	circles.push_back({ pos, radius, color });
 }

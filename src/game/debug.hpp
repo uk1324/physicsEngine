@@ -9,6 +9,7 @@ namespace Debug {
 	auto update() -> void;
 
 	auto drawLine(Vec2 start, Vec2 end, const Vec3& color = Vec3{ 1.0f, 1.0f, 1.0f }) -> void;
+	auto drawRay(Vec2 start, Vec2 ray, const Vec3& color = Vec3{ 1.0f, 1.0f, 1.0f }) -> void;
 	auto drawCircle(Vec2 pos, float radius = 0.01f, const Vec3& color = Vec3{ 1.0f, 1.0f, 1.0f }) -> void;
 	auto drawPoint(Vec2 pos, const Vec3& color = Vec3{ 1.0f, 1.0f, 1.0f }) -> void;
 	auto drawLines(Span<const Vec2> lines, const Vec3& color = Vec3{ 1.0f, 1.0f, 1.0f }) -> void;

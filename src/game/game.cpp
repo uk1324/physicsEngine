@@ -531,8 +531,9 @@ Game::Game(Gfx& gfx)
 	Input::registerKeyButton(Keycode::A, GameButton::LEFT);
 	Input::registerKeyButton(Keycode::D, GameButton::RIGHT);
 
-	circlesScene();
-	//rollingSphereScene();
+	//circlesScene();
+	//rollingCircleScene();
+	lineAndCircleScene();
 }
 
 #include <utils/io.hpp>
@@ -561,20 +562,40 @@ static auto collisionResponse(
 	const auto ra = (collision.hitPoint - aTransform.pos).rotBy90deg();
 	const auto rb = (collision.hitPoint - bTransform.pos).rotBy90deg();
 
-	const auto coefficientOfRestitution{ (aPhysics.material->bounciness + bPhysics.material->bounciness) / 2.0f };
+	const auto coefficientOfRestitution{ (aPhysics.MATERIAL->bounciness + bPhysics.MATERIAL->bounciness) / 2.0f };
 	const auto la = ra.length();
 	const auto lb = rb.length();
 	const Vec2 uRel{ (aPhysics.vel + aPhysics.angularVel * ra) - (bPhysics.vel + bPhysics.angularVel * rb) };
 
 	//const auto bias{ -0.2f * (1.0f / Time::deltaTime()) * std::min(0.0f, -collision.penetrationDepth + 0.01f) };
 
-	auto k = (-coefficientOfRestitution - 1.0f) * dot(uRel, collision.normal) / (dot((1.0f * aPhysics.invMass + 1.0f * bPhysics.invMass) * collision.normal + (dot(ra, collision.normal) * aPhysics.invMass / la) * ra + (dot(rb, collision.normal) * bPhysics.invMass / lb) * rb, collision.normal));
 
-	//k = std::max(k, 0.0f);
+	//auto aInteria = ((PI<float> * pow(0.2f, 4.0f)) / 4.0f);
+	//auto bInteria = aInteria;
+	//if (&bPhysics == &lineEntites[0].physics) {
+	//	//interia = (0.005f * pow(0.6f, 3.0f)) / 12.0f;
+	//	bInteria = (pow(0.6f, 2.0f) + pow(0.005f, 2.0f)) / 12.0f;
+	//}
 
-	const auto interia = ((PI<float> * pow(0.05f, 4.0f)) / 4.0f);
+	//Debug::drawRay(aTransform.pos, ra);
+	//Debug::drawRay(bTransform.pos, rb);
 
-	Debug::drawLine(aTransform.pos, aTransform.pos + Vec2(0.0, 1.0f) * aPhysics.angularVel * 0.001f);
+	/*auto k = (-coefficientOfRestitution - 1.0f) * dot(uRel, collision.normal) / (dot((1.0f * aPhysics.invMass + 1.0f * bPhysics.invMass) * collision.normal + (dot(ra, collision.normal) * aPhysics.invMass / la) * ra + (dot(rb, collision.normal) * bPhysics.invMass / lb) * rb, collision.normal));*/
+	/*auto k = (-coefficientOfRestitution - 1.0f) * dot(uRel, collision.normal) / (dot((1.0f * aPhysics.invMass + 1.0f * bPhysics.invMass) * collision.normal + (dot(ra, collision.normal) * aPhysics.invMass / aPhysics.rotationalInteria * aPhysics.invMass * la) * ra + (dot(rb, collision.normal) * bPhysics.invMass * bPhysics.invMass / bPhysics.rotationalInteria * lb) * rb, collision.normal));*/
+
+	const auto ta = (collision.hitPoint - aTransform.pos);
+	const auto tb = (collision.hitPoint - bTransform.pos);
+	const auto ta0 = dot(ta, collision.normal);
+	const auto tb0 = dot(tb, collision.normal);
+
+	const auto aa = (1.0f / aPhysics.rotationalInteria * (dot(ta, ta) - ta0 * ta0));
+	const auto bb = (1.0f / bPhysics.rotationalInteria * (dot(tb, tb) - tb0 * tb0));
+
+	auto k = ((-coefficientOfRestitution - 1.0f) * dot(uRel, collision.normal)) / (aPhysics.invMass + bPhysics.invMass +  aa + bb);
+
+	k = std::max(k, 0.0f);
+
+	//Debug::drawLine(aTransform.pos, aTransform.pos + Vec2(0.0, 1.0f) * aPhysics.angularVel * 0.001f);
 
 	const auto parallel = collision.normal.rotBy90deg().normalized();
 	// Minus to rotate by 180 deg.
@@ -584,22 +605,22 @@ static auto collisionResponse(
 	/*const auto normalForce = std::min(dot(aVel - bVel, collision.normal), 0.0f);*/
 	const auto normalForce = std::min(dot(aVel - bVel, collision.normal), 0.0f);
 
-	const auto coefficientOfStaticFriction{ (aPhysics.material->staticFriction + bPhysics.material->staticFriction) / 2.0f };
-	const auto coefficientOfDynamicFriction{ (aPhysics.material->dynamicFriction + bPhysics.material->dynamicFriction) / 2.0f };
+	const auto coefficientOfStaticFriction{ (aPhysics.MATERIAL->staticFriction + bPhysics.MATERIAL->staticFriction) / 2.0f };
+	const auto coefficientOfDynamicFriction{ (aPhysics.MATERIAL->dynamicFriction + bPhysics.MATERIAL->dynamicFriction) / 2.0f };
 
 	auto aFriction = normalForce / aPhysics.invMass * parallel * coefficientOfDynamicFriction * ((dot(parallel, aVel) >= 0.0f) ? 1.0f : -1.0f);
 	auto bFriction = normalForce / bPhysics.invMass * parallel * coefficientOfDynamicFriction * ((dot(parallel, bVel) >= 0.0f) ? 1.0f : -1.0f);
 
-	if (normalForce < coefficientOfStaticFriction) {
-		aFriction = -dot(aVel, parallel) * parallel * (Time::deltaTime());
-		bFriction = -dot(bVel, parallel) * parallel * Time::deltaTime();
-		///*aFriction = aVel * ((dot(parallel, aVel) >= 0.0f) ? 1.0f : -1.0f);*/
-		/*aFriction = dot(aVel / Time::deltaTime(), parallel) * parallel / aPhysics.invMass;
-		bFriction = dot(bVel / Time::deltaTime(), parallel) * parallel / bPhysics.invMass;*/
-		// This should be more correct but it works worse.
-		/*aFriction = parallel * (normalForce / aPhysics.invMass) * ((dot(parallel, aVel) >= 0.0f) ? 1.0f : -1.0f);
-		bFriction = parallel * (normalForce / bPhysics.invMass) * ((dot(parallel, bVel) >= 0.0f) ? 1.0f : -1.0f);*/
-	}
+	//if (normalForce < coefficientOfStaticFriction) {
+	//	/*aFriction = -dot(aVel, parallel) * parallel * (Time::deltaTime());
+	//	bFriction = -dot(bVel, parallel) * parallel * Time::deltaTime();*/
+	//	///*aFriction = aVel * ((dot(parallel, aVel) >= 0.0f) ? 1.0f : -1.0f);*/
+	//	/*aFriction = dot(aVel / Time::deltaTime(), parallel) * parallel / aPhysics.invMass;
+	//	bFriction = dot(bVel / Time::deltaTime(), parallel) * parallel / bPhysics.invMass;*/
+	//	// This should be more correct but it works worse.
+	//	/*aFriction = parallel * (normalForce / aPhysics.invMass) * ((dot(parallel, aVel) >= 0.0f) ? 1.0f : -1.0f);
+	//	bFriction = parallel * (normalForce / bPhysics.invMass) * ((dot(parallel, bVel) >= 0.0f) ? 1.0f : -1.0f);*/
+	//}
 
 	if (abs(dot(aVel, parallel)) < 0.01f)
 		aFriction = Vec2{ 0.0f };
@@ -612,20 +633,20 @@ static auto collisionResponse(
 			aTransform.pos += collision.penetrationDepth * collision.normal;
 
 		aPhysics.vel += aFriction * aPhysics.invMass * Time::deltaTime();
-		aPhysics.angularVel += det(collision.hitPoint - aTransform.pos, aFriction) * aPhysics.invMass / interia * Time::deltaTime();
+		aPhysics.angularVel += det(collision.hitPoint - aTransform.pos, aFriction) * aPhysics.invMass / aPhysics.rotationalInteria * Time::deltaTime();
 
 		aPhysics.vel += collision.normal * (k * aPhysics.invMass);
-		aPhysics.angularVel -= k * dot(ra, collision.normal) * aPhysics.invMass / interia;
+		aPhysics.angularVel -= k * dot(ra, collision.normal) * aPhysics.invMass / aPhysics.rotationalInteria;
 	}
 	if (bPhysics.bodyType == BodyType::DYNAMIC) {
 		if (aPhysics.bodyType == BodyType::STATIC)
 			bTransform.pos -= collision.penetrationDepth * collision.normal;
 
 		bPhysics.vel += bFriction * bPhysics.invMass * Time::deltaTime();
-		bPhysics.angularVel += det(collision.hitPoint - bTransform.pos, bFriction) * bPhysics.invMass / interia * Time::deltaTime();
+		bPhysics.angularVel += det(collision.hitPoint - bTransform.pos, bFriction) * bPhysics.invMass / bPhysics.rotationalInteria * Time::deltaTime();
 
 		bPhysics.vel -= collision.normal * (k * bPhysics.invMass);
-		bPhysics.angularVel += k * dot(rb, collision.normal) * bPhysics.invMass / interia;
+		bPhysics.angularVel += k * dot(rb, collision.normal) * bPhysics.invMass / bPhysics.rotationalInteria;
 	}
 
 	Debug::drawLine(collision.hitPoint, collision.hitPoint + collision.normal * 0.f);
@@ -734,9 +755,9 @@ auto Game::update(Gfx& gfx) -> void {
 			}
 			for (auto& b : lineEntites) {
 				if (auto collision = circleVsLine(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
-					/*collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);*/
-					collision->normal = -collision->normal;
-					collisionResponse(*collision, b.transform, a.transform, b.physics, a.physics);
+					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
+					/*collision->normal = -collision->normal;
+					collisionResponse(*collision, b.transform, a.transform, b.physics, a.physics);*/
 				}
 			}
 		}
@@ -817,60 +838,120 @@ auto Game::integrate(Transform& transform, PhysicsInfo& physics) const -> void {
 	transform.orientation += physics.angularVel * Time::deltaTime();
 }
 
-auto Game::circlesScene() -> void {
-	for (i32 i = 0; i < 50; i++) {
-		circleEntites.push_back(CircleEntity{
-			.transform = { Vec2{ randomInRange(-0.02f, 0.02f), i * 0.12f }, 0.0f },
-			.collider = {.radius = 0.05f },
-			.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
-		});
-	}
+/*
+Useful searches: Second polar moment of area, Second moment of area
 
-	const auto maxMin = 0.7f;
-	const auto y = -0.5f;
-	lineEntites.push_back(LineEntity{
-		.transform = { Vec2{ 0.0f, y }, 0.0f },
-		.collider = {.halfLength = maxMin },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
-	});
+The moment of inertia of a 2D shape is obtained by integrating the distance from the center of mass squared times density with respect to area. This is because the moment of inertia of a point particle is equal to mass times the distance from the axis which it is rotating around squared.
 
-	float halfHeight = 0.4f;
-	for (const auto& sign : SIGNS) {
-		lineEntites.push_back(LineEntity{
-			.transform = { Vec2{ maxMin * sign, y + halfHeight }, PI<float> / 2.0f },
-			.collider = {.halfLength = halfHeight },
-			.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
-		});
-	}
+Parallel axis theorem
 
-	controlledVel = &circleEntites[0].physics.vel;
-	gravityAcceleration = 1.0f;
+Because the squared is x^2 + y^2 when integrating it can be split into two different integrals.
+
+To calculate the moment of inertia of a shape with a center of mass (point of rotation might be more correct here because the shape's density would also need to change for the center of mass to change and the shape's shape to remain the same at the same time) translated by a vector v, dot(v, v) can be added to the moment of inertia.
+
+Examples:
+
+Square with sides lengths a and b and uniform density.
+
+To calculate the distance for one axis integrate half the distance from one axis squared and multiply by two to get the integral for the whole rectangle.
+integral from 0 to b/2 of D * a x^2
+The density and a is constant so it can be taken out of the integral.
+integral from 0 to b/2 of x^2
+integral of x^2 = (x^3) / 3
+((b / 2)^3) / 3 = b^3 / 8 / 3 = b^3 / 24
+Then multiply by the constant 
+Ix = D * a * 2 * (b^3 / 24) = D * a * b^3 / 12
+Iy = D * b * a^3 / 12
+Iz = Ix + Iy = (D * (a * b)(a^2 + b^2)) / 12
+D = mass / area so this can also be written like this
+(mass * (a^2 + b^2)) / 12
+
+Circle with radius r
+
+integral from 0 to r of D * 2 * pi * x * x^2 =
+D * 2 * pi * integral from 0 to r of x * x^2 = 
+D * 2 * pi * (r^4)/4 =
+(D * pi * r^4) / 2 =
+(mass * r^2) / 2
+*/
+
+static auto circleInertia(float radius, float mass) -> float {
+	return mass * pow(radius, 2.0f) / 2.0f;
 }
 
-auto Game::rollingSphereScene() -> void {
-	circleEntites.push_back(CircleEntity{
-		.transform = { Vec2{ 0.4f, 0.3f }, 0.0f },
-		.collider = {.radius = 0.2f },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
-	});
+static auto rectangleInertia(float width, float height, float mass) -> float {
+	return mass * pow(width, 2.0f) * pow(height, 2.0f) / 12.0f;
+}
 
-	/*circleEntites.push_back(CircleEntity{
-		.transform = { Vec2{ 0.2f, 0.3f }, 0.0f },
-		.collider = {.radius = 0.2f },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
-	});*/
+static constexpr auto DENSITY = 1.0f;
+static const PhysicsMaterial MATERIAL{ .bounciness = 0.1f };
+
+static auto makeCircle(Vec2 pos, float radius) -> CircleEntity {
+	const auto mass = PI<float> * pow(radius, 2.0f) * DENSITY;
+	return CircleEntity{
+		.transform = { pos, 0.0f },
+		.collider = { .radius = radius },
+		.physics = PhysicsInfo{ &MATERIAL, mass, BodyType::DYNAMIC, circleInertia(radius, mass) }
+	};
+}
+
+static auto makeLine(Vec2 pos, float halfLength) -> LineEntity {
+	static const PhysicsMaterial MATERIAL{ .bounciness = 0.1f };
+	const auto thickness = 0.1f;
+	const auto length = halfLength * 2.0f;
+	const auto mass = thickness * length * DENSITY * 50.0f; /* To small of a mass makes it spin very fast */
+	return LineEntity{
+		.transform = { pos, 0.0f },
+		.collider = { .halfLength = halfLength },
+		.physics = PhysicsInfo{ &MATERIAL, mass, BodyType::DYNAMIC, rectangleInertia(thickness, length, mass) }
+	};
+}
+
+
+//auto Game::circlesScene() -> void {
+//	for (i32 i = 0; i < 50; i++) {
+//		circleEntites.push_back(CircleEntity{
+//			.transform = { Vec2{ randomInRange(-0.02f, 0.02f), i * 0.12f }, 0.0f },
+//			.collider = {.radius = 0.05f },
+//			.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
+//		});
+//	}
+//
+//	const auto maxMin = 0.7f;
+//	const auto y = -0.5f;
+//	lineEntites.push_back(LineEntity{
+//		.transform = { Vec2{ 0.0f, y }, 0.0f },
+//		.collider = {.halfLength = maxMin },
+//		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
+//	});
+//
+//	float halfHeight = 0.4f;
+//	for (const auto& sign : SIGNS) {
+//		lineEntites.push_back(LineEntity{
+//			.transform = { Vec2{ maxMin * sign, y + halfHeight }, PI<float> / 2.0f },
+//			.collider = {.halfLength = halfHeight },
+//			.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
+//		});
+//	}
+//
+//	controlledVel = &circleEntites[0].physics.vel;
+//	gravityAcceleration = 1.0f;
+//}
+
+auto Game::rollingCircleScene() -> void {
+	circleEntites.push_back(makeCircle(Vec2{ 0.4f, 0.3f }, 0.2f));
 
 	lineEntites.push_back(LineEntity{
 		.transform = { Vec2{ 0.4f, 0.1f }, 0.2f },
 		.collider = { .halfLength = 0.4f },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
+		.physics = PhysicsInfo{ &material0, std::numeric_limits<float>::infinity(), BodyType::STATIC, std::numeric_limits<float>::infinity() },
 	});
 
 	lineEntites.push_back(LineEntity{
 		.transform = { Vec2{ -0.4f, -0.4f }, -0.2f },
 		/*.collider = {.halfLength = 0.8f },*/
 		.collider = {.halfLength = 1.8f },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.3f * 0.3f * 20.0f, BodyType::STATIC },
+		.physics = PhysicsInfo{ &material0, std::numeric_limits<float>::infinity(), BodyType::STATIC, std::numeric_limits<float>::infinity() },
 	});
 
 	controlledVel = &circleEntites[0].physics.vel;
@@ -884,63 +965,67 @@ auto Game::lineAndCircleScene() -> void {
 		.collider = {.radius = 0.2f },
 		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
 	});*/
-	
-	lineEntites.push_back(LineEntity{
+
+	//circleEntites.push_back(makeCircle(Vec2{ 0.3f, 0.3f }, 0.2f ));
+	lineEntites.push_back(makeLine(Vec2{ 0.0f }, 0.3f));
+	/*lineEntites.push_back(LineEntity{
 		.transform = { Vec2{ 0.4f, 0.3f }, -0.2f },
 		.collider = { .halfLength = 0.3f },
 		.physics = PhysicsInfo{ &material0, PI<float> * 0.1f * 0.1f * 20.0f, BodyType::DYNAMIC },
-	});
+	});*/
 
 	std::uniform_real_distribution random(0.0f, 0.5f);
 	std::default_random_engine engine;
 	for (i32 i = 0; i < 20; i++) {
-		circleEntites.push_back(CircleEntity{
-			.transform = { Vec2{ random(engine), random(engine) }, 0.0f },
-			.collider = {.radius = 0.07f },
-			.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
-		});
+		circleEntites.push_back(makeCircle(Vec2{ random(engine), random(engine) }, 0.07f));
+		//circleEntites.push_back(CircleEntity{
+		//	.transform = { Vec2{ random(engine), random(engine) }, 0.0f },
+		//	.collider = {.radius = 0.07f },
+		//	.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC }
+		//});
 	}
 
 	gravityAcceleration = 0.0f;
 	controlledVel = &lineEntites[0].physics.vel; 
+	followedPos = &lineEntites[0].transform.pos;
 }
-
-auto Game::twoConvexPolygonsScene() -> void {
-
-	convexPolygonEntites.push_back(ConvexPolygonEntity{
-		.transform = { Vec2{ 0.4f, 0.3f }, -0.2f },
-		.collider = { randomNiceConvexPolygon(5, 0.2f) },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.1f * 0.1f * 20.0f, BodyType::DYNAMIC },
-	});
-
-	convexPolygonEntites.push_back(ConvexPolygonEntity{
-		.transform = { Vec2{ 0.0f, 0.0f }, -0.2f },
-		.collider = { randomNiceConvexPolygon(6, 0.2f) },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
-	});
-
-	convexPolygonEntites.push_back(ConvexPolygonEntity{
-		.transform = { Vec2{ -0.2f, -0.33f }, -0.2f },
-		.collider = { randomNiceConvexPolygon(3, 0.2f) },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
-	});
-
-	convexPolygonEntites.push_back(ConvexPolygonEntity{
-		.transform = { Vec2{ -0.2f, 0.43f }, -0.2f },
-		.collider = { randomNiceConvexPolygon(8, 0.2f) },
-		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
-	});
-
-
-	//for (i32 i = 0; i < 20; i++) {
-	//	convexPolygonEntites.push_back(ConvexPolygonEntity{
-	//		.transform = { Vec2{ randomInRange(-2.0f, 2.0f), randomInRange(-2.0f, 2.0f) }, -0.0f },
-	//		.collider = { randomNiceConvexPolygon(i32(round(randomInRange(3, 7))), 0.1f) },
-	//		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
-	//	});
-	//}
-
-	gravityAcceleration = 0.0f;
-	controlledVel = &convexPolygonEntites[0].physics.vel;
-}
-
+//
+//auto Game::twoConvexPolygonsScene() -> void {
+//
+//	convexPolygonEntites.push_back(ConvexPolygonEntity{
+//		.transform = { Vec2{ 0.4f, 0.3f }, -0.2f },
+//		.collider = { randomNiceConvexPolygon(5, 0.2f) },
+//		.physics = PhysicsInfo{ &material0, PI<float> * 0.1f * 0.1f * 20.0f, BodyType::DYNAMIC },
+//	});
+//
+//	convexPolygonEntites.push_back(ConvexPolygonEntity{
+//		.transform = { Vec2{ 0.0f, 0.0f }, -0.2f },
+//		.collider = { randomNiceConvexPolygon(6, 0.2f) },
+//		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
+//	});
+//
+//	convexPolygonEntites.push_back(ConvexPolygonEntity{
+//		.transform = { Vec2{ -0.2f, -0.33f }, -0.2f },
+//		.collider = { randomNiceConvexPolygon(3, 0.2f) },
+//		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
+//	});
+//
+//	convexPolygonEntites.push_back(ConvexPolygonEntity{
+//		.transform = { Vec2{ -0.2f, 0.43f }, -0.2f },
+//		.collider = { randomNiceConvexPolygon(8, 0.2f) },
+//		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
+//	});
+//
+//
+//	//for (i32 i = 0; i < 20; i++) {
+//	//	convexPolygonEntites.push_back(ConvexPolygonEntity{
+//	//		.transform = { Vec2{ randomInRange(-2.0f, 2.0f), randomInRange(-2.0f, 2.0f) }, -0.0f },
+//	//		.collider = { randomNiceConvexPolygon(i32(round(randomInRange(3, 7))), 0.1f) },
+//	//		.physics = PhysicsInfo{ &material0, PI<float> * 0.2f * 0.2f * 20.0f, BodyType::DYNAMIC },
+//	//	});
+//	//}
+//
+//	gravityAcceleration = 0.0f;
+//	controlledVel = &convexPolygonEntites[0].physics.vel;
+//}
+//

@@ -12,7 +12,7 @@ public:
 	auto integrate(Transform& transform, PhysicsInfo& physics) const -> void;
 
 	auto circlesScene() -> void;
-	auto rollingSphereScene() -> void;
+	auto rollingCircleScene() -> void;
 	auto lineAndCircleScene() -> void;
 	auto twoConvexPolygonsScene() -> void;
 

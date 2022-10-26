@@ -4,9 +4,10 @@ std::vector<CircleEntity> circleEntites;
 std::vector<LineEntity> lineEntites;
 std::vector<ConvexPolygonEntity> convexPolygonEntites;
 
-PhysicsInfo::PhysicsInfo(const PhysicsMaterial* material, float mass, BodyType bodyType) 
+PhysicsInfo::PhysicsInfo(const PhysicsMaterial* MATERIAL, float mass, BodyType bodyType, float rotationalInteria)
 	: vel{ Vec2{ 0.0f } }
 	, angularVel{ 0.0f }
-	, material{ material }
+	, MATERIAL{ MATERIAL }
 	, invMass{ 1.0f / mass }
-	, bodyType{ bodyType } {}
+	, bodyType{ bodyType }
+	, rotationalInteria{ rotationalInteria } {}

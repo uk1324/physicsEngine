@@ -17,13 +17,14 @@ enum class BodyType {
 };
 
 struct PhysicsInfo {
-	PhysicsInfo(const PhysicsMaterial* material, float mass, BodyType bodyType);
+	PhysicsInfo(const PhysicsMaterial* MATERIAL, float mass, BodyType bodyType, float rotationalInteria);
 
 	Vec2 vel;
 	float angularVel;
 	// Should this be const? Changing the mass would also change the momentum of the system (probably doesn't matter).
 	float invMass;
-	const PhysicsMaterial* material;
+	float rotationalInteria;
+	const PhysicsMaterial* MATERIAL;
 	BodyType bodyType;
 };
 
