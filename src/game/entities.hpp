@@ -2,8 +2,10 @@
 
 #include <math/vec2.hpp>
 #include <math/line.hpp>
+#include <utils/staticVec.hpp>
 
 #include <vector>
+#include <unordered_map>
 
 struct PhysicsMaterial {
 	float bounciness;
@@ -67,3 +69,29 @@ struct ConvexPolygonEntity {
 extern std::vector<CircleEntity> circleEntites;
 extern std::vector<LineEntity> lineEntites;
 extern std::vector<ConvexPolygonEntity> convexPolygonEntites;
+
+struct ContactKey {
+	PhysicsInfo* aPhysics;
+	Transform* aTransform;
+	PhysicsInfo* bPhysics;
+	Transform* bTransform;
+};
+
+struct Collision {
+	Vec2 normal;
+	Vec2 hitPoint;
+	float penetrationDepth;
+};
+
+//struct ContactPoint {
+//	ContactPoint(const Collision& collision);
+//
+//	Collision collision;
+//};
+//
+//struct ContactPoint {
+//	static constexpr usize MAX_CONTACT_POINTS = 1;
+//	StaticVec<Collision, MAX_CONTACT_POINTS> points;
+//};
+
+//extern std::unordered_map<ContactKey, ContactPoint> contacts;

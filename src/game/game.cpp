@@ -26,6 +26,37 @@ if intersects(pos + vel) {
 
 // For some cases it might be better to not transform all the shape's points and only do it in the support function and also rotate the support direction.
 
+static auto circleInertia(float radius, float mass) -> float {
+	return mass * pow(radius, 2.0f) / 2.0f;
+}
+
+static auto rectangleInertia(float size, float height, float mass) -> float {
+	return mass * pow(size, 2.0f) * pow(height, 2.0f) / 12.0f;
+}
+
+static constexpr auto DENSITY = 1.0f;
+static const PhysicsMaterial MATERIAL{ .bounciness = 0.1f };
+
+static auto makeCircle(Vec2 pos, float radius) -> CircleEntity {
+	const auto mass = PI<float> * pow(radius, 2.0f) * DENSITY;
+	return CircleEntity{
+		.transform = { pos, 0.0f },
+		.collider = {.radius = radius },
+		.physics = PhysicsInfo{ &MATERIAL, mass, BodyType::DYNAMIC, circleInertia(radius, mass) }
+	};
+}
+
+static auto makeLine(Vec2 pos, float halfLength) -> LineEntity {
+	const auto thickness = 0.1f;
+	const auto length = halfLength * 2.0f;
+	const auto mass = thickness * length * DENSITY * 50.0f; /* To small of a mass makes it spin very fast */
+	return LineEntity{
+		.transform = { pos, 0.0f },
+		.collider = {.halfLength = halfLength },
+		.physics = PhysicsInfo{ &MATERIAL, mass, BodyType::DYNAMIC, rectangleInertia(thickness, length, mass) }
+	};
+}
+
 struct ClosestPoints {
 	Vec2 closestPointOnA;
 	Vec2 closestPointOnB;
@@ -263,12 +294,6 @@ static auto gjk(Span<const Vec2> aVertices, Span<const Vec2> bVertices) -> std::
 	}
 	ASSERT_NOT_REACHED();
 }
-
-struct Collision {
-	Vec2 normal;
-	Vec2 hitPoint;
-	float penetrationDepth;
-};
 
 auto circleVsCircle(
 	const CircleCollider& aCollider, 
@@ -520,22 +545,6 @@ auto randomNiceConvexPolygon(i32 vertexCount, float scale) -> std::vector<Vec2> 
 	return vertices;
 }
 
-Game::Game(Gfx& gfx)
-	: renderer{ gfx }
-	, material0{ .bounciness = 0.9f }
-	, material1{ .bounciness = 0.1f } {
-	Window::maximize();
-
-	Input::registerKeyButton(Keycode::W, GameButton::UP);
-	Input::registerKeyButton(Keycode::S, GameButton::DOWN);
-	Input::registerKeyButton(Keycode::A, GameButton::LEFT);
-	Input::registerKeyButton(Keycode::D, GameButton::RIGHT);
-
-	//circlesScene();
-	//rollingCircleScene();
-	lineAndCircleScene();
-}
-
 #include <utils/io.hpp>
 
 static auto collisionResponse(
@@ -720,83 +729,105 @@ static auto collisionResponse(
 	// The coefficient of restitution is a property measured between two materials. The average of bounciness is only an approximation. For it to be correct it would need to be a lookup table with 2 materials as keys.
 }
 
+//// circle vs x
+//	{
+//	auto start{ circleEntites.begin() };
+//	for (auto& a : circleEntites) {
+//		start++;
+//		for (auto it = start; it != circleEntites.end(); it++) {
+//			auto& b{ *it };
+//			if (const auto collision = circleVsCircle(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
+//				collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
+//			}
+//		}
+//		for (auto& b : lineEntites) {
+//			if (auto collision = circleVsLine(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
+//				collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
+//				/*collision->normal = -collision->normal;
+//				collisionResponse(*collision, b.transform, a.transform, b.physics, a.physics);*/
+//			}
+//		}
+//	}
+//	}
+//	// convex polygon vs x
+//	{
+//		auto start{ convexPolygonEntites.begin() };
+//		for (auto& a : convexPolygonEntites) {
+//			start++;
+//			for (auto it = start; it != convexPolygonEntites.end(); it++) {
+//				auto& b{ *it };
+//				if (const auto collision = convexPolygonVsConvexPolygon(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
+//					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
+//				}
+//			}
+//
+//		}
+//	}
+//
+//	for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
+//	for (auto& line : lineEntites) integrate(line.transform, line.physics);
+//	for (auto& polygon : convexPolygonEntites) integrate(polygon.transform, polygon.physics);
+//
+
+Game::Game(Gfx& gfx)
+	: renderer{ gfx }
+	, material0{ .bounciness = 0.9f }
+	, material1{ .bounciness = 0.1f } {
+	Window::maximize();
+
+	Input::registerKeyButton(Keycode::W, GameButton::UP);
+	Input::registerKeyButton(Keycode::S, GameButton::DOWN);
+	Input::registerKeyButton(Keycode::A, GameButton::LEFT);
+	Input::registerKeyButton(Keycode::D, GameButton::RIGHT);
+
+	lineAndCircleScene();
+}
+
 auto Game::update(Gfx& gfx) -> void {
-	Vec2 dir{ 0.0f };
-	if (Input::isButtonHeld(GameButton::UP)) {
-		dir.y += 1.0f;
-	}
-	if (Input::isButtonHeld(GameButton::DOWN)) {
-		dir.y -= 1.0f;
-	}
+	handleInput();
 
-	if (Input::isButtonHeld(GameButton::RIGHT)) {
-		dir.x += 1.0f;
-	}
-	if (Input::isButtonHeld(GameButton::LEFT)) {
-		dir.x -= 1.0f;
-	}
-	if (controlledVel != nullptr)
-		(*controlledVel) += dir.normalized() * 0.5f * Time::deltaTime();
-
-	if (Input::isKeyDown(Keycode::R)) {
-		circleEntites[0].physics.angularVel += 0.2f + circleEntites[0].physics.angularVel * 2.0f;
-	}
-
-	// circle vs x
-	{
-		auto start{ circleEntites.begin() };
-		for (auto& a : circleEntites) {
-			start++;
-			for (auto it = start; it != circleEntites.end(); it++) {
-				auto& b{ *it };
-				if (const auto collision = circleVsCircle(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
-					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
-				}
-			}
-			for (auto& b : lineEntites) {
-				if (auto collision = circleVsLine(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
-					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
-					/*collision->normal = -collision->normal;
-					collisionResponse(*collision, b.transform, a.transform, b.physics, a.physics);*/
-				}
+	auto start{ circleEntites.begin() };
+	for (auto& a : circleEntites) {
+		start++;
+		for (auto it = start; it != circleEntites.end(); it++) {
+			auto& b{ *it };
+			if (a.physics.bodyType == BodyType::STATIC && b.physics.bodyType == BodyType::STATIC)
+				continue;
+			if (const auto collision = circleVsCircle(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
+				//auto it = contacts.find()
 			}
 		}
-	}
-	// convex polygon vs x
-	{
-		auto start{ convexPolygonEntites.begin() };
-		for (auto& a : convexPolygonEntites) {
-			start++;
-			for (auto it = start; it != convexPolygonEntites.end(); it++) {
-				auto& b{ *it };
-				if (const auto collision = convexPolygonVsConvexPolygon(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
-					collisionResponse(*collision, a.transform, b.transform, a.physics, b.physics);
-				}
+		for (auto& b : lineEntites) {
+			if (auto collision = circleVsLine(a.collider, a.transform, b.collider, b.transform); collision.has_value()) {
 			}
-		
 		}
 	}
 
 	for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
 	for (auto& line : lineEntites) integrate(line.transform, line.physics);
-	for (auto& polygon : convexPolygonEntites) integrate(polygon.transform, polygon.physics);
 
-	if (Input::isKeyHeld(Keycode::K)) {
-		cameraZoom *= pow(3.0f, Time::deltaTime());
+	renderer.update(gfx, cameraPos, cameraZoom);
+}
+
+auto Game::handleInput() -> void {
+	if (controlledVec != nullptr)
+	{
+		Vec2 dir{ 0.0f };
+		if (Input::isButtonHeld(GameButton::UP)) {
+			dir.y += 1.0f;
+		}
+		if (Input::isButtonHeld(GameButton::DOWN)) {
+			dir.y -= 1.0f;
+		}
+
+		if (Input::isButtonHeld(GameButton::RIGHT)) {
+			dir.x += 1.0f;
+		}
+		if (Input::isButtonHeld(GameButton::LEFT)) {
+			dir.x -= 1.0f;
+		}
+		(*controlledVec) += dir.normalized() * 0.5f * Time::deltaTime();
 	}
-	if (Input::isKeyHeld(Keycode::J)) {
-		cameraZoom /= pow(3.0f, Time::deltaTime());
-	}
-
-	/*static auto
-		a = ConvexPolygonCollider{ randomNiceConvexPolygon(6, 0.2f) },
-		b = ConvexPolygonCollider{ randomNiceConvexPolygon(6, 0.2f) };
-
-	Transform 
-		aT{ .pos = Vec2{ 0.0f }, .orientation = 0.0f },
-		bT{ .pos = renderer.mousePosToScreenPos(Input::cursorPos()) , .orientation = 0.0f };
-
-	const auto c = convexPolygonVsConvexPolygon(a, aT, b, bT);*/
 
 	if (followedPos == nullptr) {
 		Vec2 dir{ 0.0f };
@@ -804,40 +835,42 @@ auto Game::update(Gfx& gfx) -> void {
 			dir.y += 1.0f;
 		if (Input::isKeyHeld(Keycode::DOWN))
 			dir.y -= 1.0f;
-		if (Input::isKeyHeld(Keycode::RIGHT)) 
+		if (Input::isKeyHeld(Keycode::RIGHT))
 			dir.x += 1.0f;
 		if (Input::isKeyHeld(Keycode::LEFT))
 			dir.x -= 1.0f;
 		cameraPos += dir.normalized() * 0.5f * Time::deltaTime();
-
-	} else {
+	}
+	else {
 		cameraPos = lerp(cameraPos, *followedPos, 2.0f * Time::deltaTime());
 	}
-		
 
-	renderer.update(gfx, cameraPos, cameraZoom);
+	if (Input::isKeyHeld(Keycode::K))
+		cameraZoom *= pow(3.0f, Time::deltaTime());
+	if (Input::isKeyHeld(Keycode::J))
+		cameraZoom /= pow(3.0f, Time::deltaTime());
 }
 
 auto Game::integrate(Transform& transform, PhysicsInfo& physics) const -> void {
 	if (physics.bodyType == BodyType::STATIC)
 		return;
 
-	static constexpr float groundFriction{ 0.98f };
+	static constexpr float damping = 0.98f;
 	static constexpr float gravity = 1.0f;
 	transform.pos += physics.vel * Time::deltaTime();
 	/*
-	Gravity is a constant acceleration because the formula for gravity is 
+	Gravity is a constant acceleration because the formula for gravity is
 	F = G(m1m2/r^2)
 	F = ma
 	a = F/m 
 	a = G(m1m2/r^2) / m1 = Gm1m2/r^2m1 = Gm2/r^2
+	The mass of the object the force if acting upon cancels out.
 	*/
 	physics.vel.y -= Time::deltaTime() * gravityAcceleration;
-	physics.vel *= pow(groundFriction, Time::deltaTime());
-	physics.angularVel *= pow(groundFriction, Time::deltaTime());
+	physics.vel *= pow(damping, Time::deltaTime());
+	physics.angularVel *= pow(damping, Time::deltaTime());
 	transform.orientation += physics.angularVel * Time::deltaTime();
 }
-
 /*
 Useful searches: Second polar moment of area, Second moment of area
 
@@ -874,39 +907,6 @@ D * 2 * pi * (r^4)/4 =
 (D * pi * r^4) / 2 =
 (mass * r^2) / 2
 */
-
-static auto circleInertia(float radius, float mass) -> float {
-	return mass * pow(radius, 2.0f) / 2.0f;
-}
-
-static auto rectangleInertia(float width, float height, float mass) -> float {
-	return mass * pow(width, 2.0f) * pow(height, 2.0f) / 12.0f;
-}
-
-static constexpr auto DENSITY = 1.0f;
-static const PhysicsMaterial MATERIAL{ .bounciness = 0.1f };
-
-static auto makeCircle(Vec2 pos, float radius) -> CircleEntity {
-	const auto mass = PI<float> * pow(radius, 2.0f) * DENSITY;
-	return CircleEntity{
-		.transform = { pos, 0.0f },
-		.collider = { .radius = radius },
-		.physics = PhysicsInfo{ &MATERIAL, mass, BodyType::DYNAMIC, circleInertia(radius, mass) }
-	};
-}
-
-static auto makeLine(Vec2 pos, float halfLength) -> LineEntity {
-	static const PhysicsMaterial MATERIAL{ .bounciness = 0.1f };
-	const auto thickness = 0.1f;
-	const auto length = halfLength * 2.0f;
-	const auto mass = thickness * length * DENSITY * 50.0f; /* To small of a mass makes it spin very fast */
-	return LineEntity{
-		.transform = { pos, 0.0f },
-		.collider = { .halfLength = halfLength },
-		.physics = PhysicsInfo{ &MATERIAL, mass, BodyType::DYNAMIC, rectangleInertia(thickness, length, mass) }
-	};
-}
-
 
 //auto Game::circlesScene() -> void {
 //	for (i32 i = 0; i < 50; i++) {
@@ -954,7 +954,7 @@ auto Game::rollingCircleScene() -> void {
 		.physics = PhysicsInfo{ &material0, std::numeric_limits<float>::infinity(), BodyType::STATIC, std::numeric_limits<float>::infinity() },
 	});
 
-	controlledVel = &circleEntites[0].physics.vel;
+	controlledVec = &circleEntites[0].physics.vel;
 	gravityAcceleration = 1.0f;
 }
 
@@ -986,7 +986,7 @@ auto Game::lineAndCircleScene() -> void {
 	}
 
 	gravityAcceleration = 0.0f;
-	controlledVel = &lineEntites[0].physics.vel; 
+	controlledVec = &lineEntites[0].physics.vel; 
 	followedPos = &lineEntites[0].transform.pos;
 }
 //

@@ -8,9 +8,11 @@ public:
 	Game(Gfx& gfx);
 
 	auto update(Gfx& gfx) -> void;
+	auto handleInput() -> void;
 
 	auto integrate(Transform& transform, PhysicsInfo& physics) const -> void;
 
+	auto circlesScene2() -> void;
 	auto circlesScene() -> void;
 	auto rollingCircleScene() -> void;
 	auto lineAndCircleScene() -> void;
@@ -19,7 +21,7 @@ public:
 	Vec2 cameraPos{ 0.0f };
 	float cameraZoom{ 1.0f };
 
-	Vec2* controlledVel{ nullptr };
+	Vec2* controlledVec{ nullptr };
 	Vec2* followedPos{ nullptr };
 
 	Renderer renderer;

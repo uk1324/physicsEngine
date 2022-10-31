@@ -11,3 +11,4 @@ PhysicsInfo::PhysicsInfo(const PhysicsMaterial* MATERIAL, float mass, BodyType b
 	, invMass{ 1.0f / mass }
 	, bodyType{ bodyType }
 	, rotationalInteria{ rotationalInteria } {}
+

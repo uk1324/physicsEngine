@@ -13,6 +13,8 @@ struct Mat3x2T {
 	auto operator[](isize i);
 	auto operator[](isize i) const;
 
+	auto inversed() const -> Mat3x2T;
+
 	static auto translate(const Vec2T<T> v) -> Mat3x2T;
 	static auto scale(const Vec2T<T> v) -> Mat3x2T;
 	static auto rotate(T angle) -> Mat3x2T;
@@ -40,12 +42,11 @@ constexpr Mat3x2T<T>::Mat3x2T(const Vec2T<T>& x, const Vec2T<T>& y, const Vec2T<
 
 template<typename T>
 auto Mat3x2T<T>::operator*(const Mat3x2T& other) const -> Mat3x2T {
-	Mat3x2T<T> mat(
-		Vec3{ m[0][0], m[0][1], 0 } * other,
-		Vec3{ m[1][0], m[1][1], 0 } * other,
-		Vec3{ m[2][0], m[2][1], 1 } * other
-	);
-	return mat;
+	return Mat3x2T<T>{
+		Vec3T<T>{ m[0][0], m[0][1], 0 } * other,
+		Vec3T<T>{ m[1][0], m[1][1], 0 } * other,
+		Vec3T<T>{ m[2][0], m[2][1], 1 } * other
+	};
 }
 
 template<typename T>
@@ -56,6 +57,18 @@ auto Mat3x2T<T>::operator[](isize i) {
 template<typename T>
 auto Mat3x2T<T>::operator[](isize i) const {
 	return m[i];
+}
+
+template<typename T>
+auto Mat3x2T<T>::inversed() const -> Mat3x2T {
+	const auto det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+	return Mat3x2T<T>{
+		Vec2T{ m[0][0] / det, -m[0][1] / det },
+		Vec2T{ -m[1][0] / det, m[1][1] / det },
+		// TODO: Make this part work.
+		Vec2T{ -m[2][0], -m[2][1] }
+	};
+	ASSERT_NOT_REACHED();
 }
 
 template<typename T>

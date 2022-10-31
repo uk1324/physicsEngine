@@ -121,10 +121,15 @@ auto Renderer::update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void {
 	gfx.ctx->IASetInputLayout(ptLayout.Get());
 
 	const auto aspectRatio{ Window::size().x / Window::size().y };
-	this->screenCorrectScale = Vec2{ 1.0f, aspectRatio };
-	const auto screenScale{ Mat3x2::scale(this->screenCorrectScale) };
+	//this->screenCorrectScale = Vec2{ 1.0f, aspectRatio };
+	const auto screenScale{ Mat3x2::scale(Vec2{ 1.0f, aspectRatio }) };
 
 	const auto cameraTransform = Mat3x2::translate(-cameraPos * screenScale) * Mat3x2::scale(Vec2{ cameraZoom });
+	this->cameraPos = cameraPos;
+	this->zoom = cameraZoom;
+	this->aspectRatio = aspectRatio;
+
+	const auto x = cameraTransform * cameraTransform.inversed();
 
 	auto makeTransform = [&screenScale, aspectRatio, &cameraTransform](Vec2 translation, float orientation, float scale) -> Mat3x2 {
 		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
@@ -221,13 +226,17 @@ auto Renderer::update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void {
 			}
 		};
 
+		auto makeCircleInstance = [&](const Transform& transform, float radius, const Vec3& color) -> CircleInstance {
+			return CircleInstance {
+				.invRadius = 1.0f / radius,
+				.transform = makeTransform(transform.pos, transform.orientation, radius),
+				.color = color
+			};
+		};
+
 		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
 		for (const auto& circle : circleEntites) {
-			circleShaderConstantBuffer.instanceData[toDraw] = {
-				.invRadius = 1.0f / circle.collider.radius,
-				.transform = makeTransform(circle.transform.pos, circle.transform.orientation, circle.collider.radius),
-				.color = Vec3{ 1.0, 0.0f, 0.0f }
-			};
+			circleShaderConstantBuffer.instanceData[toDraw] = makeCircleInstance(circle.transform, circle.collider.radius, Vec3{ 1.0, 0.0f, 0.0f });
 			toDraw++;
 			checkDraw();
 		}
@@ -249,5 +258,6 @@ auto Renderer::update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void {
 }
 
 auto Renderer::mousePosToScreenPos(Vec2 v) -> Vec2 {
-	return v * (1.0f / screenCorrectScale);
+	//return v * (1.0f / screenCorrectScale);
+	return (v * (1.0f / Vec2{ 1.0f, aspectRatio } / zoom) + cameraPos);
 }

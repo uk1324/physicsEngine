@@ -3,6 +3,10 @@
 #include <gfx/gfx.hpp>
 #include <gfx/hlslTypes.hpp>
 
+class Camera {
+
+};
+
 class Renderer {
 public:
 	Renderer(Gfx& gfx);
@@ -11,7 +15,10 @@ public:
 	auto mousePosToScreenPos(Vec2 v) -> Vec2;
 
 private:
-	Vec2 screenCorrectScale;
+	//Vec2 screenCorrectScale;
+	Vec2 cameraPos;
+	float zoom;
+	float aspectRatio;
 
 	struct PtVert {
 		Vec2 pos;

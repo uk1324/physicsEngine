@@ -12,3 +12,8 @@ auto lerp(T a, T b, U t) -> T {
 	// This is better than a + (b - a) * t because it isn't as affected by rounding errors.
 	return a * (1 - t) + b * t;
 }
+
+template<typename T>
+auto sign(T x) -> T {
+	return x < 0 ? static_cast<T>(-1) : static_cast<T>(1);
+}

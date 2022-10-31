@@ -9,7 +9,7 @@ float4 main(
 	float4 colorTransparent = float4(color.rgb, 0.0);
 
 	float distance = length(pos);
-	const float width = 0.006 * widthScale;
+	const float size = 0.006 * widthScale;
 	const float iterpolationWidth = 0.004 * widthScale;
 	return lerp(color, colorTransparent, smoothstep(1.0 - iterpolationWidth, 1.0, distance));
 }

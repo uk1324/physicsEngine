@@ -12,10 +12,10 @@ float4 main(
 	// Maybe actually preform MSAA and sample at subpixel locations.
 
 	float distance = length(pos);
-	const float width = 0.006 * widthScale;
+	const float size = 0.006 * widthScale;
 	const float iterpolationWidth = 0.004 * widthScale;
 	float4 circleColor = lerp(
-		lerp(colorTransparent, color, smoothstep(1.0 - width - iterpolationWidth * 2, 1.0 - width - iterpolationWidth, distance)), 
+		lerp(colorTransparent, color, smoothstep(1.0 - size - iterpolationWidth * 2, 1.0 - size - iterpolationWidth, distance)), 
 		colorTransparent, 
 		smoothstep(1.0 - iterpolationWidth, 1.0, distance)
 	);
@@ -26,7 +26,7 @@ float4 main(
 		float projectionLength = dot(pos, direction); // Could just use determinant.
 		if (projectionLength > 0.0 && projectionLength < 1.0 - iterpolationWidth) {
 			float distance = abs(dot(pos, normal));
-			circleColor += lerp(color, colorTransparent, smoothstep(width - iterpolationWidth, width, distance));
+			circleColor += lerp(color, colorTransparent, smoothstep(size - iterpolationWidth, size, distance));
 		}
 	}
 
