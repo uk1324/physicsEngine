@@ -1,9 +1,10 @@
 #pragma once
 
 #include <math/vec2.hpp>
+#include <game/collision/collision.hpp>
 
 struct Body {
-	Body(Vec2 pos, Vec2 size, bool isStatic);
+	Body(Vec2 pos, const Collider& collider, bool isStatic);
 
 	auto isStatic() -> bool { return invMass == 0.0f; }
 
@@ -15,7 +16,7 @@ struct Body {
 	float angularVel;
 	float torque;
 
-	Vec2 size;
+	Collider collider;
 
 	float coefficientOfFriction;
 	float mass, invMass;

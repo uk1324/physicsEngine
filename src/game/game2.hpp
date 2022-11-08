@@ -11,8 +11,7 @@ public:
 	Vec2* controlledValue = nullptr;
 	Vec2* followedPos = nullptr;
 
-	Vec2 cameraPos{ 0.0f };
-	float cameraZoom = 1.0f;
+	Camera camera;
 
 	Vec2 gravity{ 0.0f };
 

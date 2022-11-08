@@ -3,22 +3,24 @@
 #include <gfx/gfx.hpp>
 #include <gfx/hlslTypes.hpp>
 
-class Camera {
+struct Camera {
+	Camera(Vec2 pos = Vec2{ 0.0f }, float zoom = 1.0f);
 
+	auto interpolateTo(Vec2 desiredPos, float speed) -> void;
+	auto cameraTransform() const -> Mat3x2;
+	auto screenSpaceToCameraSpace(Vec2 screenSpacePos) -> Vec2;
+
+	Vec2 pos;
+	float zoom;
+	float aspectRatio = 1.0f;
 };
 
 class Renderer {
 public:
 	Renderer(Gfx& gfx);
-	auto update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void;
-
-	auto mousePosToScreenPos(Vec2 v) -> Vec2;
+	auto update(Gfx& gfx, const Camera& camera) -> void;
 
 private:
-	//Vec2 screenCorrectScale;
-	Vec2 cameraPos;
-	float zoom;
-	float aspectRatio;
 
 	struct PtVert {
 		Vec2 pos;

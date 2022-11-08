@@ -2,15 +2,10 @@
 #include <math/vec2.hpp>
 #include <numeric>
 
-static constexpr float DENSITY = 200.0f;
 
-static auto rectangleInertia(Vec2 size, float mass) -> float {
-	return mass * pow(size.x, 2.0f) * pow(size.y, 2.0f) / 12.0f;
-}
-
-Body::Body(Vec2 pos, Vec2 size, bool isStatic) 
+Body::Body(Vec2 pos, const Collider& collider, bool isStatic) 
 	: pos{ pos }
-	, size{ size }
+	, collider{ collider }
 	, orientation{ 0.0f }
 	, angularVel{ 0.0f }
 	, vel{ 0.0f } {
@@ -22,10 +17,12 @@ Body::Body(Vec2 pos, Vec2 size, bool isStatic)
 		invRotationalInertia = 0.0f;
 	}
 	else {
-		mass = size.x * size.y * DENSITY;
-		invMass = 1.0f / mass;
-		rotationalInertia = rectangleInertia(size, mass);
-		invRotationalInertia = 1.0f / rotationalInertia;
+		static constexpr float DENSITY = 200.0f;
+		const auto info = massInfo(collider, DENSITY);
+		mass = info.mass;
+		invMass = 1.0f / info.mass;
+		rotationalInertia = info.rotationalInertia;
+		invRotationalInertia = 1.0f / info.rotationalInertia;
 	}
 
 	coefficientOfFriction = 0.2f;

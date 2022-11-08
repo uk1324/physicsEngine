@@ -806,7 +806,9 @@ auto Game::update(Gfx& gfx) -> void {
 	for (auto& circle : circleEntites) integrate(circle.transform, circle.physics);
 	for (auto& line : lineEntites) integrate(line.transform, line.physics);
 
-	renderer.update(gfx, cameraPos, cameraZoom);
+	Camera camera;
+
+	renderer.update(gfx, camera);
 }
 
 auto Game::handleInput() -> void {

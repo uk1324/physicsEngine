@@ -70,7 +70,7 @@ extern std::vector<CircleEntity> circleEntites;
 extern std::vector<LineEntity> lineEntites;
 extern std::vector<ConvexPolygonEntity> convexPolygonEntites;
 
-struct ContactKey {
+struct CollisionKey {
 	PhysicsInfo* aPhysics;
 	Transform* aTransform;
 	PhysicsInfo* bPhysics;

@@ -2,6 +2,7 @@
 #include <game/renderer.hpp>
 #include <game/entities.hpp>
 #include <game/debug.hpp>
+#include <math/utils.hpp>
 #include <winUtils.hpp>
 #include <engine/window.hpp>
 #include <stdio.h>
@@ -91,7 +92,7 @@ Renderer::Renderer(Gfx& gfx) {
 
 #include <utils/io.hpp>
 
-auto Renderer::update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void {
+auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 	if (Window::resized()) {
 		const D3D11_VIEWPORT viewport{
 			.TopLeftX = 0.0f,
@@ -121,15 +122,9 @@ auto Renderer::update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void {
 	gfx.ctx->IASetInputLayout(ptLayout.Get());
 
 	const auto aspectRatio{ Window::size().x / Window::size().y };
-	//this->screenCorrectScale = Vec2{ 1.0f, aspectRatio };
 	const auto screenScale{ Mat3x2::scale(Vec2{ 1.0f, aspectRatio }) };
 
-	const auto cameraTransform = Mat3x2::translate(-cameraPos * screenScale) * Mat3x2::scale(Vec2{ cameraZoom });
-	this->cameraPos = cameraPos;
-	this->zoom = cameraZoom;
-	this->aspectRatio = aspectRatio;
-
-	const auto x = cameraTransform * cameraTransform.inversed();
+	const auto cameraTransform = camera.cameraTransform();
 
 	auto makeTransform = [&screenScale, aspectRatio, &cameraTransform](Vec2 translation, float orientation, float scale) -> Mat3x2 {
 		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
@@ -242,6 +237,18 @@ auto Renderer::update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void {
 		}
 		draw();
 
+		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
+		for (const auto& [circle, orientation]: Debug::emptyCircles) {
+			circleShaderConstantBuffer.instanceData[toDraw] = {
+				.invRadius = 1.0f / circle.radius,
+				.transform = makeTransform(circle.pos, orientation, circle.radius),
+				.color = circle.color
+			};
+			toDraw++;
+			checkDraw();
+		}
+		draw();
+
 		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
 		for (const auto& circle : Debug::circles) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
@@ -252,12 +259,22 @@ auto Renderer::update(Gfx& gfx, Vec2 cameraPos, float cameraZoom) -> void {
 			toDraw++;
 			checkDraw();
 		}
-
 		draw();
 	}
 }
 
-auto Renderer::mousePosToScreenPos(Vec2 v) -> Vec2 {
-	//return v * (1.0f / screenCorrectScale);
-	return (v * (1.0f / Vec2{ 1.0f, aspectRatio } / zoom) + cameraPos);
+Camera::Camera(Vec2 pos, float zoom) 
+	: pos{ pos }
+	, zoom{ zoom } {}
+
+auto Camera::interpolateTo(Vec2 desiredPos, float speed) -> void {
+	pos = lerp(pos, desiredPos, speed);
+}
+
+auto Camera::cameraTransform() const -> Mat3x2 {
+	return Mat3x2::translate(-pos * Vec2{ 1.0f, aspectRatio }) * Mat3x2::scale(Vec2{ zoom });
+}
+
+auto Camera::screenSpaceToCameraSpace(Vec2 screenSpacePos) -> Vec2 {
+	return (screenSpacePos * Vec2{ 1.0f, 1.0f / aspectRatio } / zoom) + pos;
 }
