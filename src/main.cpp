@@ -8,6 +8,8 @@
 #include <engine/audio.hpp>
 #include <engine/input.hpp>
 #include <engine/frameAllocator.hpp>
+#include <imgui/imgui_impl_dx11.h>
+#include <imgui/imgui_impl_win32.h>
 
 #include <chrono>
 
@@ -42,12 +44,25 @@ auto testAreaAllocator() -> void {
 	}
 }
 
-auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
+static auto setCustomImGuiStyle() -> void {
+	auto& io = ImGui::GetIO();
+	io.Fonts->AddFontFromFileTTF("assets/fonts/RobotoMono-Regular.ttf", 20);
+	auto& style = ImGui::GetStyle();
+	style.WindowRounding = 5.0f;
+};
 
+auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
 	Window::init("game", Vec2(640, 480));
 	Gfx gfx{ Window::hWnd() };
 	Audio::init();
 	Game2 game{ gfx };
+
+	ImGui::CreateContext();
+	auto& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	ImGui_ImplWin32_Init(Window::hWnd());
+	ImGui_ImplDX11_Init(gfx.device.Get(), gfx.ctx.Get());
+	setCustomImGuiStyle();
 
 	auto currentTime = []() -> float {
 		using namespace std::chrono;
@@ -70,6 +85,11 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 			Input::update();
 			Window::update();
 			Audio::update();
+
+			ImGui_ImplDX11_NewFrame();
+			ImGui_ImplWin32_NewFrame();
+			ImGui::NewFrame();			
+
 			// Without this the window doesn't close instantly.
 			// TODO: Maybe find a better way to do this. The current way still has to wait untill the frame finishes.
 			if (!Window::running())
@@ -80,11 +100,17 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 
 			Debug::update();
 			game.update(gfx);
+
+			ImGui::Render();
+			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 			gfx.present();
 		}
 	}
 
 	exit:
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 	Window::destroy();
 	return Window::exitCode();
 }

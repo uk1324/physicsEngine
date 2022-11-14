@@ -65,7 +65,12 @@ auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos
 			return collide(aPos, aOrientation, *aCircle, bPos, bOrientation, *bCircle);
 		}
 		if (GET(bCollider, bBox, BoxCollider)) {
-			return collide(bPos, bOrientation, *bBox, aPos, aOrientation, *aCircle);
+			auto collision = collide(bPos, bOrientation, *bBox, aPos, aOrientation, *aCircle);
+			if (collision.has_value()) {
+				for (auto& contact : collision->contacts)
+					contact.normal = -contact.normal;
+			}
+			return collision;
 		}
 	}
 	// Remember to flip the normal if the arguments are in the other order.
@@ -546,9 +551,6 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, 
 	const auto start = (rayBegin - pos) * inverseRotation;
 	const auto dir = (rayEnd - rayBegin) * inverseRotation;
 
-	Debug::drawRay(start, dir);
-	Debug::drawAabb(Aabb{ -halfSize, halfSize });
-
 	Vec2 tEntry, tExit;
 	for (usize axis = 0; axis < 2; axis++) {
 		if (dir[axis] < 0.0f) {
@@ -561,8 +563,6 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, 
 			tExit[axis] = (halfSize[axis] - start[axis]) / dir[axis];
 		}
 	}
-	Debug::drawCircle(start + dir * tEntry.x, 0.05f);
-	Debug::drawCircle(start + dir * tEntry.y, 0.05f);
 
 	if ((tEntry.x <= 0 && tEntry.y <= 0) || (tExit.x <= 0 && tExit.y <= 0))
 		return std::nullopt;

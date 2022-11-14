@@ -7,6 +7,7 @@
 #include <engine/window.hpp>
 #include <math/utils.hpp>
 #include <math/mat2.hpp>
+#include <imgui/imgui.h>
 
 // TODO: Understand gauss–Seidel method
 // spatial hashing / bucketing
@@ -30,7 +31,6 @@ Game2::Game2(Gfx& gfx)
 			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
 			bodies.push_back(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
-			//bodies.push_back(Body{ Vec2{ x, y }, CircleCollider{ boxSize / 2.0f }, false });
 		}
 	}
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
@@ -50,7 +50,6 @@ Game2::Game2(Gfx& gfx)
 	followedPos = &bodies[0].pos;
 	controlledValue = &bodies[0].vel;
 	gravity = Vec2{ 0.0f, -10.0f };
-	//gravity = Vec2{ 0.0f, 0.0f };
 }
 
 auto doCollision() -> void {
@@ -104,30 +103,22 @@ auto Game2::detectCollisions() -> void {
 	collisionSystem.detectCollisions(contacts);
 }
 
+auto Game2::drawUi() -> void {
+	using namespace ImGui;
+
+	Begin("physics engine");
+	Checkbox("update physics", &updatePhysics);
+	Checkbox("camera follow", &cameraFollow);
+	End();
+}
+
 auto Game2::update(Gfx& gfx) -> void {
 	const auto mousePos = camera.screenSpaceToCameraSpace(Input::cursorPos());
 
-	if (Input::isKeyDown(Keycode::G)) {
-		__debugbreak();
-	}
+	if (Input::isKeyDown(Keycode::G)) __debugbreak();
 
-	BoxCollider collider{ .size = Vec2{ 1.0f, 2.0f } };
-	Vec2 pos{ 3.0f };
-	static auto elapsed = 0.0f;
-	elapsed += Time::deltaTime();
-	const auto orientation = elapsed;
-
-	const auto rayBegin = Vec2{ 0.0f };
-	const auto rayEnd = mousePos * 10.0f;
-	const auto hit = raycast(rayBegin, rayEnd, collider, pos, orientation);
-	drawBox(collider.size, pos, orientation);
-	if (hit.has_value()) {
-		Debug::drawRay(rayBegin, (rayEnd - rayBegin) * hit->t);
-	}
-	else {
-		Debug::drawRay(rayBegin, rayEnd);
-	}
-
+	drawUi();
+	if (Input::isKeyDown(Keycode::X)) updatePhysics = !updatePhysics;
 
 	if (controlledValue != nullptr) {
 		Vec2 dir{ 0.0f };
@@ -155,38 +146,40 @@ auto Game2::update(Gfx& gfx) -> void {
 		selected->force = fromMouseToObject * 400.0f * fromMouseToObject.length() * 3.0f;
 	}
 
-	Debug::drawPoint(mousePos);
+	if (updatePhysics) {
+		Debug::drawPoint(mousePos);
 
-	for (auto& body : bodies) {
-		if (body.isStatic())
-			continue;
+		for (auto& body : bodies) {
+			if (body.isStatic())
+				continue;
 
-		// It might be better to use impulses instead of forces so they are independent of time.
-		body.vel += (body.force * body.invMass + gravity) * Time::deltaTime();
-		body.force = Vec2{ 0.0f };
+			// It might be better to use impulses instead of forces so they are independent of time.
+			body.vel += (body.force * body.invMass + gravity) * Time::deltaTime();
+			body.force = Vec2{ 0.0f };
 
-		body.angularVel = body.torque * body.invRotationalInertia * Time::deltaTime();
-		body.torque = 0.0f;
-	}
-
-	//doCollision();
-	detectCollisions();
-
-	const auto invDeltaTime = 1.0f / Time::deltaTime();
-
-	for (auto& [key, contact] : contacts) {
-		contact.PreStep(key.body1, key.body2, invDeltaTime);
-	}
-
-	for (int i = 0; i < 10; i++) {
-		for (auto& [key, contact] : contacts) {
-			contact.ApplyImpulse(key.body1, key.body2);
+			body.angularVel = body.torque * body.invRotationalInertia * Time::deltaTime();
+			body.torque = 0.0f;
 		}
-	}
 
-	for (auto& body : bodies) {
-		body.pos += body.vel * Time::deltaTime();
-		body.orientation += body.angularVel * Time::deltaTime();
+		detectCollisions();
+		//doCollision();
+
+		const auto invDeltaTime = 1.0f / Time::deltaTime();
+
+		for (auto& [key, contact] : contacts) {
+			contact.PreStep(key.body1, key.body2, invDeltaTime);
+		}
+
+		for (int i = 0; i < 10; i++) {
+			for (auto& [key, contact] : contacts) {
+				contact.ApplyImpulse(key.body1, key.body2);
+			}
+		}
+
+		for (auto& body : bodies) {
+			body.pos += body.vel * Time::deltaTime();
+			body.orientation += body.angularVel * Time::deltaTime();
+		}
 	}
 
 	for (const auto& body : bodies) {
@@ -195,13 +188,20 @@ auto Game2::update(Gfx& gfx) -> void {
 		} else if (const auto circle = std::get_if<CircleCollider>(&body.collider); circle != nullptr) {
 			Debug::drawEmptyCircle(body.pos, circle->radius, body.orientation);
 		}
-		//Debug::drawAabb(aabb(body.collider, body.pos, body.orientation), Vec3::RED);
 	}
 
 	camera.aspectRatio = Window::size().x / Window::size().y;
 
-	//if (followedPos != nullptr) cameraPos = lerp(cameraPos, *followedPos, 2.0f * Time::deltaTime());
-	if (followedPos != nullptr) camera.interpolateTo(*followedPos, 2.0f * Time::deltaTime());
+	if (cameraFollow && followedPos != nullptr) {
+		camera.interpolateTo(*followedPos, 2.0f * Time::deltaTime());
+	} else {
+		Vec2 dir{ 0.0f };
+		if (Input::isKeyHeld(Keycode::UP)) dir.y += 1.0f;
+		if (Input::isKeyHeld(Keycode::DOWN)) dir.y -= 1.0f;
+		if (Input::isKeyHeld(Keycode::RIGHT)) dir.x += 1.0f;
+		if (Input::isKeyHeld(Keycode::LEFT)) dir.x -= 1.0f;
+		camera.pos += dir.normalized() * 0.5f * Time::deltaTime() * 10.0f;
+	}
 
 	renderer.update(gfx, camera);
 }	

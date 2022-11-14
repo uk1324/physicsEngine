@@ -1,6 +1,5 @@
 #include <pch.hpp>
 #include <game/renderer.hpp>
-#include <game/entities.hpp>
 #include <game/debug.hpp>
 #include <math/utils.hpp>
 #include <winUtils.hpp>
@@ -153,18 +152,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		const auto extraLength = 0.006f; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, lineShaderConstantBufferResource.GetAddressOf());
-		for (const auto& line : lineEntites) {
-			const auto length = line.collider.halfLength * 2.0f;
-			const auto start = line.transform.pos - Vec2{ cos(line.transform.orientation), sin(line.transform.orientation) } * line.collider.halfLength;
-			lineShaderConstantBuffer.instanceData[toDraw] = {
-				.invScale = 1.0f / length,
-				.transform = makeTransform(start, line.transform.orientation, length + extraLength),
-				.color = Vec3{ 1.0, 0.0f, 0.0f },
-			};
-			toDraw++;
-			checkDraw();
-		}
-		checkDraw();
 
 		auto lineInstanceFromStartAndEnd = [&](Vec2 start, Vec2 end, const Vec3& color) -> LineInstance {
 			const auto lineVector = end - start;
@@ -188,18 +175,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		}
 		checkDraw();
 
-		for (const auto& convexPolygon : convexPolygonEntites) {
-			for (usize i = 0; i < convexPolygon.collider.vertices.size(); i++) {
-				const auto transform = Mat3x2::rotate(convexPolygon.transform.orientation) * Mat3x2::translate(convexPolygon.transform.pos);
-				const auto& vertices = convexPolygon.collider.vertices;
-				const auto start{ vertices[i] * transform }, end{ ((i + 1 < vertices.size()) ? vertices[i + 1] : vertices[0]) * transform };
-				lineShaderConstantBuffer.instanceData[toDraw] = lineInstanceFromStartAndEnd(start, end, Vec3{ 1.0, 0.0f, 0.0f });
-				toDraw++;
-				checkDraw();
-			}
-		}
-		checkDraw();
-
 		draw();
 	}
 
@@ -219,14 +194,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
 				draw();
 			}
-		};
-
-		auto makeCircleInstance = [&](const Transform& transform, float radius, const Vec3& color) -> CircleInstance {
-			return CircleInstance {
-				.invRadius = 1.0f / radius,
-				.transform = makeTransform(transform.pos, transform.orientation, radius),
-				.color = color
-			};
 		};
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());

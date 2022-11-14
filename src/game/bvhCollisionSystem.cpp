@@ -39,7 +39,6 @@ auto BvhCollisionSystem::detectCollisions(CollisionMap& collisions) -> void {
 
 	auto& root = node(rootNode);
 	clearCrossedFlag(rootNode);
-	debugDrawAabbs(rootNode);
 	collide(collisions, root.children[0], root.children[1]);
 }
 

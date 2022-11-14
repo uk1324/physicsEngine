@@ -8,6 +8,7 @@ public:
 	Game2(Gfx& gfx);
 
 	auto detectCollisions() -> void;
+	auto drawUi() -> void;
 	auto update(Gfx& gfx) -> void;
 
 	Vec2* controlledValue = nullptr;
@@ -16,6 +17,9 @@ public:
 	Camera camera;
 
 	Vec2 gravity{ 0.0f };
+
+	bool updatePhysics = true;
+	bool cameraFollow = true;
 
 	static bool warmStarting;
 	static bool positionCorrection;

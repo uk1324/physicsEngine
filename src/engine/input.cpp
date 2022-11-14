@@ -1,5 +1,6 @@
 #include <engine/input.hpp>
 #include <engine/window.hpp>
+#include <imgui/imgui.h>
 
 auto Input::isKeyDown(Keycode key) -> bool {
 	return keyDown[static_cast<size_t>(key)];
@@ -38,10 +39,25 @@ static auto setIfAlreadyExists(std::unordered_map<int, bool>& map, int key, bool
 		it->second = value;
 }
 
+static auto isMouseButton(u8 vkCode) -> bool {
+	const auto code = static_cast<MouseButton>(vkCode);
+	return code == MouseButton::LEFT || code == MouseButton::RIGHT || code == MouseButton::MIDDLE;
+}
+
+static auto isKeyboardKey(u8 vkCode) -> bool {
+	return !isMouseButton(vkCode);
+}
+
 auto Input::onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void {
 	if (autoRepeat || virtualKeyCode > VIRTUAL_KEY_COUNT)
 		return;
 	
+	if (ImGui::GetIO().WantCaptureMouse && isMouseButton(virtualKeyCode))
+		return;
+
+	if (ImGui::GetIO().WantCaptureKeyboard && isKeyboardKey(virtualKeyCode))
+		return;
+
 	keyDown.set(virtualKeyCode);
 	keyHeld.set(virtualKeyCode);
 

@@ -3,6 +3,7 @@
 #include <engine/input.hpp>
 #include <winUtils.hpp>
 #include <stdlib.h>
+#include <imgui/imgui_impl_win32.h>
 
 auto Window::init(const char* title, Vec2 size) -> void {
 	exitCode_ = EXIT_SUCCESS;
@@ -86,7 +87,13 @@ auto Window::maximize() -> void {
 	PostMessage(hWnd_, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
 }
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 auto WINAPI Window::windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
+	if (const auto result = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+		return !result;
+	}
+
 	switch (msg) {
 	case WM_CLOSE:
 		PostQuitMessage(EXIT_SUCCESS);
