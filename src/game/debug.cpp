@@ -40,6 +40,15 @@ auto Debug::drawLines(Span<const Vec2> lines, const Vec3& color) -> void {
 	drawLine(lines.back(), lines[0], color);
 }
 
+auto Debug::drawAabb(const Aabb& aabb, const Vec3& color) -> void {
+	const auto v1 = Vec2{ aabb.max.x, aabb.min.y };
+	const auto v3 = Vec2{ aabb.min.x, aabb.max.y };
+	Debug::drawLine(aabb.min, v1, color);
+	Debug::drawLine(v1, aabb.max, color);
+	Debug::drawLine(aabb.max, v3, color);
+	Debug::drawLine(v3, aabb.min, color);
+}
+
 std::vector<Debug::Line> Debug::lines;
 std::vector<Debug::Circle> Debug::circles;
 std::vector<Debug::OrientedCircle> Debug::emptyCircles;

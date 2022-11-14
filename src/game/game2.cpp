@@ -12,38 +12,16 @@
 // spatial hashing / bucketing
 // inactive flag on objects
 
-struct CollisionKey {
-	CollisionKey(Body* b1, Body* b2) {
-		if (b1 < b2) {
-			body1 = b1; 
-			body2 = b2;
-		} else {
-			body1 = b2; 
-			body2 = b1;
-		}
-	}
+// The exact number of collisions checked in the O(n^2) broadphase is choose(n, 2).
 
-	auto operator==(const CollisionKey& other) const -> bool {
-		return body1 == other.body1 && body2 == other.body2;
-	}
 
-	Body* body1;
-	Body* body2;
-};
-
-struct ContactKeyHasher {
-	size_t operator()(const CollisionKey& x) const {
-		return reinterpret_cast<u8>(x.body1) * reinterpret_cast<u8>(x.body2);
-	}
-};
-
-std::unordered_map<CollisionKey, Collision, ContactKeyHasher> contacts;
+CollisionMap contacts;
 std::vector<Body> bodies;
 
 Game2::Game2(Gfx& gfx)
 	: renderer{ gfx } {
 
-	int height = 5;
+	int height = 4;
 	float boxSize = 1.0f;
 	float gapSize = 0.1f;
 	for (int i = 1; i < height + 1; i++) {
@@ -52,6 +30,7 @@ Game2::Game2(Gfx& gfx)
 			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
 			bodies.push_back(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
+			//bodies.push_back(Body{ Vec2{ x, y }, CircleCollider{ boxSize / 2.0f }, false });
 		}
 	}
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
@@ -60,10 +39,18 @@ Game2::Game2(Gfx& gfx)
 	bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
 	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });
 
+	static std::vector<Body*> vAdd;
+	for (auto& body : bodies) {
+		vAdd.push_back(&body);
+	}
+	static const std::vector<Body*> vDelete;
+	collisionSystem.update(vAdd, vDelete);
+
 	Window::maximize();
 	followedPos = &bodies[0].pos;
 	controlledValue = &bodies[0].vel;
 	gravity = Vec2{ 0.0f, -10.0f };
+	//gravity = Vec2{ 0.0f, 0.0f };
 }
 
 auto doCollision() -> void {
@@ -111,6 +98,12 @@ static auto drawBox(Vec2 size, Vec2 pos, float orientation) -> void {
 	Debug::drawLine(vertex4, vertex1, color);
 };
 
+auto Game2::detectCollisions() -> void {
+	static const std::vector<Body*> v;
+	collisionSystem.update(v, v);
+	collisionSystem.detectCollisions(contacts);
+}
+
 auto Game2::update(Gfx& gfx) -> void {
 	const auto mousePos = camera.screenSpaceToCameraSpace(Input::cursorPos());
 
@@ -118,20 +111,25 @@ auto Game2::update(Gfx& gfx) -> void {
 		__debugbreak();
 	}
 
-	static const CircleCollider circle{ .radius = 2.0f };
-	static const BoxCollider box{ .size = Vec2{ 2.0f, 3.0f } };
+	BoxCollider collider{ .size = Vec2{ 1.0f, 2.0f } };
+	Vec2 pos{ 3.0f };
+	static auto elapsed = 0.0f;
+	elapsed += Time::deltaTime();
+	const auto orientation = elapsed;
 
-	const auto circlePos = Vec2{ 0.0f, 4.0f };
-	const auto collision = collide(mousePos, 0.2f, box, circlePos, 0.0f, circle);
-	if (collision.has_value()) {
-		Debug::drawCircle(collision->contacts[0].position, 0.1f);
+	const auto rayBegin = Vec2{ 0.0f };
+	const auto rayEnd = mousePos * 10.0f;
+	const auto hit = raycast(rayBegin, rayEnd, collider, pos, orientation);
+	drawBox(collider.size, pos, orientation);
+	if (hit.has_value()) {
+		Debug::drawRay(rayBegin, (rayEnd - rayBegin) * hit->t);
+	}
+	else {
+		Debug::drawRay(rayBegin, rayEnd);
 	}
 
-	drawBox(box.size, mousePos, 0.2f);
-	Debug::drawEmptyCircle(circlePos, circle.radius, 0.0f, collision.has_value() ? Vec3{ 1.0f, 0.0f, 0.0f } : Vec3{ 1.0f });
 
-	if (controlledValue != nullptr)
-	{
+	if (controlledValue != nullptr) {
 		Vec2 dir{ 0.0f };
 		if (Input::isKeyHeld(Keycode::W)) dir.y += 1.0f;
 		if (Input::isKeyHeld(Keycode::S)) dir.y -= 1.0f;
@@ -163,6 +161,7 @@ auto Game2::update(Gfx& gfx) -> void {
 		if (body.isStatic())
 			continue;
 
+		// It might be better to use impulses instead of forces so they are independent of time.
 		body.vel += (body.force * body.invMass + gravity) * Time::deltaTime();
 		body.force = Vec2{ 0.0f };
 
@@ -170,7 +169,8 @@ auto Game2::update(Gfx& gfx) -> void {
 		body.torque = 0.0f;
 	}
 
-	doCollision();
+	//doCollision();
+	detectCollisions();
 
 	const auto invDeltaTime = 1.0f / Time::deltaTime();
 
@@ -187,9 +187,6 @@ auto Game2::update(Gfx& gfx) -> void {
 	for (auto& body : bodies) {
 		body.pos += body.vel * Time::deltaTime();
 		body.orientation += body.angularVel * Time::deltaTime();
-
-		body.force = Vec2{ 0.0f };
-		body.torque = 0.0f;
 	}
 
 	for (const auto& body : bodies) {
@@ -198,6 +195,7 @@ auto Game2::update(Gfx& gfx) -> void {
 		} else if (const auto circle = std::get_if<CircleCollider>(&body.collider); circle != nullptr) {
 			Debug::drawEmptyCircle(body.pos, circle->radius, body.orientation);
 		}
+		//Debug::drawAabb(aabb(body.collider, body.pos, body.orientation), Vec3::RED);
 	}
 
 	camera.aspectRatio = Window::size().x / Window::size().y;
@@ -206,7 +204,7 @@ auto Game2::update(Gfx& gfx) -> void {
 	if (followedPos != nullptr) camera.interpolateTo(*followedPos, 2.0f * Time::deltaTime());
 
 	renderer.update(gfx, camera);
-}
+}	
 
 bool Game2::warmStarting = true;
 bool Game2::positionCorrection = true;

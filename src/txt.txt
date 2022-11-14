@@ -1,0 +1,5 @@
+When hard coding min or max calculations of fixed sized sets there is one less comparasion than in the generic approach. This might be important for functions that run often like intersection routines in raytracing, although a branchless approach might be better. From what I understand integer functions can be used to compare IEEE 754 floating point numbers.
+
+Writing CPU profilers.
+https://www.youtube.com/watch?v=Ac3BHeZFhMU
+A worker thread pauses all threads and gets their call stack info unpauses them and sleeps for 10 ms in a loop.

@@ -1,6 +1,6 @@
 #include <game/entities.hpp>
 
-std::vector<CircleEntity> circleEntites;
+//std::vector<CircleEntity> circleEntites;
 std::vector<LineEntity> lineEntites;
 std::vector<ConvexPolygonEntity> convexPolygonEntites;
 

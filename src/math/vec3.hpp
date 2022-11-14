@@ -5,6 +5,13 @@ struct Vec3T {
 	constexpr Vec3T(const T& v);
 	constexpr Vec3T(const T& x, const T& y, const T& z);
 
+	// C++ doesn't allow constexpr static members of incomplete types because the initializer has to be inline.
+	static const Vec3T RED;
+	static const Vec3T GREEN;
+	static const Vec3T BLUE;
+	static const Vec3T WHITE;
+	static const Vec3T BLACK;
+
 	T x, y, z;
 };
 
@@ -21,3 +28,9 @@ constexpr Vec3T<T>::Vec3T(const T& x, const T& y, const T& z)
 	: x{ x } 
 	, y{ y }
 	, z{ z } {}
+
+template<typename T> const Vec3T<T> Vec3T<T>::RED{ 1, 0, 0 };
+template<typename T> const Vec3T<T> Vec3T<T>::GREEN{ 0, 1, 0 };
+template<typename T> const Vec3T<T> Vec3T<T>::BLUE{ 0, 0, 1 };
+template<typename T> const Vec3T<T> Vec3T<T>::WHITE{ 1, 1, 1 };
+template<typename T> const Vec3T<T> Vec3T<T>::BLACK{ 0, 0, 0 };

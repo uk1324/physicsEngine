@@ -3,6 +3,7 @@
 #include <utils/asserts.hpp>
 #include <utils/int.hpp>
 
+#include <algorithm>
 #include <cmath>
 
 template<typename T>
@@ -17,6 +18,8 @@ struct Vec2T {
 	auto normalized() const -> Vec2T;
 	auto rotBy90deg() const -> const Vec2T;
 	auto applied(T (*function)(T)) const -> Vec2T;
+	auto min(const Vec2T& other) const -> Vec2T;
+	auto max(const Vec2T& other) const -> Vec2T;
 
 	auto operator+(const Vec2T& v) const -> Vec2T;
 	auto operator+=(const Vec2T& v) -> Vec2T&;
@@ -119,21 +122,29 @@ auto Vec2T<T>::applied(T (*function)(T)) const -> Vec2T {
 }
 
 template<typename T>
-auto Vec2T<T>::operator+(const Vec2T& v) const -> Vec2T
-{
-	return Vec2{ x + v.x, y + v.y };
+auto Vec2T<T>::min(const Vec2T& other) const -> Vec2T {
+	return Vec2T{ std::min(x, other.x), std::min(y, other.y) };
 }
 
 template<typename T>
-auto Vec2T<T>::operator+=(const Vec2T& v) -> Vec2T&
-{
+auto Vec2T<T>::max(const Vec2T& other) const -> Vec2T {
+	return Vec2T{ std::max(x, other.x), std::max(y, other.y) };
+}
+
+template<typename T>
+auto Vec2T<T>::operator+(const Vec2T& v) const -> Vec2T {
+	return Vec2T{ x + v.x, y + v.y };
+}
+
+template<typename T>
+auto Vec2T<T>::operator+=(const Vec2T& v) -> Vec2T& {
 	*this = *this + v;
 	return *this;
 }
 
 template<typename T>
 auto Vec2T<T>::operator-(const Vec2T& v) const -> Vec2T {
-	return Vec2{ x - v.x, y - v.y };
+	return Vec2T{ x - v.x, y - v.y };
 }
 
 template<typename T>
@@ -144,7 +155,7 @@ auto Vec2T<T>::operator-=(const Vec2T& v) -> Vec2T& {
 
 template<typename T>
 auto Vec2T<T>::operator*(T s) const -> Vec2T {
-	return Vec2{ x * s, y * s };
+	return Vec2T{ x * s, y * s };
 }
 
 template<typename T>
@@ -155,13 +166,13 @@ auto Vec2T<T>::operator*=(T s) -> Vec2T& {
 
 template<typename T>
 auto Vec2T<T>::operator*(const Vec2T& v) const -> Vec2T {
-	return Vec2{ x * v.x, y * v.y };
+	return Vec2T{ x * v.x, y * v.y };
 }
 
 template<typename T>
 auto Vec2T<T>::operator/(T s) const -> Vec2T
 {
-	return Vec2{ x / s, y / s };
+	return Vec2T{ x / s, y / s };
 }
 
 template<typename T>
@@ -172,7 +183,7 @@ auto Vec2T<T>::operator/=(T s) -> Vec2T {
 
 template<typename T>
 auto Vec2T<T>::operator/(const Vec2T& v) const -> Vec2T {
-	return Vec2{ x / v.x, y / v.y };
+	return Vec2T{ x / v.x, y / v.y };
 }
 
 template<typename T>
@@ -183,7 +194,7 @@ auto Vec2T<T>::operator/=(const Vec2T& v) -> Vec2T& {
 
 template<typename T>
 auto Vec2T<T>::operator-() const -> Vec2T {
-	return Vec2{ -x, -y };
+	return Vec2T{ -x, -y };
 }
 
 template<typename T>

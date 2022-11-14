@@ -6,7 +6,7 @@
 struct Body {
 	Body(Vec2 pos, const Collider& collider, bool isStatic);
 
-	auto isStatic() -> bool { return invMass == 0.0f; }
+	auto isStatic() const -> bool { return invMass == 0.0f; }
 
 	Vec2 pos;
 	Vec2 vel;

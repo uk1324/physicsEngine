@@ -230,14 +230,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		};
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
-		for (const auto& circle : circleEntites) {
-			circleShaderConstantBuffer.instanceData[toDraw] = makeCircleInstance(circle.transform, circle.collider.radius, Vec3{ 1.0, 0.0f, 0.0f });
-			toDraw++;
-			checkDraw();
-		}
-		draw();
-
-		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
 		for (const auto& [circle, orientation]: Debug::emptyCircles) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
 				.invRadius = 1.0f / circle.radius,

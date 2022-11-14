@@ -2,6 +2,8 @@
 
 #include <iterator>
 #include <vector>
+#include <utils/int.hpp>
+#include <utils/asserts.hpp>
 
 template<typename T>
 class Span {
@@ -9,6 +11,8 @@ public:
 	Span(T* data, size_t size);
 	Span(std::vector<T>& v);
 	Span(const std::vector<std::remove_const_t<T>>& v);
+	template<usize SIZE>
+	Span(const T(&array)[SIZE]);
 
 	auto operator[](usize index) -> T&;
 	auto operator[](usize index) const -> const T&;
@@ -29,29 +33,35 @@ public:
 	auto crend() const -> std::reverse_iterator<const T*>;
 
 private:
-	T* m_data;
-	size_t m_size;
+	T* data_;
+	usize size_;
 };
 
 template<typename T>
 Span<T>::Span(T* data, size_t size)
-	: m_data(data)
-	, m_size(size) {}
+	: data_(data)
+	, size_(size) {}
 
 template<typename T>
 Span<T>::Span(std::vector<T>& v) 
-	: m_data{ v.data() }
-	, m_size{ v.size() } {}
+	: data_{ v.data() }
+	, size_{ v.size() } {}
 
 template<typename T>
 Span<T>::Span(const std::vector<std::remove_const_t<T>>& v)
-	: m_data{ v.data() }
-	, m_size{ v.size() } {}
+	: data_{ v.data() }
+	, size_{ v.size() } {}
+
+template<typename T>
+template<usize SIZE>
+Span<T>::Span(const T(&array)[SIZE]) 
+	: data_{ array }
+	, size_{ SIZE } {}
 
 template<typename T>
 auto Span<T>::operator[](usize index) -> T& {
-	ASSERT(index < m_size);
-	return m_data[index];
+	ASSERT(index < size_);
+	return data_[index];
 }
 
 template<typename T>
@@ -61,42 +71,42 @@ auto Span<T>::operator[](usize index) const -> const T& {
 
 template<typename T>
 auto Span<T>::data() -> T* {
-	return m_data;
+	return data_;
 }
 
 template<typename T>
 auto Span<T>::data() const -> const T* {
-	return m_data;
+	return data_;
 }
 
 template<typename T>
 auto Span<T>::size() const -> size_t {
-	return m_size;
+	return size_;
 }
 
 template<typename T>
 auto Span<T>::back() const -> const T& {
-	return m_data[m_size - 1];
+	return data_[size_ - 1];
 }
 
 template<typename T>
 auto Span<T>::begin() -> T* {
-	return m_data;
+	return data_;
 }
 
 template<typename T>
 auto Span<T>::end() -> T* {
-	return m_data + m_size;
+	return data_ + size_;
 }
 
 template<typename T>
 auto Span<T>::cbegin() const -> const T* {
-	return m_data;
+	return data_;
 }
 
 template<typename T>
 auto Span<T>::cend() const -> const T* {
-	return m_data + m_size;
+	return data_ + size_;
 }
 
 template<typename T>

@@ -24,9 +24,6 @@
     <ClCompile Include="src\gfx\gfx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\game.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\game\renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -84,15 +81,18 @@
     <ClCompile Include="src\game\collision\collision.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\math\aabb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\bvhCollisionSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\utils\asserts.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\game.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\renderer.hpp">
@@ -182,6 +182,15 @@
     <ClInclude Include="src\game\collision\collision.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\math\aabb.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\bvhCollisionSystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\collisionSystem.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\game\shaders\vsLine.hlsl" />
@@ -189,5 +198,8 @@
     <FxCompile Include="src\game\shaders\psCircleCollider.hlsl" />
     <FxCompile Include="src\game\shaders\vsCircle.hlsl" />
     <FxCompile Include="src\game\shaders\psCircle.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="src\txt.txt" />
   </ItemGroup>
 </Project>

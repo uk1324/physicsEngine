@@ -11,6 +11,13 @@ auto BoxCollider::massInfo(float density) const -> MassInfo {
 	};
 }
 
+auto BoxCollider::aabb(Vec2 pos, float orientation) const -> Aabb {
+	const auto normals = Mat2::rotate(orientation);
+	const auto cornerDir = normals.x() * (size.x / 2.0f) + normals.y() * (size.y / 2.0f);
+	const Vec2 corners[4] = { pos + cornerDir, pos - cornerDir, pos + cornerDir - normals.x() * size.x, pos - cornerDir + normals.x() * size.x };
+	return Aabb::fromPoints(corners);
+}
+
 auto CircleCollider::massInfo(float density) const -> MassInfo {
 	const auto mass = TAU<float> * pow(radius, 2.0f) * density;
 	return MassInfo{
@@ -19,10 +26,25 @@ auto CircleCollider::massInfo(float density) const -> MassInfo {
 	};
 }
 
+auto CircleCollider::aabb(Vec2 pos, float orientation) const -> Aabb {
+	return Aabb{ pos + Vec2{ -radius }, pos + Vec2{ radius } };
+}
+
+// If there is a std::visit error check if the function is const.
+
 auto massInfo(const Collider& collider, float density) -> MassInfo {
 	return std::visit(
 		[&density](auto&& collider) -> MassInfo {
 			return collider.massInfo(density);
+		},
+		collider
+	);
+}
+
+auto aabb(const Collider& collider, Vec2 pos, float orientation) -> Aabb {
+	return std::visit(
+		[&pos, &orientation](auto&& collider) -> Aabb {
+			return collider.aabb(pos, orientation);
 		},
 		collider
 	);
@@ -500,4 +522,61 @@ auto contains(Vec2 point, Vec2 pos, float orientation, const BoxCollider& box) -
 
 auto contains(Vec2 point, Vec2 pos, float orientation, const CircleCollider& circle) -> bool {
 	return (point - pos).lengthSq() <= circle.radius;
+}
+
+// What is a good way to destroy an enity if it was hit? Could store a data void* inside each body that would point to the entity.
+// TODO: Could pass a class with a callback interface that would determine whether a body should be ignored or not. This is faster than just returning and doing the raycast again from the previous hit ignoring the body that was just hit.
+// To ignore a list of bodies is storing a std::set a good option?
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const Collider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult> {
+	return std::visit(
+		[&rayBegin, &rayEnd, &pos, &orientation](auto&& collider) -> std::optional<RaycastResult> {
+			return raycast(rayBegin, rayEnd, collider, pos, orientation);
+		},
+		collider
+	);
+}
+
+#include <game/debug.hpp>
+
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult> {
+	// @Performance: is it better to rotate the positions or dot them with the normals. Is this equivalent?
+	const auto halfSize = collider.size / 2.0f;
+	const auto rotation = Mat2::rotate(orientation);
+	const auto inverseRotation = rotation.orthonormalInv();
+	const auto start = (rayBegin - pos) * inverseRotation;
+	const auto dir = (rayEnd - rayBegin) * inverseRotation;
+
+	Debug::drawRay(start, dir);
+	Debug::drawAabb(Aabb{ -halfSize, halfSize });
+
+	Vec2 tEntry, tExit;
+	for (usize axis = 0; axis < 2; axis++) {
+		if (dir[axis] < 0.0f) {
+			// negative / negative = positive
+			tEntry[axis] = (halfSize[axis] - start[axis]) / dir[axis];
+			tExit[axis] = (-halfSize[axis] - start[axis]) / dir[axis];
+		}
+		else {
+			tEntry[axis] = (-halfSize[axis] - start[axis]) / dir[axis];
+			tExit[axis] = (halfSize[axis] - start[axis]) / dir[axis];
+		}
+	}
+	Debug::drawCircle(start + dir * tEntry.x, 0.05f);
+	Debug::drawCircle(start + dir * tEntry.y, 0.05f);
+
+	if ((tEntry.x <= 0 && tEntry.y <= 0) || (tExit.x <= 0 && tExit.y <= 0))
+		return std::nullopt;
+
+	// Max of entry is the t when it hits both axis and min of exit is when it leaves one of the axis.
+	const auto entryT = std::max(tEntry.x, tEntry.y), exitT = std::min(tExit.x, tExit.y);
+
+	if (entryT > exitT)
+		return std::nullopt;
+
+	return RaycastResult{
+		.t = entryT,
+		.normal = (tEntry.x > tEntry.y
+			? Vec2{ 1.0f * sign(dir.x), 0.0f }
+			: Vec2{ 0.0f, 1.0f * sign(dir.y) }) * rotation,
+	};
 }

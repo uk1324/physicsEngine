@@ -1,11 +1,13 @@
 #pragma once
 
 #include <game/renderer.hpp>
+#include <game/bvhCollisionSystem.hpp>
 
 class Game2 {
 public:
 	Game2(Gfx& gfx);
 
+	auto detectCollisions() -> void;
 	auto update(Gfx& gfx) -> void;
 
 	Vec2* controlledValue = nullptr;
@@ -19,5 +21,6 @@ public:
 	static bool positionCorrection;
 	static bool accumulateImpulses;
 
+	BvhCollisionSystem collisionSystem;
 	Renderer renderer;
 };

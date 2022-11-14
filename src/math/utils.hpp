@@ -17,3 +17,6 @@ template<typename T>
 auto sign(T x) -> T {
 	return x < 0 ? static_cast<T>(-1) : static_cast<T>(1);
 }
+
+// To move 2 conntected lines with unconstrained roatation to a point you just need to construct a triangle with the side lengths(using law of sines or cosines). There are 2 ways to do this. Use the triangle sides sum law to check if this is possible or check if it lies in a hollowed out circle. 
+// If there are 3 lines there are infinite solutions for example piston rod engines.
