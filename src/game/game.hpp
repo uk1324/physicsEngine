@@ -3,9 +3,9 @@
 #include <game/renderer.hpp>
 #include <game/bvhCollisionSystem.hpp>
 
-class Game2 {
+class Game {
 public:
-	Game2(Gfx& gfx);
+	Game(Gfx& gfx);
 
 	auto detectCollisions() -> void;
 	auto drawUi() -> void;
@@ -20,6 +20,7 @@ public:
 
 	bool updatePhysics = true;
 	bool cameraFollow = true;
+	bool drawContacts = false;
 
 	static bool warmStarting;
 	static bool positionCorrection;

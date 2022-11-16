@@ -7,13 +7,11 @@ float4 main(
 	
 	float4 color = float4(col, 1.0);
 	float4 colorTransparent = float4(color.rgb, 0.0);
-	// MSAA only works for built-in primitives so this has to be done manually.
-	// TODO: Change the min and max based on the buffer size or maybe window size.
-	// Maybe actually preform MSAA and sample at subpixel locations.
 
 	float distance = length(pos);
-	const float size = 0.006 * widthScale;
-	const float iterpolationWidth = 0.004 * widthScale;
+	widthScale /= 2.0;
+	const float size = 0.003 * widthScale;
+	const float iterpolationWidth = 0.002 * widthScale;
 	float4 circleColor = lerp(
 		lerp(colorTransparent, color, smoothstep(1.0 - size - iterpolationWidth * 2, 1.0 - size - iterpolationWidth, distance)), 
 		colorTransparent, 

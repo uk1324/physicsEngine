@@ -33,13 +33,36 @@ auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vect
 	}
 }
 
+#include <chrono>
+
 auto BvhCollisionSystem::detectCollisions(CollisionMap& collisions) -> void {
 	if (rootNode == NULL_NODE || node(rootNode).isLeaf())
 		return;
 
 	auto& root = node(rootNode);
 	clearCrossedFlag(rootNode);
-	collide(collisions, root.children[0], root.children[1]);
+	newCollisions.clear();
+	collide(newCollisions, root.children[0], root.children[1]);
+
+	// Removing inside collide would require in total checking all the variations.
+	for (auto it = collisions.begin(); it != collisions.end(); ) {
+		const auto& oldCollisionKey = it->first;
+		if (newCollisions.find(oldCollisionKey) == newCollisions.end()) {
+			it = collisions.erase(it);
+		} else {
+			++it;
+		}
+	}
+
+	for (auto& [newCollisionKey, newCollision] : newCollisions) {
+		// @Performance: There might be a better function for doing this.
+		auto oldCollision = collisions.find(newCollisionKey);
+		if (oldCollision == collisions.end()) {
+			collisions[newCollisionKey] = newCollision;
+		} else {
+			oldCollision->second.Update(newCollision.contacts, newCollision.numContacts);
+		}
+	}
 }
 
 auto BvhCollisionSystem::clearCrossedFlag(u32 nodeIndex) -> void {
@@ -64,18 +87,10 @@ auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB)
 			CollisionKey key{ a.body, b.body };
 			ASSERT(a.body != b.body);
 
-			if (auto collision = ::collide(key.body1->pos, key.body1->orientation, key.body1->collider, key.body2->pos, key.body2->orientation, key.body2->collider); collision.has_value()) {
+			if (auto collision = ::collide(key.body1->pos, key.body1->orientation, key.body1->collider, key.body2->pos, key.body2->orientation,			key.body2->collider); collision.has_value()) {
 				// TODO: Move this into some function or constructor probably when making a better collision system.
 				collision->coefficientOfFriction = sqrt(key.body1->coefficientOfFriction * key.body2->coefficientOfFriction);
-				if (const auto& oldContact = collisions.find(key); oldContact == collisions.end()) {
-					collisions[key] = *collision;
-				}
-				else {
-					oldContact->second.Update(collision->contacts, collision->numContacts);
-				}
-			}
-			else {
-				collisions.erase(key);
+				collisions[key] = *collision;
 			}
 		}
 	} else if (!a.isLeaf() && !b.isLeaf()) {
@@ -158,6 +173,9 @@ auto BvhCollisionSystem::insertHelper(u32 parentNode, u32 nodeToInsert) -> u32 {
 
 		auto& old = node(oldNode);
 		auto& inserted = node(nodeToInsert);
+		if (old.parent == NULL_NODE) {
+			rootNode = parentNode;
+		}
 		newParent.parent = old.parent;
 		old.parent = parentNode;
 		inserted.parent = parentNode;
@@ -171,6 +189,7 @@ auto BvhCollisionSystem::insertHelper(u32 parentNode, u32 nodeToInsert) -> u32 {
 			aAreaIncrease = a.aabb.combined(toInsert.aabb).area() - a.aabb.area(),
 			bAreaIncrease = b.aabb.combined(toInsert.aabb).area() - b.aabb.area();
 
+		// @Performance: Could use the sum of the area increases as the cost function also describec by Erin Catto.
 		if (aAreaIncrease < bAreaIncrease)
 			node(parentNode).children[0] = insertHelper(node(parentNode).children[0], nodeToInsert);
 		else 

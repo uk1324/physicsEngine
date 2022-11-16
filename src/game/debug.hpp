@@ -31,6 +31,13 @@ namespace Debug {
 		Vec3 color;
 	};
 
+	// Points always remain the same size, circles don't.
+	struct Point {
+		Vec2 pos;
+		float radius;
+		Vec3 color;
+	};
+
 	struct OrientedCircle {
 		Circle circle;
 		float orientation;
@@ -38,5 +45,6 @@ namespace Debug {
 
 	extern std::vector<Line> lines;
 	extern std::vector<Circle> circles;
+	extern std::vector<Point> points;
 	extern std::vector<OrientedCircle> emptyCircles;
 }

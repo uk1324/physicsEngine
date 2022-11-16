@@ -1,4 +1,4 @@
-#include <game/game2.hpp>
+#include <game/game.hpp>
 #include <game/body.hpp>
 #include <game/debug.hpp>
 #include <game/input.hpp>
@@ -19,10 +19,10 @@
 CollisionMap contacts;
 std::vector<Body> bodies;
 
-Game2::Game2(Gfx& gfx)
+Game::Game(Gfx& gfx)
 	: renderer{ gfx } {
 
-	int height = 4;
+	int height = 14;
 	float boxSize = 1.0f;
 	float gapSize = 0.1f;
 	for (int i = 1; i < height + 1; i++) {
@@ -36,8 +36,8 @@ Game2::Game2(Gfx& gfx)
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
 	camera.zoom = 0.125f;
 	
-	bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
-	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });
+	/*bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
+	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });*/
 
 	static std::vector<Body*> vAdd;
 	for (auto& body : bodies) {
@@ -47,8 +47,8 @@ Game2::Game2(Gfx& gfx)
 	collisionSystem.update(vAdd, vDelete);
 
 	Window::maximize();
-	followedPos = &bodies[0].pos;
-	controlledValue = &bodies[0].vel;
+	/*followedPos = &bodies[0].pos;
+	controlledValue = &bodies[0].vel;*/
 	gravity = Vec2{ 0.0f, -10.0f };
 }
 
@@ -89,7 +89,6 @@ static auto drawBox(Vec2 size, Vec2 pos, float orientation) -> void {
 	const auto vertex2 = vertex1 - edgeX;
 	const auto vertex3 = vertex2 - edgeY;
 	const auto vertex4 = vertex3 + edgeX;
-	/*const auto color = &body == selected ? Vec3{ 1.0f, 0.0f, 0.0f } : Vec3{ 1.0f };*/
 	const auto color = Vec3{ 1.0f };
 	Debug::drawLine(vertex1, vertex2, color);
 	Debug::drawLine(vertex2, vertex3, color);
@@ -97,23 +96,45 @@ static auto drawBox(Vec2 size, Vec2 pos, float orientation) -> void {
 	Debug::drawLine(vertex4, vertex1, color);
 };
 
-auto Game2::detectCollisions() -> void {
+auto Game::detectCollisions() -> void {
 	static const std::vector<Body*> v;
 	collisionSystem.update(v, v);
 	collisionSystem.detectCollisions(contacts);
 }
 
-auto Game2::drawUi() -> void {
+auto Game::drawUi() -> void {
 	using namespace ImGui;
 
 	Begin("physics engine");
 	Checkbox("update physics", &updatePhysics);
+	if (followedPos == nullptr)
+		cameraFollow = false;
 	Checkbox("camera follow", &cameraFollow);
+	Checkbox("draw contacts", &drawContacts);
 	End();
 }
 
-auto Game2::update(Gfx& gfx) -> void {
+auto Game::update(Gfx& gfx) -> void {
+	camera.aspectRatio = Window::size().x / Window::size().y;
+
+	if (cameraFollow && followedPos != nullptr) {
+		camera.interpolateTo(*followedPos, 2.0f * Time::deltaTime());
+	} else {
+		Vec2 dir{ 0.0f };
+		if (Input::isKeyHeld(Keycode::UP)) dir.y += 1.0f;
+		if (Input::isKeyHeld(Keycode::DOWN)) dir.y -= 1.0f;
+		if (Input::isKeyHeld(Keycode::RIGHT)) dir.x += 1.0f;
+		if (Input::isKeyHeld(Keycode::LEFT)) dir.x -= 1.0f;
+		camera.pos += dir.normalized() * Time::deltaTime() / camera.zoom;
+	}
+
+	if (Input::isKeyHeld(Keycode::J)) camera.zoom *= pow(3.0f, Time::deltaTime());
+	if (Input::isKeyHeld(Keycode::K)) camera.zoom /= pow(3.0f, Time::deltaTime());
+
+	// For positions not not lag behind the camera has to be updated first.
+
 	const auto mousePos = camera.screenSpaceToCameraSpace(Input::cursorPos());
+	Debug::drawPoint(mousePos);
 
 	if (Input::isKeyDown(Keycode::G)) __debugbreak();
 
@@ -147,13 +168,11 @@ auto Game2::update(Gfx& gfx) -> void {
 	}
 
 	if (updatePhysics) {
-		Debug::drawPoint(mousePos);
-
 		for (auto& body : bodies) {
 			if (body.isStatic())
 				continue;
 
-			// It might be better to use impulses instead of forces so they are independent of time.
+			// It might be better to use impulses instead of forces so they are independent of the time step.
 			body.vel += (body.force * body.invMass + gravity) * Time::deltaTime();
 			body.force = Vec2{ 0.0f };
 
@@ -162,7 +181,6 @@ auto Game2::update(Gfx& gfx) -> void {
 		}
 
 		detectCollisions();
-		//doCollision();
 
 		const auto invDeltaTime = 1.0f / Time::deltaTime();
 
@@ -190,22 +208,18 @@ auto Game2::update(Gfx& gfx) -> void {
 		}
 	}
 
-	camera.aspectRatio = Window::size().x / Window::size().y;
-
-	if (cameraFollow && followedPos != nullptr) {
-		camera.interpolateTo(*followedPos, 2.0f * Time::deltaTime());
-	} else {
-		Vec2 dir{ 0.0f };
-		if (Input::isKeyHeld(Keycode::UP)) dir.y += 1.0f;
-		if (Input::isKeyHeld(Keycode::DOWN)) dir.y -= 1.0f;
-		if (Input::isKeyHeld(Keycode::RIGHT)) dir.x += 1.0f;
-		if (Input::isKeyHeld(Keycode::LEFT)) dir.x -= 1.0f;
-		camera.pos += dir.normalized() * 0.5f * Time::deltaTime() * 10.0f;
+	if (drawContacts) {
+		for (const auto& [_, collision] : contacts) {
+			for (i32 i = 0; i < collision.numContacts; i++) {
+				const auto& contact = collision.contacts[i];
+				Debug::drawRay(contact.position, contact.normal * 0.1f, Vec3::RED);
+			}
+		}
 	}
 
 	renderer.update(gfx, camera);
 }	
 
-bool Game2::warmStarting = true;
-bool Game2::positionCorrection = true;
-bool Game2::accumulateImpulses = true;
+bool Game::warmStarting = true;
+bool Game::positionCorrection = true;
+bool Game::accumulateImpulses = true;

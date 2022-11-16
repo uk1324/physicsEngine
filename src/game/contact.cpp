@@ -1,6 +1,6 @@
-#include <game/contact.hpp>
+//#include <game/contact.hpp>
 #include <game/body.hpp>
-#include <game/game2.hpp>
+#include <game/game.hpp>
 #include <math/mat2.hpp>
 #include <math/utils.hpp>
 #include <algorithm>
@@ -46,7 +46,7 @@ void Collision::Update(ContactPoint* newContacts, int numNewContacts)
 			ContactPoint* c = mergedContacts + i;
 			ContactPoint* cOld = contacts + oldContactSameAsNew;
 			*c = *cNew;
-			if (Game2::warmStarting)
+			if (Game::warmStarting)
 			{
 				c->Pn = cOld->Pn;
 				c->Pt = cOld->Pt;
@@ -92,7 +92,7 @@ void Collision::PreStep(Body* a, Body* b, float inv_dt)
 	auto body2 = b;
 
 	const float k_allowedPenetration = 0.01f;
-	float k_biasFactor = Game2::positionCorrection ? 0.2f : 0.0f;
+	float k_biasFactor = Game::positionCorrection ? 0.2f : 0.0f;
 
 	for (int i = 0; i < numContacts; ++i)
 	{
@@ -117,7 +117,7 @@ void Collision::PreStep(Body* a, Body* b, float inv_dt)
 
 		c->bias = -k_biasFactor * inv_dt * std::min(0.0f, c->separation + k_allowedPenetration);
 
-		if (Game2::accumulateImpulses)
+		if (Game::accumulateImpulses)
 		{
 			// Apply normal + friction impulse
 			Vec2 P = c->Pn * c->normal + c->Pt * tangent;
@@ -150,7 +150,7 @@ void Collision::ApplyImpulse(Body* a, Body* b)
 
 		float dPn = c->massNormal * (-vn + c->bias);
 
-		if (Game2::accumulateImpulses)
+		if (Game::accumulateImpulses)
 		{
 			// Clamp the accumulated impulse
 			float Pn0 = c->Pn;
@@ -178,7 +178,7 @@ void Collision::ApplyImpulse(Body* a, Body* b)
 		float vt = dot(dv, tangent);
 		float dPt = c->massTangent * (-vt);
 
-		if (Game2::accumulateImpulses)
+		if (Game::accumulateImpulses)
 		{
 			// Compute friction impulse
 			float maxPt = coefficientOfFriction * c->Pn;

@@ -44,6 +44,31 @@ union FeaturePair
 	int value;
 };
 
+//struct ContactPoint
+//{
+//	ContactPoint()
+//		: Pn(0.0f)
+//		, Pt(0.0f)
+//		, Pnb(0.0f) {
+//		separation = 0.0f;
+//		inverseEffectiveNormalMass = 0.0f;
+//		bias = 0.0f;
+//		inverseEffectiveTangnetMass = 0.0f;
+//		feature = { 0 };
+//	}
+//
+//	Vec2 pos;
+//	Vec2 normal;
+//	Vec2 r1, r2;
+//	float separation;
+//	float Pn;	// accumulated normal impulse
+//	float Pt;	// accumulated tangent impulse
+//	float Pnb;	// accumulated normal impulse for position bias
+//	float inverseEffectiveNormalMass, inverseEffectiveTangnetMass;
+//	float bias;
+//	FeaturePair feature;
+//};
+
 struct ContactPoint
 {
 	ContactPoint()
@@ -58,8 +83,10 @@ struct ContactPoint
 	}
 
 	Vec2 position;
+	// From body1 to body2
 	Vec2 normal;
 	Vec2 r1, r2;
+	// Seperating distance along normal. Can be negative.
 	float separation;
 	float Pn;	// accumulated normal impulse
 	float Pt;	// accumulated tangent impulse

@@ -16,10 +16,13 @@ public:
 	BvhCollisionSystem();
 
 	auto update(const std::vector<Body*>& toAdd, const std::vector<Body*>& toRemove) -> void;
+	auto removeFromCollisions(CollisionMap& collisions, u32 nodeA, u32 nodeB) -> void;
 	auto detectCollisions(CollisionMap& collisions) -> void;
 private:
 	auto clearCrossedFlag(u32 nodeIndex) -> void;
 	auto collide(CollisionMap& collisions, u32 nodeA, u32 nodeB) -> void;
+
+	CollisionMap newCollisions;
 
 	static constexpr float FAT_AABB_MARGIN = 0.2f;
 
@@ -30,8 +33,6 @@ private:
 		Aabb aabb;
 		bool childrenCrossChecked;
 		auto isLeaf() -> bool { return children[0] == NULL_NODE; }
-
-		static auto leaf(u32 parent, Body* body, Aabb aabb) -> Node;
 	};
 
 	auto insert(Body& body) -> void;

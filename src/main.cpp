@@ -1,7 +1,7 @@
 #include <pch.hpp>
 #include <winUtils.hpp>
 #include <gfx/gfx.hpp>
-#include <game/game2.hpp>
+#include <game/game.hpp>
 #include <game/debug.hpp>
 #include <engine/time.hpp>
 #include <engine/window.hpp>
@@ -55,7 +55,7 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 	Window::init("game", Vec2(640, 480));
 	Gfx gfx{ Window::hWnd() };
 	Audio::init();
-	Game2 game{ gfx };
+	Game game{ gfx };
 
 	ImGui::CreateContext();
 	auto& io = ImGui::GetIO();

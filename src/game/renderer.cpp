@@ -149,7 +149,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 				draw();
 			}
 		};
-		const auto extraLength = 0.006f; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
+		const auto extraLength = 0.003f / 2.0f / camera.zoom; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, lineShaderConstantBufferResource.GetAddressOf());
 
@@ -158,7 +158,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 			const auto length = lineVector.length();
 			const auto orientation = atan2(lineVector.y, lineVector.x);
 			return {
-				.invScale = 1.0f / length,
+				.invScale = 1.0f / length / camera.zoom,
 				.transform = makeTransform(start, orientation, length + extraLength),
 				.color = color,
 			};
@@ -199,7 +199,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
 		for (const auto& [circle, orientation]: Debug::emptyCircles) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
-				.invRadius = 1.0f / circle.radius,
+				.invRadius = 1.0f / circle.radius / camera.zoom,
 				.transform = makeTransform(circle.pos, orientation, circle.radius),
 				.color = circle.color
 			};
@@ -211,9 +211,21 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
 		for (const auto& circle : Debug::circles) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
-				.invRadius = 1.0f / circle.radius,
+				.invRadius = 1.0f / circle.radius / camera.zoom,
 				.transform = makeTransform(circle.pos, 0.0f, circle.radius),
 				.color = circle.color
+			};
+			toDraw++;
+			checkDraw();
+		}
+		draw();
+
+		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
+		for (const auto& point : Debug::points) {
+			circleShaderConstantBuffer.instanceData[toDraw] = {
+				.invRadius = 1.0f / point.radius,
+				.transform = makeTransform(point.pos, 0.0f, point.radius / camera.zoom),
+				.color = point.color
 			};
 			toDraw++;
 			checkDraw();

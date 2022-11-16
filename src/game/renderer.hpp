@@ -15,6 +15,7 @@ struct Camera {
 	float aspectRatio = 1.0f;
 };
 
+// TODO: Maybe use order independent transparency. It shouldn't be expensive because it is just quads.
 class Renderer {
 public:
 	Renderer(Gfx& gfx);

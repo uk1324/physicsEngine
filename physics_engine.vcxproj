@@ -192,7 +192,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\game\game2.cpp">
+    <ClCompile Include="src\game\game.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -262,9 +262,8 @@
     <ClInclude Include="src\game\bvhCollisionSystem.hpp" />
     <ClInclude Include="src\game\collisionSystem.hpp" />
     <ClInclude Include="src\game\collision\collision.hpp" />
-    <ClInclude Include="src\game\contact.hpp" />
     <ClInclude Include="src\game\debug.hpp" />
-    <ClInclude Include="src\game\game2.hpp" />
+    <ClInclude Include="src\game\game.hpp" />
     <ClInclude Include="src\game\input.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
     <ClInclude Include="src\math\collision.hpp" />

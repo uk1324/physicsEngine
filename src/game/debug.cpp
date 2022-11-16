@@ -3,6 +3,7 @@
 auto Debug::update() -> void {
 	lines.clear();
 	circles.clear();
+	points.clear();
 	emptyCircles.clear();
 }
 
@@ -23,7 +24,7 @@ auto Debug::drawEmptyCircle(Vec2 pos, float radius, float orientation, const Vec
 }
 
 auto Debug::drawPoint(Vec2 pos, const Vec3& color) -> void {
-	circles.push_back({ pos, 0.01f, color });
+	points.push_back({ pos, 0.01f, color });
 }
 
 auto Debug::drawLines(Span<const Vec2> lines, const Vec3& color) -> void {
@@ -51,4 +52,5 @@ auto Debug::drawAabb(const Aabb& aabb, const Vec3& color) -> void {
 
 std::vector<Debug::Line> Debug::lines;
 std::vector<Debug::Circle> Debug::circles;
+std::vector<Debug::Point> Debug::points;
 std::vector<Debug::OrientedCircle> Debug::emptyCircles;
