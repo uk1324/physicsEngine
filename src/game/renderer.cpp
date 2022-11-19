@@ -19,6 +19,10 @@ Renderer::Renderer(Gfx& gfx) {
 	psLine = gfx.psFromFile(BUILD_DIR L"psLine.cso");
 	lineShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(lineShaderConstantBuffer));
 
+	vsParabola = gfx.vsFromFile(BUILD_DIR L"vsParabola.cso");
+	psParabola = gfx.psFromFile(BUILD_DIR L"psParabola.cso");
+	parabolaShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(parabolaShaderConstantBuffer));
+
 	{
 		fullscreenQuadPtVb = gfx.createVb(fullscreenQuadVerts, sizeof(fullscreenQuadVerts), sizeof(fullscreenQuadVerts[0]));
 		fullscreenQuadIb = gfx.createIb(fullscreenQuadIndices, sizeof(fullscreenQuadIndices), sizeof(fullscreenQuadIndices[0]));
@@ -230,6 +234,63 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 			toDraw++;
 			checkDraw();
 		}
+		draw();
+	}
+
+	// Parabola
+	{
+		gfx.ctx->VSSetShader(vsParabola.shader.Get(), nullptr, 0);
+		gfx.ctx->PSSetShader(psParabola.Get(), nullptr, 0);
+		UINT toDraw = 0;
+		auto draw = [&] {
+			if (toDraw == 0)
+				return;
+			gfx.updateConstantBuffer(parabolaShaderConstantBufferResource, &parabolaShaderConstantBuffer, sizeof(parabolaShaderConstantBuffer));
+			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
+			toDraw = 0;
+		};
+		auto checkDraw = [&] {
+			if (toDraw >= std::size(parabolaShaderConstantBuffer.instanceData)) {
+				draw();
+			}
+		};
+		//const auto extraLength = 0.003f / 2.0f / camera.zoom; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
+
+		// ~!!!!!!!!!!!!!!! Parabolas should always be drawn full screen with an offset to the start of the parabola or mirrored end.
+
+		gfx.ctx->VSSetConstantBuffers(0, 1, parabolaShaderConstantBufferResource.GetAddressOf());
+
+		//auto lineInstanceFromStartAndEnd = [&](Vec2 start, Vec2 end, const Vec3& color) -> LineInstance {
+		//	const auto lineVector = end - start;
+		//	const auto length = lineVector.length();
+		//	const auto orientation = atan2(lineVector.y, lineVector.x);
+		//	return {
+		//		.invScale = 1.0f / length / camera.zoom,
+		//		.transform = makeTransform(start, orientation, length + extraLength),
+		//		.color = color,
+		//	};
+		//};
+
+
+		/*for (const auto& line : Debug::lines)*/ {
+			/*const auto lineVector = line.end - line.start;
+			const auto length = lineVector.length();
+			const auto orientation = atan2(lineVector.y, lineVector.x);
+			lineShaderConstantBuffer.instanceData[toDraw] = lineInstanceFromStartAndEnd(line.start, line.end, line.color);*/
+
+			parabolaShaderConstantBuffer.instanceData[toDraw] = {
+				//.invRadius = 1.0f / point.radius,
+				.transform = makeTransform(camera.pos, 0.0f, 0.5f / camera.zoom),
+				//.color = point.color
+			};
+
+			//makeTransform(start, orientation, length + extraLength)
+
+			toDraw++;
+			checkDraw();
+		}
+		checkDraw();
+
 		draw();
 	}
 }

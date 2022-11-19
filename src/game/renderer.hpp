@@ -41,6 +41,7 @@ private:
 	ComPtr<ID3D11Buffer> fullscreenQuadPtVb;
 	ComPtr<ID3D11Buffer> fullscreenQuadIb;
 
+	// TODO: Screen space derivatives of the quads (ddx and ddy) could be used to allow non uniform scaling easily.
 	VertexShader vsCircle;
 	ComPtr<ID3D11PixelShader> psCircleCollider;
 	ComPtr<ID3D11PixelShader> psCircle;
@@ -67,4 +68,18 @@ private:
 		LineInstance instanceData[100];
 	};
 	LineShaderConstantBuffer lineShaderConstantBuffer;
+
+	VertexShader vsParabola;
+	ComPtr<ID3D11PixelShader> psParabola;
+	struct ParabolaInstance {
+		float invScale;
+		float3x2 transform; // Scale has to be uniform.
+		float3 color;
+		float3 cofefficients;
+	};
+	ComPtr<ID3D11Buffer> parabolaShaderConstantBufferResource;
+	struct ParabolaShaderConstantBuffer {
+		ParabolaInstance instanceData[100];
+	};
+	ParabolaShaderConstantBuffer parabolaShaderConstantBuffer;
 };

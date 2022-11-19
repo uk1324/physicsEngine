@@ -16,7 +16,6 @@ public:
 	BvhCollisionSystem();
 
 	auto update(const std::vector<Body*>& toAdd, const std::vector<Body*>& toRemove) -> void;
-	auto removeFromCollisions(CollisionMap& collisions, u32 nodeA, u32 nodeB) -> void;
 	auto detectCollisions(CollisionMap& collisions) -> void;
 private:
 	auto clearCrossedFlag(u32 nodeIndex) -> void;

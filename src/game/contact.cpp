@@ -1,4 +1,3 @@
-//#include <game/contact.hpp>
 #include <game/body.hpp>
 #include <game/game.hpp>
 #include <math/mat2.hpp>
@@ -6,22 +5,6 @@
 #include <algorithm>
 
 #include <game/collision/collision.hpp>
-//#include <
-
-//Collision::Collision(Body* b1, Body* b2)
-//{
-//	if (b1 < b2) {
-//		body1 = b1;
-//		body2 = b2;
-//	} else {
-//		body1 = b2;
-//		body2 = b1;
-//	}
-//
-//	numContacts = Collide(contacts, body1, body2);
-//
-//	coefficientOfFriction = sqrtf(body1->coefficientOfFriction * body2->coefficientOfFriction);
-//}
 
 void Collision::Update(ContactPoint* newContacts, int numNewContacts)
 {
@@ -91,11 +74,7 @@ void Collision::PreStep(Body* a, Body* b, float inv_dt)
 	auto body1 = a;
 	auto body2 = b;
 
-	const float k_allowedPenetration = 0.01f;
-	float k_biasFactor = Game::positionCorrection ? 0.2f : 0.0f;
-
-	for (int i = 0; i < numContacts; ++i)
-	{
+	for (int i = 0; i < numContacts; ++i) {
 		ContactPoint* c = contacts + i;
 
 		Vec2 r1 = c->position - body1->pos;
@@ -115,7 +94,14 @@ void Collision::PreStep(Body* a, Body* b, float inv_dt)
 		kTangent += body1->invRotationalInertia * (dot(r1, r1) - rt1 * rt1) + body2->invRotationalInertia * (dot(r2, r2) - rt2 * rt2);
 		c->massTangent = 1.0f / kTangent;
 
-		c->bias = -k_biasFactor * inv_dt * std::min(0.0f, c->separation + k_allowedPenetration);
+		// Baumgarte stabilization bias.
+		// The velocity needed to solve the penetration in a single frame is when bias = 1.
+		// bias = factor * (penetration / deltaTime)
+		// bias = [scalar] * [velocity]
+		const auto biasFactor = 0.2f;
+		// Decreasing the allowed penetration makes things more bouncy.
+		const auto k_allowedPenetration = 0.01f;
+		c->bias = -biasFactor * inv_dt * std::min(0.0f, c->penetrationDepth + k_allowedPenetration);
 
 		if (Game::accumulateImpulses)
 		{
@@ -146,9 +132,10 @@ void Collision::ApplyImpulse(Body* a, Body* b)
 		Vec2 dv = b2->vel + Cross(b2->angularVel, c->r2) - b1->vel - Cross(b1->angularVel, c->r1);
 
 		// Compute normal impulse
-		float vn = dot(dv, c->normal);
+		// You apply the bias if the objects are moving slowly (relative velocity is small) otherwise this bias is the restitution if they are moving fast (large relative velocity). Also, make sure you only calculate this bias once for every time step, and  not for every iteration of impulses.
+		float vn = dot(dv, c->normal); // Is this the coefficient of restitution.
 
-		float dPn = c->massNormal * (-vn + c->bias);
+		float dPn = /* (0.1f) * */ c->massNormal * (-vn + c->bias);
 
 		if (Game::accumulateImpulses)
 		{
@@ -197,6 +184,7 @@ void Collision::ApplyImpulse(Body* a, Body* b)
 		// Apply contact impulse
 		Vec2 Pt = dPt * tangent;
 
+		// What happens if the velocity is set and not accumulated.
 		b1->vel -= b1->invMass * Pt;
 		b1->angularVel -= b1->invRotationalInertia * Cross(c->r1, Pt);
 

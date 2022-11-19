@@ -44,38 +44,20 @@ union FeaturePair
 	int value;
 };
 
-//struct ContactPoint
-//{
-//	ContactPoint()
-//		: Pn(0.0f)
-//		, Pt(0.0f)
-//		, Pnb(0.0f) {
-//		separation = 0.0f;
-//		inverseEffectiveNormalMass = 0.0f;
-//		bias = 0.0f;
-//		inverseEffectiveTangnetMass = 0.0f;
-//		feature = { 0 };
-//	}
-//
-//	Vec2 pos;
-//	Vec2 normal;
-//	Vec2 r1, r2;
-//	float separation;
-//	float Pn;	// accumulated normal impulse
-//	float Pt;	// accumulated tangent impulse
-//	float Pnb;	// accumulated normal impulse for position bias
-//	float inverseEffectiveNormalMass, inverseEffectiveTangnetMass;
-//	float bias;
-//	FeaturePair feature;
-//};
+// Impulse is the change in momentum.
 
+// The reason the mass is a matrix is to make it invertible.
+// The jacobian seems to just be the surface normal for linear terms.
+// JV + b = 0 is just a confusing way to write that the relative velocity along some vector + bias is equal 0. Sometimes certain velocites are ignored.
+// Solving just calculates the magnitude of the impulse which is a change in momentum so later it is devided by the effective mass.
+//
 struct ContactPoint
 {
 	ContactPoint()
 		: Pn(0.0f)
 		, Pt(0.0f)
 		, Pnb(0.0f) {
-		separation = 0.0f;
+		penetrationDepth = 0.0f;
 		massNormal = 0.0f;
 		bias = 0.0f;
 		massTangent = 0.0f;
@@ -86,12 +68,16 @@ struct ContactPoint
 	// From body1 to body2
 	Vec2 normal;
 	Vec2 r1, r2;
+
 	// Seperating distance along normal. Can be negative.
-	float separation;
+	float penetrationDepth;
+
 	float Pn;	// accumulated normal impulse
 	float Pt;	// accumulated tangent impulse
 	float Pnb;	// accumulated normal impulse for position bias
 	float massNormal, massTangent;
+
+	// Solving the velocity constraint doesn't solve the position constraint. The bias term is proportional to the positional error so after iterating it the softer velocity constraint solves the position constraint.
 	float bias;
 	FeaturePair feature;
 };

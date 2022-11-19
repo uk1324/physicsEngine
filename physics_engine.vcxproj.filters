@@ -234,6 +234,8 @@
     <FxCompile Include="src\game\shaders\psCircleCollider.hlsl" />
     <FxCompile Include="src\game\shaders\vsCircle.hlsl" />
     <FxCompile Include="src\game\shaders\psCircle.hlsl" />
+    <FxCompile Include="src\game\shaders\vsParabola.hlsl" />
+    <FxCompile Include="src\game\shaders\psParabola.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\txt.txt" />

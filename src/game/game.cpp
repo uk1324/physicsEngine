@@ -36,8 +36,8 @@ Game::Game(Gfx& gfx)
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
 	camera.zoom = 0.125f;
 	
-	/*bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
-	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });*/
+	bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
+	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });
 
 	static std::vector<Body*> vAdd;
 	for (auto& body : bodies) {
@@ -107,9 +107,13 @@ auto Game::drawUi() -> void {
 
 	Begin("physics engine");
 	Checkbox("update physics", &updatePhysics);
-	if (followedPos == nullptr)
+	if (followedPos == nullptr) {
 		cameraFollow = false;
-	Checkbox("camera follow", &cameraFollow);
+	} else {
+		// Could also use ImGui::BeginDisabled().
+		Checkbox("camera follow", &cameraFollow);
+	}
+
 	Checkbox("draw contacts", &drawContacts);
 	End();
 }

@@ -459,36 +459,36 @@ auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, 
 
 	// Find best axis
 	Axis axis;
-	float separation;
+	float penetrationDepth;
 	Vec2 normal;
 
 	// Box A faces
 	axis = FACE_A_X;
-	separation = faceA.x;
+	penetrationDepth = faceA.x;
 	normal = dA.x > 0.0f ? RotA.x() : -RotA.x();
 
 	const float relativeTol = 0.95f;
 	const float absoluteTol = 0.01f;
 
-	if (faceA.y > relativeTol * separation + absoluteTol * hA.y)
+	if (faceA.y > relativeTol * penetrationDepth + absoluteTol * hA.y)
 	{
 		axis = FACE_A_Y;
-		separation = faceA.y;
+		penetrationDepth = faceA.y;
 		normal = dA.y > 0.0f ? RotA.y() : -RotA.y();
 	}
 
 	// Box B faces
-	if (faceB.x > relativeTol * separation + absoluteTol * hB.x)
+	if (faceB.x > relativeTol * penetrationDepth + absoluteTol * hB.x)
 	{
 		axis = FACE_B_X;
-		separation = faceB.x;
+		penetrationDepth = faceB.x;
 		normal = dB.x > 0.0f ? RotB.x() : -RotB.x();
 	}
 
-	if (faceB.y > relativeTol * separation + absoluteTol * hB.y)
+	if (faceB.y > relativeTol * penetrationDepth + absoluteTol * hB.y)
 	{
 		axis = FACE_B_Y;
-		separation = faceB.y;
+		penetrationDepth = faceB.y;
 		normal = dB.y > 0.0f ? RotB.y() : -RotB.y();
 	}
 
@@ -584,14 +584,14 @@ auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, 
 	int numContacts = 0;
 	for (int i = 0; i < 2; ++i)
 	{
-		float separation = dot(frontNormal, clipPoints2[i].v) - front;
+		float penetrationDepth = dot(frontNormal, clipPoints2[i].v) - front;
 
-		if (separation <= 0)
+		if (penetrationDepth <= 0)
 		{
-			collision.contacts[numContacts].separation = separation;
+			collision.contacts[numContacts].penetrationDepth = penetrationDepth;
 			collision.contacts[numContacts].normal = normal;
 			// slide contact point onto reference face (easy to cull)
-			collision.contacts[numContacts].position = clipPoints2[i].v - separation * frontNormal;
+			collision.contacts[numContacts].position = clipPoints2[i].v - penetrationDepth * frontNormal;
 			collision.contacts[numContacts].feature = clipPoints2[i].fp;
 			if (axis == FACE_B_X || axis == FACE_B_Y)
 				Flip(collision.contacts[numContacts].feature);
@@ -661,8 +661,8 @@ auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 cir
 	auto& p = collision.contacts[0];
 	collision.numContacts = 1;
 	p.normal = normal;
-	p.separation = p.normal.length() - circle.radius;
-	if (isCenterInsideBox) p.separation = -(p.normal.length() + circle.radius);
+	p.penetrationDepth = p.normal.length() - circle.radius;
+	if (isCenterInsideBox) p.penetrationDepth = -(p.normal.length() + circle.radius);
 	p.normal = p.normal.normalized();
 	p.position = closestPosOnBox;
 
@@ -681,7 +681,7 @@ auto collide(Vec2 aPos, float aOrientation, const CircleCollider& a, Vec2 bPos, 
 	collision.numContacts = 1;
 	const auto distance = sqrt(distanceSquared);
 	p.normal = normal / distance;
-	p.separation = a.radius + b.radius - distance;
+	p.penetrationDepth = a.radius + b.radius - distance;
 	p.normal = p.normal.normalized();
 	p.position = aPos + p.normal * a.radius;
 	return collision;
