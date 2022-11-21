@@ -75,7 +75,7 @@ auto doCollision() -> void {
 				if (const auto& oldContact = contacts.find(key); oldContact == contacts.end()) {
 					contacts[key] = *collision;
 				} else {
-					oldContact->second.Update(collision->contacts, collision->numContacts);
+					oldContact->second.update(collision->contacts, collision->contactCount);
 				}
 			} else {
 				contacts.erase(key);
@@ -221,12 +221,12 @@ auto Game::update(Gfx& gfx) -> void {
 		const auto invDeltaTime = 1.0f / Time::deltaTime();
 
 		for (auto& [key, contact] : contacts) {
-			contact.PreStep(key.body1, key.body2, invDeltaTime);
+			contact.preStep(key.body1, key.body2, invDeltaTime);
 		}
 
 		for (int i = 0; i < 10; i++) {
 			for (auto& [key, contact] : contacts) {
-				contact.ApplyImpulse(key.body1, key.body2);
+				contact.applyImpulse(key.body1, key.body2);
 			}
 		}
 
@@ -246,7 +246,7 @@ auto Game::update(Gfx& gfx) -> void {
 
 	if (drawContacts) {
 		for (const auto& [_, collision] : contacts) {
-			for (i32 i = 0; i < collision.numContacts; i++) {
+			for (i32 i = 0; i < collision.contactCount; i++) {
 				const auto& contact = collision.contacts[i];
 				Debug::drawRay(contact.position, contact.normal * 0.1f, Vec3::RED);
 			}

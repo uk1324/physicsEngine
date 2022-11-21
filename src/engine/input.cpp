@@ -55,9 +55,6 @@ auto Input::onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void {
 	if (ImGui::GetIO().WantCaptureMouse && isMouseButton(virtualKeyCode))
 		return;
 
-	if (ImGui::GetIO().WantCaptureKeyboard && isKeyboardKey(virtualKeyCode))
-		return;
-
 	keyDown.set(virtualKeyCode);
 	keyHeld.set(virtualKeyCode);
 

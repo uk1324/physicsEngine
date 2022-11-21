@@ -5,33 +5,6 @@
 #include <optional>
 #include <variant>
 
-struct MassInfo {
-	float mass;
-	float rotationalInertia;
-};
-
-// TODO: Allow translating the moment of inertia.
-struct BoxCollider {
-	Vec2 size;
-
-	// @Performance: Could have an update method on a collider that would update things that are often used like the rotation matrix.
-	// @Performance: Maybe store halfSize and not size because it is used more often.
-	auto massInfo(float density) const -> MassInfo;
-	auto aabb(Vec2 pos, float orientation) const -> Aabb;
-};
-
-struct CircleCollider {
-	float radius;
-
-	auto massInfo(float density) const -> MassInfo;
-	auto aabb(Vec2 pos, float orientation) const -> Aabb;
-};
-
-using Collider = std::variant<BoxCollider, CircleCollider>;
-
-auto massInfo(const Collider& collider, float density) -> MassInfo;
-auto aabb(const Collider& collider, Vec2 pos, float orientation) -> Aabb;
-
 union FeaturePair
 {
 	struct Edges
@@ -44,11 +17,12 @@ union FeaturePair
 	int value;
 };
 
+
 // Impulse is the change in momentum.
 
 // The reason the mass is a matrix is to make it invertible.
 // The jacobian seems to just be the surface normal for linear terms.
-// JV + b = 0 is just a confusing way to write that the relative velocity along some vector + bias is equal 0. Sometimes certain velocites are ignored.
+// JV + b = 0 is just a confusing way to write that the relative velocity along some vector (dot) + bias is equal 0. Sometimes certain velocites are ignored.
 // Solving just calculates the magnitude of the impulse which is a change in momentum so later it is devided by the effective mass.
 //
 struct ContactPoint
@@ -85,24 +59,48 @@ struct ContactPoint
 struct Body;
 
 struct Collision {
-	Collision() {
-		coefficientOfFriction = 0.0f;
-		numContacts = 0;
-	};
+	Collision() 
+		: contactCount{ 0 }
+		, coefficientOfFriction{ 0.0f } {}
 
-	void Update(ContactPoint* contacts, int numContacts);
+	auto update(ContactPoint* contacts, int numContacts) -> void;
 
-	void PreStep(Body* a, Body* b, float inv_dt);
-	void ApplyImpulse(Body* a, Body* b);
+	auto preStep(Body* a, Body* b, float inv_dt) -> void;
+	auto applyImpulse(Body* a, Body* b) -> void;
 
 	static constexpr i32 MAX_CONTACTS = 2;
 	ContactPoint contacts[MAX_CONTACTS];
 
-	i32 numContacts;
-
-	// Combined friction
+	i32 contactCount;
 	float coefficientOfFriction;
 };
+
+struct MassInfo {
+	float mass;
+	float rotationalInertia;
+};
+
+// TODO: Allow translating the moment of inertia.
+struct BoxCollider {
+	Vec2 size;
+
+	// @Performance: Could have an update method on a collider that would update things that are often used like the rotation matrix.
+	// @Performance: Maybe store halfSize and not size because it is used more often.
+	auto massInfo(float density) const -> MassInfo;
+	auto aabb(Vec2 pos, float orientation) const -> Aabb;
+};
+
+struct CircleCollider {
+	float radius;
+
+	auto massInfo(float density) const -> MassInfo;
+	auto aabb(Vec2 pos, float orientation) const -> Aabb;
+};
+
+using Collider = std::variant<BoxCollider, CircleCollider>;
+
+auto massInfo(const Collider& collider, float density) -> MassInfo;
+auto aabb(const Collider& collider, Vec2 pos, float orientation) -> Aabb;
 
 auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos, float bOrientation, const Collider& bCollider) -> std::optional<Collision>;
 auto contains(Vec2 point, Vec2 pos, float orientation, const Collider& collider) -> bool;

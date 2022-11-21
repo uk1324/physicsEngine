@@ -69,9 +69,6 @@
     <ClCompile Include="src\game\body.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\contact.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\game\collision\collision.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -236,6 +233,7 @@
     <FxCompile Include="src\game\shaders\psCircle.hlsl" />
     <FxCompile Include="src\game\shaders\vsParabola.hlsl" />
     <FxCompile Include="src\game\shaders\psParabola.hlsl" />
+    <FxCompile Include="src\game\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\txt.txt" />

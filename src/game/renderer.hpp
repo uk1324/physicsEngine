@@ -82,4 +82,11 @@ private:
 		ParabolaInstance instanceData[100];
 	};
 	ParabolaShaderConstantBuffer parabolaShaderConstantBuffer;
+
+	ComPtr<ID3D11Buffer> debugShapesFragmentShaderConstantBufferResource;
+	struct alignas(16) /* min constant buffer size */ DebugShapesFragmentShaderConstantBuffer {
+		float lineWidth;
+		float smoothingWidth;
+	};
+	DebugShapesFragmentShaderConstantBuffer debugShapesFragmentShaderConstantBuffer;
 };

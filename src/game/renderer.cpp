@@ -23,6 +23,8 @@ Renderer::Renderer(Gfx& gfx) {
 	psParabola = gfx.psFromFile(BUILD_DIR L"psParabola.cso");
 	parabolaShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(parabolaShaderConstantBuffer));
 
+	debugShapesFragmentShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(debugShapesFragmentShaderConstantBuffer));
+
 	{
 		fullscreenQuadPtVb = gfx.createVb(fullscreenQuadVerts, sizeof(fullscreenQuadVerts), sizeof(fullscreenQuadVerts[0]));
 		fullscreenQuadIb = gfx.createIb(fullscreenQuadIndices, sizeof(fullscreenQuadIndices), sizeof(fullscreenQuadIndices[0]));
@@ -133,6 +135,10 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
 	};
 
+	debugShapesFragmentShaderConstantBuffer.lineWidth = 0.003f * 1920.0f / Window::size().x;
+	debugShapesFragmentShaderConstantBuffer.smoothingWidth = debugShapesFragmentShaderConstantBuffer.lineWidth * (2.0f / 3.0f);
+	gfx.updateConstantBuffer(debugShapesFragmentShaderConstantBufferResource, &debugShapesFragmentShaderConstantBuffer, sizeof(debugShapesFragmentShaderConstantBuffer));
+
 	// checkDraw can be called last in loops because zero sized arrays are not allowed.
 	// remember to put a draw or checkDraw after a loop.
 
@@ -140,6 +146,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 	{
 		gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
 		gfx.ctx->PSSetShader(psLine.Get(), nullptr, 0);
+		gfx.ctx->PSSetConstantBuffers(0, 1, debugShapesFragmentShaderConstantBufferResource.GetAddressOf());
 		UINT toDraw = 0;
 		auto draw = [&] {
 			if (toDraw == 0)
@@ -153,7 +160,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 				draw();
 			}
 		};
-		const auto extraLength = 0.003f / 2.0f / camera.zoom; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
+		const auto extraLength = debugShapesFragmentShaderConstantBuffer.lineWidth / 2.0f / camera.zoom; // Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, lineShaderConstantBufferResource.GetAddressOf());
 
@@ -167,7 +174,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 				.color = color,
 			};
 		};
-
 
 		for (const auto& line : Debug::lines) {
 			const auto lineVector = line.end - line.start;
@@ -254,10 +260,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 				draw();
 			}
 		};
-		//const auto extraLength = 0.003f / 2.0f / camera.zoom; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
-
-		// ~!!!!!!!!!!!!!!! Parabolas should always be drawn full screen with an offset to the start of the parabola or mirrored end.
-		// TODO: !!!!!!!!!!!!!!! Pass the line width based on the screen size to fragment shader.
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, parabolaShaderConstantBufferResource.GetAddressOf());
 
@@ -267,8 +269,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 				.transform = Mat3x2::scale(Vec2{ 1.0f / camera.zoom, -1.0f / camera.aspectRatio / camera.zoom })
 					* Mat3x2::translate(camera.pos * Vec2{ 1.0 / 2.0f, 1.0f / 2.0f }),
 				.color = Vec3(1.0),
-				//.cofefficients = Vec3{ 2.0f, parabola.pos.x / camera.zoom, parabola.pos.y / camera.zoom }
-				/*.cofefficients = Vec3{ 2.0f, parabola.pos.x / 2.0f / camera.zoom, parabola.pos.y / 2.0f / aspectRatio / camera.zoom }*/
 				.cofefficients = Vec3{ 2.0f * parabola.a, parabola.pos.x / 2.0f , parabola.pos.y / 2.0f }
 			};
 			toDraw++;

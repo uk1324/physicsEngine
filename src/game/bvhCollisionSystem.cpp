@@ -60,7 +60,7 @@ auto BvhCollisionSystem::detectCollisions(CollisionMap& collisions) -> void {
 		if (oldCollision == collisions.end()) {
 			collisions[newCollisionKey] = newCollision;
 		} else {
-			oldCollision->second.Update(newCollision.contacts, newCollision.numContacts);
+			oldCollision->second.update(newCollision.contacts, newCollision.contactCount);
 		}
 	}
 }
