@@ -13,6 +13,7 @@ struct Aabb {
 	auto combined(const Aabb& aabb) const -> Aabb;
 	auto area() const -> float;
 	auto collides(const Aabb& other) const -> bool;
+	auto rayHits(Vec2 start, Vec2 end) const -> bool;
 
 	Vec2 min;
 	Vec2 max;

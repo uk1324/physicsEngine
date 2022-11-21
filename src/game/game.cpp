@@ -34,10 +34,14 @@ Game::Game(Gfx& gfx)
 		}
 	}
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
-	camera.zoom = 0.125f;
+	/*bodies.push_back(Body{ Vec2{ -1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 2.0f } }, false });
+	bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 2.0f } }, false });*/
+	camera.zoom = 0.125f / 2.0f;
+	camera.pos = Vec2{ 0.0f, 6.0f };
 	
 	bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
 	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });
+	bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxCollider{ Vec2{ 1.0f, 0.5f } }, false });
 
 	static std::vector<Body*> vAdd;
 	for (auto& body : bodies) {
@@ -113,7 +117,10 @@ auto Game::drawUi() -> void {
 		// Could also use ImGui::BeginDisabled().
 		Checkbox("camera follow", &cameraFollow);
 	}
-
+	Checkbox("show trajectory", &drawTrajectory);
+	if (drawTrajectory) {
+		SliderFloat2("initial velocity", initialVelocity.data(), -10.0f, 10.0f);
+	}
 	Checkbox("draw contacts", &drawContacts);
 	End();
 }
@@ -139,6 +146,31 @@ auto Game::update(Gfx& gfx) -> void {
 
 	const auto mousePos = camera.screenSpaceToCameraSpace(Input::cursorPos());
 	Debug::drawPoint(mousePos);
+	
+	if (drawTrajectory) {
+		Vec2 previous = mousePos;
+		for (int i = 0; i < 50; i++) {
+			float x = i / 20.0f / 16.0f / camera.zoom;
+			Vec2 v = mousePos + Vec2{ x * initialVelocity.x, x * x * gravity.y / 2.0f + x * initialVelocity.y };
+			if ((previous - v).lengthSq() < 0.001f)
+				continue;
+
+			const auto collision = collisionSystem.raycast(previous, v);
+			if (collision.has_value()) {
+				Debug::drawLine(previous, previous + ((v - previous) * collision->t));
+				Debug::drawPoint(previous + ((v - previous) * collision->t));
+				break;
+			}
+			Debug::drawLine(previous, v);
+			previous = v;
+		}
+	}
+	if (Input::isKeyDown(Keycode::U)) {
+		bodies.back().pos = mousePos;
+		bodies.back().vel = initialVelocity;
+		bodies.back().angularVel = 1.5f;
+		bodies.back().orientation = 0.0f;
+	}
 
 	if (Input::isKeyDown(Keycode::G)) __debugbreak();
 
@@ -180,7 +212,7 @@ auto Game::update(Gfx& gfx) -> void {
 			body.vel += (body.force * body.invMass + gravity) * Time::deltaTime();
 			body.force = Vec2{ 0.0f };
 
-			body.angularVel = body.torque * body.invRotationalInertia * Time::deltaTime();
+			body.angularVel += body.torque * body.invRotationalInertia * Time::deltaTime();
 			body.torque = 0.0f;
 		}
 

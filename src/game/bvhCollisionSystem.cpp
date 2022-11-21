@@ -65,6 +65,33 @@ auto BvhCollisionSystem::detectCollisions(CollisionMap& collisions) -> void {
 	}
 }
 
+auto BvhCollisionSystem::raycast(Vec2 start, Vec2 end) const -> std::optional<RaycastResult> {
+	if (rootNode == NULL_NODE)
+		return std::nullopt;
+
+	return raycastHelper(rootNode, start, end);
+}
+
+auto BvhCollisionSystem::raycastHelper(u32 nodeIndex, Vec2 start, Vec2 end) const -> std::optional<RaycastResult> {
+	const auto& node = BvhCollisionSystem::node(nodeIndex);
+
+	if (!node.aabb.rayHits(start, end))
+		return std::nullopt;
+
+	if (node.isLeaf())
+		return ::raycast(start, end, node.body->collider, node.body->pos, node.body->orientation);
+
+	const auto result0 = raycastHelper(node.children[0], start, end);
+	if (!result0.has_value())
+		return raycastHelper(node.children[1], start, end);
+	
+	const auto result1 = raycastHelper(node.children[1], start, end);
+	if (!result1.has_value())
+		return result0;
+
+	return result0->t < result1->t ? result0 : result1;
+}
+
 auto BvhCollisionSystem::clearCrossedFlag(u32 nodeIndex) -> void {
 	auto& parent = node(nodeIndex);
 	if (parent.isLeaf())
@@ -246,6 +273,10 @@ auto BvhCollisionSystem::freeNode(u32 index) -> void {
 }
 
 auto BvhCollisionSystem::node(u32 index) -> Node& {
+	return nodes[index];
+}
+
+auto BvhCollisionSystem::node(u32 index) const -> const Node& {
 	return nodes[index];
 }
 

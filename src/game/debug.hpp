@@ -18,6 +18,7 @@ namespace Debug {
 	auto drawPoint(Vec2 pos, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawLines(Span<const Vec2> lines, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawAabb(const Aabb& aabb, const Vec3& color = DEFAULT_COLOR) -> void;
+	auto drawParabola(float a, Vec2 pos, const Vec3& color = DEFAULT_COLOR) -> void;
 
 	struct Line {
 		Vec2 start;
@@ -43,8 +44,15 @@ namespace Debug {
 		float orientation;
 	};
 
+	struct Parabola {
+		float a;
+		Vec2 pos;
+		Vec3 color;
+	};
+
 	extern std::vector<Line> lines;
 	extern std::vector<Circle> circles;
 	extern std::vector<Point> points;
 	extern std::vector<OrientedCircle> emptyCircles;
+	extern std::vector<Parabola> parabolas;
 }

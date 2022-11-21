@@ -719,8 +719,6 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const Collider& collider, Vec2 pos, flo
 	);
 }
 
-#include <game/debug.hpp>
-
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult> {
 	// @Performance: is it better to rotate the positions or dot them with the normals. Is this equivalent?
 	const auto halfSize = collider.size / 2.0f;
@@ -751,10 +749,41 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, 
 	if (entryT > exitT)
 		return std::nullopt;
 
+	if (entryT > 1.0f)
+		return std::nullopt;
+
 	return RaycastResult{
 		.t = entryT,
 		.normal = (tEntry.x > tEntry.y
 			? Vec2{ 1.0f * sign(dir.x), 0.0f }
 			: Vec2{ 0.0f, 1.0f * sign(dir.y) }) * rotation,
+	};
+}
+
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult> {
+	const auto start = rayBegin - pos;
+	const auto dir = rayEnd - rayBegin;
+	const auto 
+		a = dot(dir, dir),
+		b = dot(start, dir) * 2.0f,
+		c = dot(start, start) - collider.radius * collider.radius;
+	const auto discriminant = b * b - 4.0f * a * c;
+	if (discriminant < 0.0f)
+		return std::nullopt;
+
+	const auto sqrtDiscriminant = sqrt(discriminant);
+	const auto 
+		t0 = (-b + sqrtDiscriminant) / a / 2.0f,
+		t1 = (-b - sqrtDiscriminant) / a / 2.0f;
+
+	const auto t = t0 < t1 ? t0 : t1;
+
+	if (t > 1.0f || t < 0.0f)
+		return std::nullopt;
+
+	const auto hitPoint = rayBegin + dir * t;
+	return RaycastResult{
+		.t = t,
+		.normal = (hitPoint - pos).normalized()
 	};
 }

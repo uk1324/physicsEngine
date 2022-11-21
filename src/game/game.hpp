@@ -24,6 +24,9 @@ public:
 	bool cameraFollow = true;
 	bool drawContacts = false;
 
+	bool drawTrajectory = true;
+	Vec2 initialVelocity{ 1.0f };
+
 	static bool warmStarting;
 	static bool positionCorrection;
 	static bool accumulateImpulses;

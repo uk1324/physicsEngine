@@ -17,7 +17,11 @@ public:
 
 	auto update(const std::vector<Body*>& toAdd, const std::vector<Body*>& toRemove) -> void;
 	auto detectCollisions(CollisionMap& collisions) -> void;
+
+	auto raycast(Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;
+
 private:
+	auto raycastHelper(u32 nodeIndex, Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;
 	auto clearCrossedFlag(u32 nodeIndex) -> void;
 	auto collide(CollisionMap& collisions, u32 nodeA, u32 nodeB) -> void;
 
@@ -31,7 +35,7 @@ private:
 		Body* body;
 		Aabb aabb;
 		bool childrenCrossChecked;
-		auto isLeaf() -> bool { return children[0] == NULL_NODE; }
+		auto isLeaf() const -> bool { return children[0] == NULL_NODE; }
 	};
 
 	auto insert(Body& body) -> void;
@@ -46,6 +50,7 @@ private:
 	auto allocateNode() -> u32;
 	auto freeNode(u32 index) -> void;
 	auto node(u32 index) -> Node&;
+	auto node(u32 index) const -> const Node&;
 	auto debugPrint(u32 rootNodeIndex) -> void;
 	auto debugPrintHelper(u32 rootNodeIndex, i32 depth) -> void;
 	auto debugDrawAabbs(u32 rootNodeIndex, i32 depth = 0) -> void;

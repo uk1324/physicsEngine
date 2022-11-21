@@ -41,6 +41,8 @@ struct Vec2T {
 	auto operator==(const Vec2T& other) const -> bool;
 	auto operator!=(const Vec2T& other) const -> bool;
 
+	auto data() -> T*;
+
 	T x, y;
 };
 
@@ -221,4 +223,9 @@ auto Vec2T<T>::operator==(const Vec2T& other) const -> bool {
 template<typename T>
 auto Vec2T<T>::operator!=(const Vec2T& other) const -> bool {
 	return !(*this == other);
+}
+
+template<typename T>
+auto Vec2T<T>::data() -> T* {
+	return &x;
 }

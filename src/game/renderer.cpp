@@ -257,35 +257,20 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		//const auto extraLength = 0.003f / 2.0f / camera.zoom; // @Hack: Make the line longer by the width of the line so both ends are rounded. Don't think I can do it inside the vertex shader because of the order in which the transforms have to be applied.
 
 		// ~!!!!!!!!!!!!!!! Parabolas should always be drawn full screen with an offset to the start of the parabola or mirrored end.
+		// TODO: !!!!!!!!!!!!!!! Pass the line width based on the screen size to fragment shader.
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, parabolaShaderConstantBufferResource.GetAddressOf());
 
-		//auto lineInstanceFromStartAndEnd = [&](Vec2 start, Vec2 end, const Vec3& color) -> LineInstance {
-		//	const auto lineVector = end - start;
-		//	const auto length = lineVector.length();
-		//	const auto orientation = atan2(lineVector.y, lineVector.x);
-		//	return {
-		//		.invScale = 1.0f / length / camera.zoom,
-		//		.transform = makeTransform(start, orientation, length + extraLength),
-		//		.color = color,
-		//	};
-		//};
-
-
-		/*for (const auto& line : Debug::lines)*/ {
-			/*const auto lineVector = line.end - line.start;
-			const auto length = lineVector.length();
-			const auto orientation = atan2(lineVector.y, lineVector.x);
-			lineShaderConstantBuffer.instanceData[toDraw] = lineInstanceFromStartAndEnd(line.start, line.end, line.color);*/
-
+		for (const auto& parabola : Debug::parabolas) {
 			parabolaShaderConstantBuffer.instanceData[toDraw] = {
-				//.invRadius = 1.0f / point.radius,
-				.transform = makeTransform(camera.pos, 0.0f, 0.5f / camera.zoom),
-				//.color = point.color
+				.invScale = 1.0f / camera.zoom,
+				.transform = Mat3x2::scale(Vec2{ 1.0f / camera.zoom, -1.0f / camera.aspectRatio / camera.zoom })
+					* Mat3x2::translate(camera.pos * Vec2{ 1.0 / 2.0f, 1.0f / 2.0f }),
+				.color = Vec3(1.0),
+				//.cofefficients = Vec3{ 2.0f, parabola.pos.x / camera.zoom, parabola.pos.y / camera.zoom }
+				/*.cofefficients = Vec3{ 2.0f, parabola.pos.x / 2.0f / camera.zoom, parabola.pos.y / 2.0f / aspectRatio / camera.zoom }*/
+				.cofefficients = Vec3{ 2.0f * parabola.a, parabola.pos.x / 2.0f , parabola.pos.y / 2.0f }
 			};
-
-			//makeTransform(start, orientation, length + extraLength)
-
 			toDraw++;
 			checkDraw();
 		}

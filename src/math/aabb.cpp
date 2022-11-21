@@ -37,3 +37,24 @@ auto Aabb::collides(const Aabb& other) const -> bool {
 	return min.x <= other.max.x && max.x >= other.min.x
 		&& min.y <= other.max.y && max.y >= other.min.y;
 }
+
+auto Aabb::rayHits(Vec2 start, Vec2 end) const -> bool {
+    const auto dir = end - start;
+    float t1 = (min.x - start.x) / dir.x;
+    float t2 = (max.x - start.x) / dir.x;
+    float t3 = (min.y - start.y) / dir.y;
+    float t4 = (max.y - start.y) / dir.y;
+
+    float tMin = std::max(std::min(t1, t2), std::min(t3, t4));
+    float tMax = std::min(std::max(t1, t2), std::max(t3, t4));
+
+    // Intersection behind.
+    if (tMax < 0)
+        return false;
+
+	// No hit.
+	if (tMin > tMax)
+		return false;
+
+	return true;
+}

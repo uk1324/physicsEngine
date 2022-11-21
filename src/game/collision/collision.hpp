@@ -123,3 +123,4 @@ struct RaycastResult {
 // Doesn't return a hit if the ray comes from inside the collider.
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const Collider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult>;
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult>;
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 pos, float orientation)->std::optional<RaycastResult>;

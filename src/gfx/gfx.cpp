@@ -47,6 +47,14 @@ Gfx::Gfx(HWND hWnd_) {
 	// TODO: Using CreateSwapChain is not recommended. Look at documentation. Maybe change later.
 	CHECK_WIN_HRESULT(factory->CreateSwapChain(device.Get(), &swapChainDesc, swapChain.GetAddressOf()));
 
+	//D3D11_FEATURE_DATA_DOUBLES doublesSupport;
+	//doublesSupport.DoublePrecisionFloatShaderOps = TRUE;
+	//// TODO: Do error handling if not supported.
+	//CHECK_WIN_HRESULT(device->CheckFeatureSupport(D3D11_FEATURE_DOUBLES, &doublesSupport, sizeof(D3D11_FEATURE_DATA_DOUBLES)));
+	//if (doublesSupport.DoublePrecisionFloatShaderOps == TRUE) {
+	//	LOG_INFO("double precision supported");
+	//}
+
 	setBackBufferRenderTargetView();
 }
 

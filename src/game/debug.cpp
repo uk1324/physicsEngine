@@ -5,6 +5,7 @@ auto Debug::update() -> void {
 	circles.clear();
 	points.clear();
 	emptyCircles.clear();
+	parabolas.clear();
 }
 
 auto Debug::drawLine(Vec2 start, Vec2 end, const Vec3& color) -> void {
@@ -50,7 +51,12 @@ auto Debug::drawAabb(const Aabb& aabb, const Vec3& color) -> void {
 	Debug::drawLine(v3, aabb.min, color);
 }
 
+auto Debug::drawParabola(float a, Vec2 pos, const Vec3& color) -> void {
+	parabolas.push_back({ a, pos, color });
+}
+
 std::vector<Debug::Line> Debug::lines;
 std::vector<Debug::Circle> Debug::circles;
 std::vector<Debug::Point> Debug::points;
 std::vector<Debug::OrientedCircle> Debug::emptyCircles;
+std::vector<Debug::Parabola> Debug::parabolas;
