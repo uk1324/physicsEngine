@@ -35,6 +35,7 @@ auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vect
 
 #include <chrono>
 
+// @Performance: Don't check collision between sleeping objects.
 auto BvhCollisionSystem::detectCollisions(CollisionMap& collisions) -> void {
 	if (rootNode == NULL_NODE || node(rootNode).isLeaf())
 		return;
@@ -111,7 +112,7 @@ auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB)
 
 		if (a.aabb.collides(b.aabb)) {
 
-			CollisionKey key{ a.body, b.body };
+			BodyPair key{ a.body, b.body };
 			ASSERT(a.body != b.body);
 
 			if (auto collision = ::collide(key.body1->pos, key.body1->orientation, key.body1->collider, key.body2->pos, key.body2->orientation,			key.body2->collider); collision.has_value()) {

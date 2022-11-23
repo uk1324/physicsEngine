@@ -19,6 +19,7 @@ public:
 	Camera camera;
 
 	Vec2 gravity{ 0.0f };
+	float angularDamping = 0.98f;
 
 	bool updatePhysics = true;
 	bool cameraFollow = true;

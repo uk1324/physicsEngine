@@ -24,7 +24,9 @@ union FeaturePair
 // The jacobian seems to just be the surface normal for linear terms.
 // JV + b = 0 is just a confusing way to write that the relative velocity along some vector (dot) + bias is equal 0. Sometimes certain velocites are ignored.
 // Solving just calculates the magnitude of the impulse which is a change in momentum so later it is devided by the effective mass.
-//
+// The bias term is used to create new momentum.
+// JV = -b
+// The impluse magnitude is clamped to prevent further penetration. The value can be negative because when a collision happens the objects might already be separating.
 struct ContactPoint
 {
 	ContactPoint()
@@ -32,7 +34,7 @@ struct ContactPoint
 		, Pt(0.0f)
 		, Pnb(0.0f) {
 		penetrationDepth = 0.0f;
-		massNormal = 0.0f;
+		invNormalEffectiveMass = 0.0f;
 		bias = 0.0f;
 		massTangent = 0.0f;
 		feature = { 0 };
@@ -49,7 +51,7 @@ struct ContactPoint
 	float Pn;	// accumulated normal impulse
 	float Pt;	// accumulated tangent impulse
 	float Pnb;	// accumulated normal impulse for position bias
-	float massNormal, massTangent;
+	float invNormalEffectiveMass, massTangent;
 
 	// Solving the velocity constraint doesn't solve the position constraint. The bias term is proportional to the positional error so after iterating it the softer velocity constraint solves the position constraint.
 	float bias;
@@ -63,15 +65,15 @@ struct Collision {
 		: contactCount{ 0 }
 		, coefficientOfFriction{ 0.0f } {}
 
-	auto update(ContactPoint* contacts, int numContacts) -> void;
+	auto update(ContactPoint* contacts, i32 numContacts) -> void;
 
-	auto preStep(Body* a, Body* b, float inv_dt) -> void;
+	auto preStep(Body* a, Body* b, float invDeltaTime) -> void;
 	auto applyImpulse(Body* a, Body* b) -> void;
 
-	static constexpr i32 MAX_CONTACTS = 2;
-	ContactPoint contacts[MAX_CONTACTS];
-
+	static constexpr i32 MAX_CONTACT_COUNT = 2;
+	ContactPoint contacts[MAX_CONTACT_COUNT];
 	i32 contactCount;
+
 	float coefficientOfFriction;
 };
 

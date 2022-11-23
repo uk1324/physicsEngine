@@ -3,6 +3,7 @@
 #include <game/debug.hpp>
 #include <game/input.hpp>
 #include <game/collision/collision.hpp>
+#include <game/distanceJoint.hpp>
 #include <engine/time.hpp>
 #include <engine/window.hpp>
 #include <math/utils.hpp>
@@ -17,31 +18,44 @@
 
 
 CollisionMap contacts;
+std::unordered_map<BodyPair, DistanceJoint, BodyPairHasher> joints;
 std::vector<Body> bodies;
 
 Game::Game(Gfx& gfx)
 	: renderer{ gfx } {
 
-	int height = 14;
-	float boxSize = 1.0f;
-	float gapSize = 0.1f;
-	for (int i = 1; i < height + 1; i++) {
-		for (int j = 0; j < i; j++) {
-			float y = (height + 1 - i) * (boxSize + gapSize);
-			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
+	//int height = 14;
+	//float boxSize = 1.0f;
+	//float gapSize = 0.1f;
+	//for (int i = 1; i < height + 1; i++) {
+	//	for (int j = 0; j < i; j++) {
+	//		float y = (height + 1 - i) * (boxSize + gapSize);
+	//		float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
-			bodies.push_back(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
-		}
-	}
+	//		bodies.push_back(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
+	//	}
+	//}
+	/*bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });*/
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
-	/*bodies.push_back(Body{ Vec2{ -1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 2.0f } }, false });
-	bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 2.0f } }, false });*/
+	bodies.push_back(Body{ Vec2{ -2.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, true });
+	bodies.push_back(Body{ Vec2{ -1.0, 0.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	/*bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	bodies.push_back(Body{ Vec2{ 3.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });*/
+	joints[BodyPair{ &bodies[bodies.size() - 1], &bodies[bodies.size() - 2] }] = DistanceJoint{ .requiredDistance = 4.0f };
+	//joints[BodyPair{ &bodies[bodies.size() - 2], &bodies[bodies.size() - 3] }] = DistanceJoint{ .requiredDistance = 4.0f };
+	//joints[BodyPair{ &bodies[bodies.size() - 3], &bodies[bodies.size() - 4] }] = DistanceJoint{ .requiredDistance = 4.0f };
+	//joints[BodyPair{ &bodies[bodies.size() - 4], &bodies[bodies.size() - 5] }] = DistanceJoint{ .requiredDistance = 4.0f };
+	//joints[BodyPair{ &bodies[bodies.size() - 5], &bodies[bodies.size() - 6] }] = DistanceJoint{ .requiredDistance = 4.0f };
+	//joints[BodyPair{ &bodies[bodies.size() - 6], &bodies[bodies.size() - 7] }] = DistanceJoint{ .requiredDistance = 4.0f };
 	camera.zoom = 0.125f / 2.0f;
 	camera.pos = Vec2{ 0.0f, 6.0f };
 	
-	bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
-	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });
-	bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxCollider{ Vec2{ 1.0f, 0.5f } }, false });
+	/*bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
+	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });*/
+	//bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxCollider{ Vec2{ 1.0f, 0.5f } }, false });
 
 	static std::vector<Body*> vAdd;
 	for (auto& body : bodies) {
@@ -66,7 +80,7 @@ auto doCollision() -> void {
 			if (a.isStatic() && b.isStatic())
 				continue;
 
-			CollisionKey key{ &a, &b };
+			BodyPair key{ &a, &b };
 
 			// TODO: Can be made const.
 			if (auto collision = collide(a.pos, a.orientation, a.collider, b.pos, b.orientation, b.collider); collision.has_value()) {
@@ -213,6 +227,7 @@ auto Game::update(Gfx& gfx) -> void {
 			body.force = Vec2{ 0.0f };
 
 			body.angularVel += body.torque * body.invRotationalInertia * Time::deltaTime();
+			body.angularVel *= pow(angularDamping, Time::deltaTime());
 			body.torque = 0.0f;
 		}
 
@@ -224,13 +239,22 @@ auto Game::update(Gfx& gfx) -> void {
 			contact.preStep(key.body1, key.body2, invDeltaTime);
 		}
 
+		for (auto& [key, joint] : joints) {
+			joint.preStep(*key.body1, *key.body2, invDeltaTime);
+		}
+
 		for (int i = 0; i < 10; i++) {
 			for (auto& [key, contact] : contacts) {
 				contact.applyImpulse(key.body1, key.body2);
 			}
+			for (auto& [key, joint] : joints) {
+				joint.applyImpluse(*key.body1, *key.body2);
+			}
 		}
 
 		for (auto& body : bodies) {
+			if (body.isStatic())
+				continue;
 			body.pos += body.vel * Time::deltaTime();
 			body.orientation += body.angularVel * Time::deltaTime();
 		}
@@ -251,6 +275,10 @@ auto Game::update(Gfx& gfx) -> void {
 				Debug::drawRay(contact.position, contact.normal * 0.1f, Vec3::RED);
 			}
 		}
+	}
+
+	for (const auto& [bodies, joint] : joints) {
+		Debug::drawRay(bodies.body1->pos, (bodies.body2->pos - bodies.body1->pos).normalized() * joint.requiredDistance);
 	}
 
 	renderer.update(gfx, camera);

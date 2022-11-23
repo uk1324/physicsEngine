@@ -192,6 +192,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\game\distanceJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\game\renderer.cpp" />
     <ClCompile Include="src\gfx\gfx.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -261,6 +265,7 @@
     <ClInclude Include="src\game\debug.hpp" />
     <ClInclude Include="src\game\game.hpp" />
     <ClInclude Include="src\game\input.hpp" />
+    <ClInclude Include="src\game\distanceJoint.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
     <ClInclude Include="src\math\collision.hpp" />
     <ClInclude Include="src\math\line.hpp" />
