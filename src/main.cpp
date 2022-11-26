@@ -15,7 +15,7 @@
 
 // TODO: Could make Noita like physics.
 
-// TODO: Integrate ImGui use custom vector type and using namespace Im = ImGui
+// TODO: When doing serizliation also create a type without the unserializable fields that could be used inside the editor.
 
 // TODO: Use an actual testing framework.
 auto testAreaAllocator() -> void {
@@ -49,6 +49,8 @@ static auto setCustomImGuiStyle() -> void {
 	io.Fonts->AddFontFromFileTTF("assets/fonts/RobotoMono-Regular.ttf", 20);
 	auto& style = ImGui::GetStyle();
 	style.WindowRounding = 5.0f;
+
+	ImGui::InputFloat()
 };
 
 auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {

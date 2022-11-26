@@ -27,31 +27,26 @@ union FeaturePair
 // The bias term is used to create new momentum.
 // JV = -b
 // The impluse magnitude is clamped to prevent further penetration. The value can be negative because when a collision happens the objects might already be separating.
-struct ContactPoint
-{
+struct ContactPoint {
 	ContactPoint()
-		: Pn(0.0f)
-		, Pt(0.0f)
-		, Pnb(0.0f) {
-		penetrationDepth = 0.0f;
-		invNormalEffectiveMass = 0.0f;
-		bias = 0.0f;
-		massTangent = 0.0f;
-		feature = { 0 };
-	}
+		: accumulatedNormalImpluse{ 0.0f }
+		, accumulatedTangentImpulse{ 0.0f }
+		, penetrationDepth{ 0.0f }
+		, invNormalEffectiveMass{ 0.0f }
+		, bias{ 0.0f }
+		, invTangentEffectiveMass{ 0.0f }
+		, feature{ 0 } {}
 
 	Vec2 position;
 	// From body1 to body2
 	Vec2 normal;
-	Vec2 r1, r2;
 
 	// Seperating distance along normal. Can be negative.
 	float penetrationDepth;
 
-	float Pn;	// accumulated normal impulse
-	float Pt;	// accumulated tangent impulse
-	float Pnb;	// accumulated normal impulse for position bias
-	float invNormalEffectiveMass, massTangent;
+	float accumulatedNormalImpluse;
+	float accumulatedTangentImpulse;	
+	float invNormalEffectiveMass, invTangentEffectiveMass;
 
 	// Solving the velocity constraint doesn't solve the position constraint. The bias term is proportional to the positional error so after iterating it the softer velocity constraint solves the position constraint.
 	float bias;
@@ -68,7 +63,7 @@ struct Collision {
 	auto update(ContactPoint* contacts, i32 numContacts) -> void;
 
 	auto preStep(Body* a, Body* b, float invDeltaTime) -> void;
-	auto applyImpulse(Body* a, Body* b) -> void;
+	auto applyImpulse(Body& a, Body& b) -> void;
 
 	static constexpr i32 MAX_CONTACT_COUNT = 2;
 	ContactPoint contacts[MAX_CONTACT_COUNT];

@@ -73,6 +73,21 @@ auto distance(const Vec2T<T>& a, const Vec2T<T> b) -> T {
 	return (a - b).length();
 }
 
+template<typename T>
+auto cross(const Vec2T<T>& a, const Vec2T<T>& b) -> T {
+	return a.x * b.y - a.y * b.x;
+}
+
+template<typename T>
+auto cross(const Vec2T<T>& a, T s) -> Vec2T<T> {
+	return Vec2T{ s * a.y, -s * a.x };
+}
+
+template<typename T>
+auto cross(T s, const Vec2T<T>& a) -> Vec2 {
+	return Vec2T{ -s * a.y, s * a.x };
+}
+
 // I don't think there are any good ways to leaves values unitialized explicitly so I just have to use the default constrcutor. Leaving the values unitialized is useful when creating an array. This could also be solved by providing some intialization function or in some cases maybe using a statically sized vector.
 template<typename T>
 constexpr Vec2T<T>::Vec2T()

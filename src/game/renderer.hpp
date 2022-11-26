@@ -16,6 +16,7 @@ struct Camera {
 };
 
 // TODO: Maybe use order independent transparency. It shouldn't be expensive because it is just quads.
+// TODO: Shader preprocesor that when it find DEBUG_OUT(<variable>) it replaces it with if (<variable_flag>) return <variable> and creates a variable <variable_flag>. It also creates maybe a json struct describing the flags. It uses the struct to display a select menu using ImGui. One limitation that it can only be used in the main function.
 class Renderer {
 public:
 	Renderer(Gfx& gfx);

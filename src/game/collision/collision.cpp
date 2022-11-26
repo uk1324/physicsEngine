@@ -24,9 +24,8 @@ auto Collision::update(ContactPoint* newContacts, i32 newContactCount) -> void {
 			ContactPoint* old = contacts + oldContactSameAsNew;
 			*c = *cNew;
 			// Warm starting.
-			c->Pn = old->Pn;
-			c->Pt = old->Pt;
-			c->Pnb = old->Pnb;
+			c->accumulatedNormalImpluse = old->accumulatedNormalImpluse;
+			c->accumulatedTangentImpulse = old->accumulatedTangentImpulse;
 		} else {
 			mergedContacts[i] = newContacts[i];
 		}
@@ -36,21 +35,6 @@ auto Collision::update(ContactPoint* newContacts, i32 newContactCount) -> void {
 		contacts[i] = mergedContacts[i];
 
 	contactCount = newContactCount;
-}
-
-inline float Cross(const Vec2& a, const Vec2& b)
-{
-	return a.x * b.y - a.y * b.x;
-}
-
-inline Vec2 Cross(const Vec2& a, float s)
-{
-	return Vec2(s * a.y, -s * a.x);
-}
-
-inline Vec2 Cross(float s, const Vec2& a)
-{
-	return Vec2(-s * a.y, s * a.x);
 }
 
 auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
@@ -67,12 +51,12 @@ auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 		kNormal += a->invRotationalInertia * (dot(r1, r1) - rn1 * rn1) + b->invRotationalInertia * (dot(r2, r2) - rn2 * rn2);
 		c->invNormalEffectiveMass = 1.0f / kNormal;
 
-		Vec2 tangent = Cross(c->normal, 1.0f);
+		Vec2 tangent = cross(c->normal, 1.0f);
 		float rt1 = dot(r1, tangent);
 		float rt2 = dot(r2, tangent);
 		float kTangent = a->invMass + b->invMass;
 		kTangent += a->invRotationalInertia * (dot(r1, r1) - rt1 * rt1) + b->invRotationalInertia * (dot(r2, r2) - rt2 * rt2);
-		c->massTangent = 1.0f / kTangent;
+		c->invTangentEffectiveMass = 1.0f / kTangent;
 
 		// Baumgarte stabilization bias.
 		// The velocity needed to solve the penetration in a single frame is when bias = 1.
@@ -86,88 +70,70 @@ auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 		if (Game::accumulateImpulses)
 		{
 			// Apply normal + friction impulse
-			Vec2 P = c->Pn * c->normal + c->Pt * tangent;
+			Vec2 P = c->accumulatedNormalImpluse * c->normal + c->accumulatedTangentImpulse * tangent;
 
 			a->vel -= a->invMass * P;
-			a->angularVel -= a->invRotationalInertia * Cross(r1, P);
+			a->angularVel -= a->invRotationalInertia * cross(r1, P);
 
 			b->vel += b->invMass * P;
-			b->angularVel += b->invRotationalInertia * Cross(r2, P);
+			b->angularVel += b->invRotationalInertia * cross(r2, P);
 		}
 	}
 }
 
-void Collision::applyImpulse(Body* a, Body* b)
-{
-	Body* b1 = a;
-	Body* b2 = b;
+auto Collision::applyImpulse(Body& a, Body& b) -> void {
+	for (i32 i = 0; i < contactCount; i++) {
+		auto& contact = contacts[i];
 
-	for (int i = 0; i < contactCount; ++i)
-	{
-		ContactPoint* c = contacts + i;
-		c->r1 = c->position - b1->pos;
-		c->r2 = c->position - b2->pos;
-
-		// Relative velocity at contact
-		Vec2 dv = b2->vel + Cross(b2->angularVel, c->r2) - b1->vel - Cross(b1->angularVel, c->r1);
+		const auto r1 = contact.position - a.pos;
+		const auto r2 = contact.position - b.pos;
+		auto relativeVelAtContact = (b.vel + cross(b.angularVel, r2)) - (a.vel + cross(a.angularVel, r1));
 
 		// Compute normal impulse
 		// You apply the bias if the objects are moving slowly (relative velocity is small) otherwise this bias is the restitution if they are moving fast (large relative velocity). Also, make sure you only calculate this bias once for every time step, and  not for every iteration of impulses.
-		float vn = dot(dv, c->normal); // Is this the coefficient of restitution.
+		float velocityAlongNormal = dot(relativeVelAtContact, contact.normal); // Is this the coefficient of restitution.
 
-		float dPn = /* (0.1f) * */ c->invNormalEffectiveMass * (-vn + c->bias);
+		float normalImpulse = /* (0.1f) * */ contact.invNormalEffectiveMass * (-velocityAlongNormal + contact.bias);
 
-		if (Game::accumulateImpulses)
-		{
-			// Clamp the accumulated impulse
-			float Pn0 = c->Pn;
-			c->Pn = std::max(Pn0 + dPn, 0.0f);
-			dPn = c->Pn - Pn0;
-		} else
-		{
-			dPn = std::max(dPn, 0.0f);
+		if (Game::accumulateImpulses) {
+			const auto oldNormalImpluse = contact.accumulatedNormalImpluse;
+			contact.accumulatedNormalImpluse = std::max(oldNormalImpluse + normalImpulse, 0.0f);
+			normalImpulse = contact.accumulatedNormalImpluse - oldNormalImpluse;
+		} else {
+			normalImpulse = std::max(normalImpulse, 0.0f);
 		}
 
-		// Apply contact impulse
-		Vec2 Pn = dPn * c->normal;
+		const auto impulseNormal = normalImpulse * contact.normal;
 
-		b1->vel -= b1->invMass * Pn;
-		b1->angularVel -= b1->invRotationalInertia * Cross(c->r1, Pn);
+		a.vel -= a.invMass * impulseNormal;
+		a.angularVel -= a.invRotationalInertia * cross(r1, impulseNormal);
 
-		b2->vel += b2->invMass * Pn;
-		b2->angularVel += b2->invRotationalInertia * Cross(c->r2, Pn);
+		b.vel += b.invMass * impulseNormal;
+		b.angularVel += b.invRotationalInertia * cross(r2, impulseNormal);
 
-		// Relative velocity at contact
-		dv = b2->vel + Cross(b2->angularVel, c->r2) - b1->vel - Cross(b1->angularVel, c->r1);
+		relativeVelAtContact = b.vel + cross(b.angularVel, r2) - a.vel - cross(a.angularVel, r1);
 
-		Vec2 tangent = Cross(c->normal, 1.0f);
-		float vt = dot(dv, tangent);
-		float dPt = c->massTangent * (-vt);
+		Vec2 tangent = cross(contact.normal, 1.0f);
+		float velocityAlongTangent = dot(relativeVelAtContact, tangent);
+		float tangentImpulse = contact.invTangentEffectiveMass * (-velocityAlongTangent);
 
-		if (Game::accumulateImpulses)
-		{
-			// Compute friction impulse
-			float maxPt = coefficientOfFriction * c->Pn;
-
-			// Clamp friction
-			float oldTangentImpulse = c->Pt;
-			c->Pt = std::clamp(oldTangentImpulse + dPt, -maxPt, maxPt);
-			dPt = c->Pt - oldTangentImpulse;
-		} else
-		{
-			float maxPt = coefficientOfFriction * dPn;
-			dPt = std::clamp(dPt, -maxPt, maxPt);
+		if (Game::accumulateImpulses) {
+			const auto max = coefficientOfFriction * contact.accumulatedNormalImpluse;
+			const auto oldTangentImpulse = contact.accumulatedTangentImpulse;
+			contact.accumulatedTangentImpulse = std::clamp(oldTangentImpulse + tangentImpulse, -max, max);
+			tangentImpulse = contact.accumulatedTangentImpulse - oldTangentImpulse;
+		} else {
+			float max = coefficientOfFriction * normalImpulse;
+			tangentImpulse = std::clamp(tangentImpulse, -max, max);
 		}
 
-		// Apply contact impulse
-		Vec2 Pt = dPt * tangent;
+		Vec2 impluseTangent = tangentImpulse * tangent;
 
-		// What happens if the velocity is set and not accumulated.
-		b1->vel -= b1->invMass * Pt;
-		b1->angularVel -= b1->invRotationalInertia * Cross(c->r1, Pt);
+		a.vel -= a.invMass * impluseTangent;
+		a.angularVel -= a.invRotationalInertia * cross(r1, impluseTangent);
 
-		b2->vel += b2->invMass * Pt;
-		b2->angularVel += b2->invRotationalInertia * Cross(c->r2, Pt);
+		b.vel += b.invMass * impluseTangent;
+		b.angularVel += b.invRotationalInertia * cross(r2, impluseTangent);
 	}
 }
 

@@ -30,4 +30,5 @@ struct BodyPairHasher {
 	}
 };
 
+// unordered_map shouldn't be used here because it makes the collisions be resolved in a different order depending on the allocation location and the insertion order. Using a std::map and making a custom comparasion function would work. There must a consistent way to order the entites. This could be done be either using handles instead of pointers or storing an index inside the Body.
 using CollisionMap = std::unordered_map<BodyPair, Collision, BodyPairHasher>;

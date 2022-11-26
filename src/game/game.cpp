@@ -38,12 +38,12 @@ Game::Game(Gfx& gfx)
 	/*bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });*/
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
 	bodies.push_back(Body{ Vec2{ -2.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, true });
-	bodies.push_back(Body{ Vec2{ -1.0, 0.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	/*bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	bodies.push_back(Body{ Vec2{ 3.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });*/
+	bodies.push_back(Body{ Vec2{ -1.0, 4.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	//bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	//bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	//bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	//bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	//bodies.push_back(Body{ Vec2{ 3.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
 	joints[BodyPair{ &bodies[bodies.size() - 1], &bodies[bodies.size() - 2] }] = DistanceJoint{ .requiredDistance = 4.0f };
 	//joints[BodyPair{ &bodies[bodies.size() - 2], &bodies[bodies.size() - 3] }] = DistanceJoint{ .requiredDistance = 4.0f };
 	//joints[BodyPair{ &bodies[bodies.size() - 3], &bodies[bodies.size() - 4] }] = DistanceJoint{ .requiredDistance = 4.0f };
@@ -245,7 +245,7 @@ auto Game::update(Gfx& gfx) -> void {
 
 		for (int i = 0; i < 10; i++) {
 			for (auto& [key, contact] : contacts) {
-				contact.applyImpulse(key.body1, key.body2);
+				contact.applyImpulse(*key.body1, *key.body2);
 			}
 			for (auto& [key, joint] : joints) {
 				joint.applyImpluse(*key.body1, *key.body2);
