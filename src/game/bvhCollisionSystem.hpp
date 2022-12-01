@@ -25,9 +25,9 @@ private:
 	auto clearCrossedFlag(u32 nodeIndex) -> void;
 	auto collide(CollisionMap& collisions, u32 nodeA, u32 nodeB) -> void;
 
-	CollisionMap newCollisions;
+	static auto addMarginToAabb(const Aabb& aabb) -> Aabb;
 
-	static constexpr float FAT_AABB_MARGIN = 0.2f;
+	CollisionMap newCollisions;
 
 	struct Node {
 		u32 parent;

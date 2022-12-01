@@ -32,4 +32,15 @@ Body::Body(Vec2 pos, const Collider& collider, bool isStatic)
 	force = Vec2{ 0.0f };
 }
 
+auto Body::updateInvMassAndInertia() -> void {
+	if (mass == std::numeric_limits<float>::infinity()) {
+		invMass = 0.0f;
+		invRotationalInertia = 0.0f;
+		rotationalInertia = std::numeric_limits<float>::infinity();
+	} else {
+		invMass = 1.0f / mass;
+		invRotationalInertia  = 1.0f / rotationalInertia;
+	}
+}
+
 Body::Body() : Body{ Vec2{ 0.0f }, CircleCollider{ 0.5f }, false } {}

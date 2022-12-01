@@ -5,6 +5,7 @@
 
 struct BodyPair {
 	BodyPair(Body* b1, Body* b2) {
+		ASSERT(b1 != b2);
 		if (b1 < b2) {
 			a = b1;
 			b = b2;

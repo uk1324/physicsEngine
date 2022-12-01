@@ -166,10 +166,50 @@ auto Game::update(Gfx& gfx) -> void {
 	if (Input::isKeyHeld(Keycode::K)) camera.zoom /= pow(3.0f, Time::deltaTime());
 
 	// For positions not not lag behind the camera has to be updated first.
-
 	const auto mousePos = camera.screenSpaceToCameraSpace(Input::cursorPos());
 	Debug::drawPoint(mousePos);
 	
+	if (Input::isKeyDown(Keycode::T)) {
+		std::vector<Body*> toAdd;
+		std::vector<Body*> toRemove;
+		collisionSystem.update(toAdd, toRemove);
+		contacts.clear();
+	}
+
+	static auto level = Json::Value::emptyObject();
+	if (Input::isKeyDown(Keycode::V)) {
+		level = Json::Value::emptyObject();
+		level["bodies"] = Json::Value::emptyArray();
+		auto& bodies = level["bodies"].array();
+		for (const auto& body : ::bodies) {
+			bodies.push_back(body.toJson());
+		}
+	}
+	if (Input::isKeyDown(Keycode::B)) {
+		try {
+			contacts.clear();
+			auto& bodies = level.at("bodies").array();
+			std::vector<Body*> toAdd;
+			std::vector<Body*> toRemove;
+			for (auto& body : ::bodies) {
+				toRemove.push_back(&body);
+			}
+			collisionSystem.update(toAdd, toRemove);
+			::bodies.clear();
+			for (const auto& body : bodies) {
+				::bodies.push_back(Body::fromJson(body));
+				::bodies.back().updateInvMassAndInertia();
+			}
+			for (auto& body : ::bodies) {
+				toAdd.push_back(&body);
+			}
+			toRemove.clear();
+			collisionSystem.update(toAdd, toRemove);
+		} catch (const Json::ParsingError&) {
+
+		}
+	}
+
 	if (drawTrajectory) {
 		Vec2 previous = mousePos;
 		for (int i = 0; i < 50; i++) {

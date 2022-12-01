@@ -7,9 +7,10 @@ BvhCollisionSystem::BvhCollisionSystem()
 {}
 
 auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vector<Body*>& toRemove) -> void {
-
 	for (const auto& body : toRemove) {
-		removeLeafNode(leafNodes[body]);
+		const auto node = leafNodes[body];
+		removeLeafNode(node);
+		freeNode(node);
 		leafNodes.erase(body);
 	}
 
@@ -21,10 +22,14 @@ auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vect
 		auto& node = BvhCollisionSystem::node(nodeIndex);
 		const auto updatedAabb = aabb(body->collider, body->pos, body->orientation);
 		if (!(node.aabb.contains(updatedAabb.min) && node.aabb.contains(updatedAabb.max))) {
-			removeLeafNode(nodeIndex);
-			node.aabb = updatedAabb;
-			node.aabb = Aabb{ node.aabb.min - Vec2{ FAT_AABB_MARGIN }, node.aabb.max + Vec2{ FAT_AABB_MARGIN } };
-			insertHelper(rootNode, nodeIndex);
+			if (leafNodes.size() == 1) {
+				node.aabb = addMarginToAabb(updatedAabb);
+			} else {
+				removeLeafNode(nodeIndex);
+				node.aabb = addMarginToAabb(updatedAabb);
+				insertHelper(rootNode, nodeIndex);
+			}
+			
 		}
 	}
 	
@@ -157,11 +162,16 @@ auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB)
 	}
 }
 
+auto BvhCollisionSystem::addMarginToAabb(const Aabb& aabb) -> Aabb {
+	static constexpr float AABB_MARGIN = 0.2f;
+	return Aabb{ aabb.min - Vec2{ AABB_MARGIN }, aabb.max + Vec2{ AABB_MARGIN } };
+}
+
 auto BvhCollisionSystem::insert(Body& body) -> void {
 
 	auto aabb = [](const Body& body) -> Aabb {
 		const auto aabb = ::aabb(body.collider, body.pos, body.orientation);
-		return Aabb{ aabb.min - Vec2{ FAT_AABB_MARGIN }, aabb.max + Vec2{ FAT_AABB_MARGIN } };
+		return addMarginToAabb(aabb);
 	};
 
 	if (rootNode == NULL_NODE) {
@@ -232,7 +242,6 @@ auto BvhCollisionSystem::insertHelper(u32 parentNode, u32 nodeToInsert) -> u32 {
 // Doesn't free the node.
 auto BvhCollisionSystem::removeLeafNode(u32 nodeToRemove) -> void {
 	if (nodeToRemove == rootNode) {
-		freeNode(rootNode);
 		rootNode = NULL_NODE;
 		return;
 	}
@@ -270,6 +279,10 @@ auto BvhCollisionSystem::allocateNode() -> u32 {
 }
 
 auto BvhCollisionSystem::freeNode(u32 index) -> void {
+	// For debugging uninitialized or reused memory bugs.
+	//node(index).children[0] = NULL_NODE - 1;
+	//node(index).children[1] = NULL_NODE - 1;
+	//node(index).parent = NULL_NODE - 1;
 	freeNodes.push_back(index);
 }
 
