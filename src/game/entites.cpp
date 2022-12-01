@@ -1,7 +1,5 @@
 #include <game/entitesData.hpp>
-
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+#include <utils/overloaded.hpp>
 
 auto colliderToJson(const Collider& collider) -> Json::Value {
 #define JSON(type) \

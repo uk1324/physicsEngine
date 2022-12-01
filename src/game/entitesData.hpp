@@ -19,7 +19,7 @@ struct Body {
 	float rotationalInertia;
 	Collider collider;
 	Body(Vec2 pos, const Collider& collider, bool isStatic);
-	Body() {}
+	Body();
 	auto isStatic() const -> bool { return invMass == 0.0f; }
 
 	Vec2 vel;

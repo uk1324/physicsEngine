@@ -1,5 +1,4 @@
 #include <game/game.hpp>
-#include <game/body.hpp>
 #include <game/debug.hpp>
 #include <game/input.hpp>
 #include <game/collision/collision.hpp>
@@ -246,19 +245,19 @@ auto Game::update(Gfx& gfx) -> void {
 		const auto invDeltaTime = 1.0f / Time::deltaTime();
 
 		for (auto& [key, contact] : contacts) {
-			contact.preStep(key.body1, key.body2, invDeltaTime);
+			contact.preStep(key.a, key.b, invDeltaTime);
 		}
 
 		for (auto& [key, joint] : joints) {
-			joint.preStep(*key.body1, *key.body2, invDeltaTime);
+			joint.preStep(*key.a, *key.b, invDeltaTime);
 		}
 
 		for (int i = 0; i < 10; i++) {
 			for (auto& [key, contact] : contacts) {
-				contact.applyImpulse(*key.body1, *key.body2);
+				contact.applyImpulse(*key.a, *key.b);
 			}
 			for (auto& [key, joint] : joints) {
-				joint.applyImpluse(*key.body1, *key.body2);
+				joint.applyImpluse(*key.a, *key.b);
 			}
 		}
 
@@ -287,8 +286,8 @@ auto Game::update(Gfx& gfx) -> void {
 		}
 	}
 
-	for (const auto& [bodies, joint] : joints) {
-		Debug::drawRay(bodies.body1->pos, (bodies.body2->pos - bodies.body1->pos).normalized() * joint.requiredDistance);
+	for (const auto& [bodyPair, joint] : joints) {
+		Debug::drawRay(bodyPair.a->pos, (bodyPair.b->pos - bodyPair.a->pos).normalized() * joint.requiredDistance);
 	}
 
 	renderer.update(gfx, camera);

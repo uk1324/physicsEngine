@@ -41,7 +41,12 @@ auto Data::tokenTypeToString(TokenType type) -> std::string_view {
 	ASSERT_NOT_REACHED();
 }
 
-Token::Token(TokenType type, usize start, usize length) 
+Token::Token() 
+	: type{ TokenType::ERROR }
+	, start{ 0 }
+	, length{ 0 } {}
+
+Token::Token(TokenType type, usize start, usize length)
 	: type{ type }
 	, start{ start }
 	, length{ length } {}

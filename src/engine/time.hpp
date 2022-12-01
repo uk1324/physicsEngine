@@ -2,7 +2,7 @@
 
 class Time {
 public:
-	static auto deltaTime() -> float { return currentFrameDeltaTime * timeScale; };
+	static auto deltaTime() -> float { return currentFrameDeltaTime; };
 
 	static auto update(float frameDeltatime) -> void;
 

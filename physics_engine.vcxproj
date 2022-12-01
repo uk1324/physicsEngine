@@ -284,7 +284,6 @@
   <ItemGroup>
     <ClInclude Include="src\engine\audio.hpp" />
     <ClInclude Include="src\engine\frameAllocator.hpp" />
-    <ClInclude Include="src\game\body.hpp" />
     <ClInclude Include="src\game\bvhCollisionSystem.hpp" />
     <ClInclude Include="src\game\collidersData.hpp" />
     <ClInclude Include="src\game\collisionSystem.hpp" />
@@ -313,6 +312,7 @@
     <ClInclude Include="src\gfx\gfx.hpp" />
     <ClInclude Include="src\utils\int.hpp" />
     <ClInclude Include="src\utils\io.hpp" />
+    <ClInclude Include="src\utils\overloaded.hpp" />
     <ClInclude Include="src\utils\random.hpp" />
     <ClInclude Include="src\utils\span.hpp" />
     <ClInclude Include="src\utils\staticVec.hpp" />

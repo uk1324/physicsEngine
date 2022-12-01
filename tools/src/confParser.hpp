@@ -28,7 +28,7 @@ enum class TokenType {
 auto tokenTypeToString(TokenType type) -> std::string_view;
 
 struct Token {
-	Token() {}
+	Token();
 	Token(TokenType type, usize start, usize length);
 
 	TokenType type;

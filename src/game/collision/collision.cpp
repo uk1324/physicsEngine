@@ -160,7 +160,7 @@ auto CircleCollider::massInfo(float density) const -> MassInfo {
 	};
 }
 
-auto CircleCollider::aabb(Vec2 pos, float orientation) const -> Aabb {
+auto CircleCollider::aabb(Vec2 pos, float) const -> Aabb {
 	return Aabb{ pos + Vec2{ -radius }, pos + Vec2{ radius } };
 }
 
@@ -569,7 +569,7 @@ auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, 
 //	std::max(0.0f, abs(alongX) - boxHalfSize.x) * -sign(alongX),
 //	std::max(0.0f, abs(alongY) - boxHalfSize.y) * -sign(alongY)
 //};
-auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 circlePos, float circleOrientation, const CircleCollider& circle) -> std::optional<Collision> {
+auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 circlePos, float, const CircleCollider& circle) -> std::optional<Collision> {
 	const auto boxRotationInverse = Mat2::rotate(-boxOrientation);
 	const auto boxHalfSize = box.size / 2.0f;
 	Collision collision;
@@ -629,7 +629,7 @@ auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 cir
 	return collision;
 }
 
-auto collide(Vec2 aPos, float aOrientation, const CircleCollider& a, Vec2 bPos, float bOrientation, const CircleCollider& b) -> std::optional<Collision> {
+auto collide(Vec2 aPos, float, const CircleCollider& a, Vec2 bPos, float, const CircleCollider& b) -> std::optional<Collision> {
 	const auto normal = bPos - aPos;
 	const auto distanceSquared = normal.lengthSq();
 	if (distanceSquared > pow(a.radius + b.radius, 2.0f)) {
@@ -663,7 +663,7 @@ auto contains(Vec2 point, Vec2 pos, float orientation, const BoxCollider& box) -
 	return false;
 }
 
-auto contains(Vec2 point, Vec2 pos, float orientation, const CircleCollider& circle) -> bool {
+auto contains(Vec2 point, Vec2 pos, float, const CircleCollider& circle) -> bool {
 	return (point - pos).lengthSq() <= circle.radius;
 }
 
@@ -720,7 +720,7 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, 
 	};
 }
 
-auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult> {
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 pos, float) -> std::optional<RaycastResult> {
 	const auto start = rayBegin - pos;
 	const auto dir = rayEnd - rayBegin;
 	const auto 

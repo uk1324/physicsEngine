@@ -1,32 +1,31 @@
 #pragma once
 
-#include <game/body.hpp>
 #include <game/collision/collision.hpp>
 #include <unordered_map>
 
 struct BodyPair {
 	BodyPair(Body* b1, Body* b2) {
 		if (b1 < b2) {
-			body1 = b1;
-			body2 = b2;
+			a = b1;
+			b = b2;
 		}
 		else {
-			body1 = b2;
-			body2 = b1;
+			a = b2;
+			b = b1;
 		}
 	}
 
 	auto operator==(const BodyPair& other) const -> bool {
-		return body1 == other.body1 && body2 == other.body2;
+		return a == other.a && b == other.b;
 	}
 
-	Body* body1;
-	Body* body2;
+	Body* a;
+	Body* b;
 };
 
 struct BodyPairHasher {
 	auto operator()(const BodyPair& x) const -> size_t {
-		return reinterpret_cast<usize>(x.body1) * reinterpret_cast<usize>(x.body2);
+		return reinterpret_cast<usize>(x.a) * reinterpret_cast<usize>(x.b);
 	}
 };
 

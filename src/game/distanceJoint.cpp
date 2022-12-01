@@ -1,12 +1,10 @@
 #include <game/distanceJoint.hpp>
-#include <game/body.hpp>
+#include <game/entitesData.hpp>
 #include <math/utils.hpp>
 
 auto DistanceJoint::preStep(Body& a, Body& b, float invDeltaTime) -> void {
 	bias = invDeltaTime;
 }
-
-#include <game/debug.hpp>
 
 auto DistanceJoint::applyImpluse(Body& a, Body& b) -> void {
 	const auto bToA = a.pos - b.pos;

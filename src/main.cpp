@@ -51,11 +51,14 @@ static auto setCustomImGuiStyle() -> void {
 	style.WindowRounding = 5.0f;
 };
 
+#include <utils/io.hpp>
+
 auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
 	Window::init("game", Vec2(640, 480));
 	Gfx gfx{ Window::hWnd() };
 	Audio::init();
-	Game game{ gfx };
+	// Uses too much stack memory.
+	const auto game = std::make_unique<Game>(gfx);
 
 	ImGui::CreateContext();
 	auto& io = ImGui::GetIO();
@@ -64,21 +67,21 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 	ImGui_ImplDX11_Init(gfx.device.Get(), gfx.ctx.Get());
 	setCustomImGuiStyle();
 
-	auto currentTime = []() -> float {
-		using namespace std::chrono;
-		return duration<float> { duration_cast<seconds>(high_resolution_clock::now().time_since_epoch()) }.count();
-	};
+	// Remember to use a high precision timestamp so the numbers don't get rounded down to 0.
+	using namespace std::chrono_literals;
+	using namespace std::chrono;
+	auto previousFrameStart = high_resolution_clock::now();
 
-	auto previousFrameStart{ currentTime() }, accumulated{ 0.0f };
-	static constexpr auto FRAME_TIME = 1.0f / 60.0f;
+	auto accumulated = previousFrameStart - previousFrameStart;
 	while (Window::running()) {
-		const auto frameStart{ currentTime() };
-		const auto elapsed{ frameStart - previousFrameStart };
+		auto frameLength = duration_cast<nanoseconds>(16670000ns / Time::timeScale);
+		const auto frameStart = high_resolution_clock::now();
+		const auto elapsed = frameStart - previousFrameStart;
 		accumulated += elapsed;
 		previousFrameStart = frameStart;
 
-		while (accumulated >= FRAME_TIME) {
-			accumulated -= FRAME_TIME;
+		while (accumulated >= frameLength) {
+			accumulated -= frameLength;
 			frameAllocator.reset();
 			gfx.update();
 
@@ -95,12 +98,21 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 			if (!Window::running())
 				goto exit;
 
+			// Don't update with the scaled frame time so the game is deterministic.
+			static constexpr auto FRAME_TIME = 1.0f / 60.0f;
 			Time::update(FRAME_TIME);
-			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
+
+			const auto oldTimeScale = Time::timeScale;
+			if (Time::timeScale != oldTimeScale)
+				accumulated = 0ns;
 
 			Debug::update();
-			game.update(gfx);
+			/*auto start = steady_clock::now();*/
+			game->update(gfx);
+			/*auto end = steady_clock::now();
+			dbg(std::chrono::duration_cast<milliseconds>((end - start)).count());*/
 
+			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
 			ImGui::Render();
 			ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 			gfx.present();

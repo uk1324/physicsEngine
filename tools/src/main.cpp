@@ -189,6 +189,8 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 namespace fs = std::filesystem;
 
+// Currently if a field that doesn't exist gets access an exception is thrown. Could allow to default initialize the value if it isn't defined.
+
 auto main() -> int {
 	const auto srcPath = fs::current_path() / "../src";
 	std::cout << "sourcePath: " << srcPath << '\n';
