@@ -5,7 +5,9 @@
 #include <vector>
 #include <optional>
 
-namespace Conf {
+auto trimString(std::string_view line) -> std::string_view;
+
+namespace Data {
 
 enum class TokenType {
 	IDENTIFIER,
@@ -18,6 +20,9 @@ enum class TokenType {
 	AT,
 	COMMA,
 	SEMICOLON,
+	CARET,
+	LEFT_PAREN,
+	RIGHT_PAREN,
 };
 
 auto tokenTypeToString(TokenType type) -> std::string_view;
@@ -52,14 +57,16 @@ private:
 	auto consume() -> void;
 	auto isAtEnd() -> bool;
 
+public:
 	std::string_view text;
+private:
 	usize tokenStartIndex;
 	usize currentIndex;
 };
 
 class Parser {
 public:
-	auto parse(std::string_view text) -> std::optional<ConfigFile>;
+	auto parse(std::string_view text) -> std::optional<DataFile>;
 
 private:
 	auto fieldType() -> FieldType;

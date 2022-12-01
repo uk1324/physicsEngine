@@ -1,4 +1,5 @@
 #include <game/body.hpp>
+#include <game/entitesData.hpp>
 #include <math/vec2.hpp>
 #include <numeric>
 

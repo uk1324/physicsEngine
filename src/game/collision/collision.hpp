@@ -2,6 +2,7 @@
 
 #include <math/vec2.hpp>
 #include <math/aabb.hpp>
+#include <game/entitesData.hpp>
 #include <optional>
 #include <variant>
 
@@ -53,8 +54,6 @@ struct ContactPoint {
 	FeaturePair feature;
 };
 
-struct Body;
-
 struct Collision {
 	Collision() 
 		: contactCount{ 0 }
@@ -72,30 +71,6 @@ struct Collision {
 	float coefficientOfFriction;
 };
 
-struct MassInfo {
-	float mass;
-	float rotationalInertia;
-};
-
-// TODO: Allow translating the moment of inertia.
-struct BoxCollider {
-	Vec2 size;
-
-	// @Performance: Could have an update method on a collider that would update things that are often used like the rotation matrix.
-	// @Performance: Maybe store halfSize and not size because it is used more often.
-	auto massInfo(float density) const -> MassInfo;
-	auto aabb(Vec2 pos, float orientation) const -> Aabb;
-};
-
-struct CircleCollider {
-	float radius;
-
-	auto massInfo(float density) const -> MassInfo;
-	auto aabb(Vec2 pos, float orientation) const -> Aabb;
-};
-
-using Collider = std::variant<BoxCollider, CircleCollider>;
-
 auto massInfo(const Collider& collider, float density) -> MassInfo;
 auto aabb(const Collider& collider, Vec2 pos, float orientation) -> Aabb;
 
@@ -105,7 +80,6 @@ auto contains(Vec2 point, Vec2 pos, float orientation, const Collider& collider)
 auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision>;
 auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 circlePos, float circleOrientation, const CircleCollider& circle) -> std::optional<Collision>;
 auto collide(Vec2 aPos, float aOrientation, const CircleCollider& a, Vec2 bPos, float bOrientation, const CircleCollider& b)->std::optional<Collision>;
-
 
 auto contains(Vec2 point, Vec2 pos, float orientation, const BoxCollider& box) -> bool;
 auto contains(Vec2 point, Vec2 pos, float orientation, const CircleCollider& circle) -> bool;

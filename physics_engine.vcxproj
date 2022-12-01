@@ -156,6 +156,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="src\game\colliders.data" />
+    <None Include="src\game\entites.data" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\engine\audio.cpp" />
@@ -180,11 +182,23 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\game\collidersData.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\game\collision\collision.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\game\debug.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\entites.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\entitesData.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -254,15 +268,29 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="thirdParty\json\JsonParser.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="thirdParty\json\JsonPrinter.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="thirdParty\json\JsonValue.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\engine\audio.hpp" />
     <ClInclude Include="src\engine\frameAllocator.hpp" />
     <ClInclude Include="src\game\body.hpp" />
     <ClInclude Include="src\game\bvhCollisionSystem.hpp" />
+    <ClInclude Include="src\game\collidersData.hpp" />
     <ClInclude Include="src\game\collisionSystem.hpp" />
     <ClInclude Include="src\game\collision\collision.hpp" />
     <ClInclude Include="src\game\debug.hpp" />
+    <ClInclude Include="src\game\entitesData.hpp" />
     <ClInclude Include="src\game\game.hpp" />
     <ClInclude Include="src\game\input.hpp" />
     <ClInclude Include="src\game\distanceJoint.hpp" />
@@ -297,6 +325,10 @@
     <ClInclude Include="thirdParty\imgui\imstb_rectpack.h" />
     <ClInclude Include="thirdParty\imgui\imstb_textedit.h" />
     <ClInclude Include="thirdParty\imgui\imstb_truetype.h" />
+    <ClInclude Include="thirdParty\json\Json.hpp" />
+    <ClInclude Include="thirdParty\json\JsonParser.hpp" />
+    <ClInclude Include="thirdParty\json\JsonPrinter.hpp" />
+    <ClInclude Include="thirdParty\json\JsonValue.hpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\game\shaders\debugShapesPixelShaderConstantBuffer.hlsl">

@@ -49,7 +49,7 @@ static auto isKeyboardKey(u8 vkCode) -> bool {
 }
 
 auto Input::onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void {
-	if (autoRepeat || virtualKeyCode > VIRTUAL_KEY_COUNT)
+	if (autoRepeat || virtualKeyCode >= VIRTUAL_KEY_COUNT)
 		return;
 	
 	if (ImGui::GetIO().WantCaptureMouse && isMouseButton(virtualKeyCode))
@@ -67,6 +67,9 @@ auto Input::onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void {
 }
 
 auto Input::onKeyUp(u8 virtualKeyCode) -> void {
+	if (virtualKeyCode >= VIRTUAL_KEY_COUNT)
+		return;
+
 	keyUp.set(virtualKeyCode);
 	keyHeld.set(virtualKeyCode, false);
 

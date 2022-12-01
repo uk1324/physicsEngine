@@ -2,15 +2,41 @@
 #include <asserts.hpp>
 #include <iostream>
 
-using namespace Conf;
+auto trimString(std::string_view line) -> std::string_view {
+	static const char* WHITESPACE = "\t\n\r\f\v";
 
-auto Conf::tokenTypeToString(TokenType type) -> std::string_view {
+	auto prefixOffset = line.find_first_not_of(WHITESPACE);
+	if (prefixOffset == std::string_view::npos)
+		return line.substr(0, 0);
+
+	line.remove_prefix(prefixOffset);
+
+	auto suffixOffset = line.find_last_not_of(WHITESPACE);
+	if (suffixOffset == std::string_view::npos)
+		return line.substr(0, 0);
+
+	line.remove_suffix(line.size() - suffixOffset);
+
+	return line;
+}
+
+using namespace Data;
+
+auto Data::tokenTypeToString(TokenType type) -> std::string_view {
 	switch (type) {
 	case TokenType::IDENTIFIER: return "identifier";
 	case TokenType::LEFT_BRACE: return "'{'";
 	case TokenType::RIGHT_BRACE: return "'}'";
 	case TokenType::HASH: return "'#'";
 	case TokenType::COLON: return "';'";
+	case TokenType::CPP: return "cpp code";
+	//case TokenType::ERROR: return "')'";
+	case TokenType::AT: return "'@'";
+	case TokenType::COMMA: return "','";
+	case TokenType::SEMICOLON: return "';'";
+	case TokenType::CARET: return "'^'";
+	case TokenType::LEFT_PAREN: return "'('";
+	case TokenType::RIGHT_PAREN: return "')'";
 	}
 	ASSERT_NOT_REACHED();
 }
@@ -43,6 +69,9 @@ auto Scanner::nextToken() -> std::optional<Token> {
 	case '#': return makeToken(TokenType::HASH);
 	case '@': return makeToken(TokenType::AT);
 	case ';': return makeToken(TokenType::SEMICOLON);
+	case '^': return makeToken(TokenType::CARET);
+	case '(': return makeToken(TokenType::LEFT_PAREN);
+	case ')': return makeToken(TokenType::RIGHT_PAREN);
 	case '~': {
 		while (isAtEnd() == false && !match('~'))
 			consume();
@@ -50,9 +79,8 @@ auto Scanner::nextToken() -> std::optional<Token> {
 		if (isAtEnd())
 			return errorToken("unterminated '~'");
 
-		consume();
 		Token token = makeToken(TokenType::CPP);
-		token.identifier = text.substr(token.start + 1, token.length - 1);
+		token.cpp = trimString(text.substr(token.start + 1, token.length - 1));
 		return token;
 	}
 
@@ -135,10 +163,13 @@ auto Scanner::isAtEnd() -> bool {
 	return currentIndex >= text.size();
 }
 
-auto Parser::parse(std::string_view text) -> std::optional<ConfigFile> {
+auto Parser::parse(std::string_view text) -> std::optional<DataFile> {
+	DataFile output;
+	if (text.empty())
+		return output;
+
 	isAtEnd = false;
-	scanner.init(text);
-	ConfigFile output;
+	scanner.init(text);	
 	auto token = scanner.nextToken();
 	if (!token.has_value())
 		return output;
@@ -153,6 +184,9 @@ auto Parser::parse(std::string_view text) -> std::optional<ConfigFile> {
 					while (!isAtEnd && currentToken.type != TokenType::LEFT_BRACE) {
 						if (matchIdentifier("ImGui")) {
 							properties.push_back(StructPropertyType::IM_GUI);
+						} else if (matchIdentifier("Editor")) {
+							properties.push_back(StructPropertyType::IM_GUI);
+							properties.push_back(StructPropertyType::SERIALIZABLE);
 						} else if (match(TokenType::IDENTIFIER)) {
 							std::cerr << "unknown property " << previousToken.identifier << "ignored";
 						} else {
@@ -167,11 +201,43 @@ auto Parser::parse(std::string_view text) -> std::optional<ConfigFile> {
 				expect(TokenType::LEFT_BRACE);
 				while (!isAtEnd && !match(TokenType::RIGHT_BRACE)) {
 					// Initializers should use the CPP token
-					const auto type = fieldType();
-					expect(TokenType::IDENTIFIER);
-					const auto name = previousToken.identifier;
-					structure.fields.push_back(Field{ .type = type, .name = name });
-					expect(TokenType::SEMICOLON);
+					if (match(TokenType::CARET)) {
+						expect(TokenType::CPP);
+						structure.cppCode.push_back(previousToken.cpp);
+					} else {
+						const auto type = fieldType();
+						expect(TokenType::IDENTIFIER);
+						const auto name = previousToken.identifier;
+						std::vector<FieldProperty> fieldProperties;
+						while (!isAtEnd && currentToken.type != TokenType::SEMICOLON) {
+							expect(TokenType::IDENTIFIER);
+							const auto propertyName = previousToken.identifier;
+
+							auto parseArgs = [&](i32 count) -> std::vector<std::string_view> {
+								std::vector<std::string_view> result;
+								expect(TokenType::LEFT_PAREN);
+								for (i32 i = 0; i < count; i++) {
+									expect(TokenType::IDENTIFIER);
+									result.push_back(previousToken.identifier);
+								}
+								expect(TokenType::RIGHT_PAREN);
+								return result;
+							};
+
+							if (propertyName == "Custom") {
+								const auto args = parseArgs(3);
+								FieldProperty property{ .type = FieldPropertyType::CUSTOM };
+								property.customSerializeFn = args[0];
+								property.customDeserializeFn = args[1];
+								property.customGuiFn = args[2];
+								fieldProperties.push_back(property);
+							} else {
+								std::cerr << "invalid property '" << propertyName << "' ignored";
+							}
+						}
+						expect(TokenType::SEMICOLON);
+						structure.fields.push_back(Field{ .type = type, .name = name, .properties = std::move(fieldProperties) });
+					}
 				}
 
 				output.structs.push_back(std::move(structure));
@@ -179,8 +245,8 @@ auto Parser::parse(std::string_view text) -> std::optional<ConfigFile> {
 				output.cppCode.push_back(previousToken.cpp);
 			}
 		} catch (const Error&) {
-			output.~ConfigFile();
-			new (&output) ConfigFile();
+			output.~DataFile();
+			new (&output) DataFile();
 			return std::nullopt;
 		}
 	}
@@ -189,14 +255,14 @@ auto Parser::parse(std::string_view text) -> std::optional<ConfigFile> {
 
 auto Parser::fieldType() -> FieldType {
 	if (match(TokenType::CPP)) {
-		FieldType type{ FieldTypeType::FLOAT };
+		FieldType type{ FieldTypeType::CPP };
 		type.cpp = previousToken.cpp;
 		return type;
-	} else if (matchIdentifier("float")) {
-		return FieldType{ FieldTypeType::FLOAT };
-	} else if (matchIdentifier("i32")) {
-		return FieldType{ FieldTypeType::I32 };
-	} else {
+	} 
+	else if (matchIdentifier("float")) return FieldType{ FieldTypeType::FLOAT };
+	else if (matchIdentifier("i32")) return FieldType{ FieldTypeType::I32 };
+	else if (matchIdentifier("Vec2")) return FieldType{ FieldTypeType::VEC2 };
+	else {
 		std::cerr << "expected type\n";
 		throw Error{};
 	}
@@ -213,6 +279,7 @@ auto Parser::consume() -> void {
 	}
 	previousToken = std::move(currentToken);
 	currentToken = std::move(*next);
+	//std::cout << currentToken.start << ' ' << currentToken.length << '\n' << scanner.text.substr(currentToken.start, currentToken.length) << '\n';
 }
 
 auto Parser::match(TokenType type) -> bool {

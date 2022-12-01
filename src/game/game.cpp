@@ -21,30 +21,35 @@ CollisionMap contacts;
 std::unordered_map<BodyPair, DistanceJoint, BodyPairHasher> joints;
 std::vector<Body> bodies;
 
+#include <sstream>
+#include <utils/io.hpp>
+#include <json/Json.hpp>
+
+
 Game::Game(Gfx& gfx)
 	: renderer{ gfx } {
 
-	//int height = 14;
-	//float boxSize = 1.0f;
-	//float gapSize = 0.1f;
-	//for (int i = 1; i < height + 1; i++) {
-	//	for (int j = 0; j < i; j++) {
-	//		float y = (height + 1 - i) * (boxSize + gapSize);
-	//		float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
+	int height = 14;
+	float boxSize = 1.0f;
+	float gapSize = 0.1f;
+	for (int i = 1; i < height + 1; i++) {
+		for (int j = 0; j < i; j++) {
+			float y = (height + 1 - i) * (boxSize + gapSize);
+			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
-	//		bodies.push_back(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
-	//	}
-	//}
+			bodies.push_back(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
+		}
+	}
 	/*bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });*/
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
-	bodies.push_back(Body{ Vec2{ -2.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, true });
+	/*bodies.push_back(Body{ Vec2{ -2.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, true });
 	bodies.push_back(Body{ Vec2{ -1.0, 4.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
+	joints[BodyPair{ &bodies[bodies.size() - 1], &bodies[bodies.size() - 2] }] = DistanceJoint{ .requiredDistance = 4.0f };*/
 	//bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
 	//bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
 	//bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
 	//bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
 	//bodies.push_back(Body{ Vec2{ 3.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	joints[BodyPair{ &bodies[bodies.size() - 1], &bodies[bodies.size() - 2] }] = DistanceJoint{ .requiredDistance = 4.0f };
 	//joints[BodyPair{ &bodies[bodies.size() - 2], &bodies[bodies.size() - 3] }] = DistanceJoint{ .requiredDistance = 4.0f };
 	//joints[BodyPair{ &bodies[bodies.size() - 3], &bodies[bodies.size() - 4] }] = DistanceJoint{ .requiredDistance = 4.0f };
 	//joints[BodyPair{ &bodies[bodies.size() - 4], &bodies[bodies.size() - 5] }] = DistanceJoint{ .requiredDistance = 4.0f };
@@ -68,6 +73,12 @@ Game::Game(Gfx& gfx)
 	/*followedPos = &bodies[0].pos;
 	controlledValue = &bodies[0].vel;*/
 	gravity = Vec2{ 0.0f, -10.0f };
+
+	std::stringstream s;
+	const auto json = bodies[0].toJson();
+	Json::prettyPrint(s, json);
+	put("%s", s.str().data());
+	const auto x = Body::fromJson(json);
 }
 
 auto doCollision() -> void {
@@ -141,7 +152,6 @@ auto Game::drawUi() -> void {
 
 auto Game::update(Gfx& gfx) -> void {
 	camera.aspectRatio = Window::size().x / Window::size().y;
-
 	if (cameraFollow && followedPos != nullptr) {
 		camera.interpolateTo(*followedPos, 2.0f * Time::deltaTime());
 	} else {

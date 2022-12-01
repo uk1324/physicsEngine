@@ -1,0 +1,28 @@
+~
+#include <math/aabb.hpp>
+
+struct MassInfo {
+	float mass;
+	float rotationalInertia;
+};
+~
+
+CircleCollider @Editor {
+	float radius;
+
+	^~
+	auto massInfo(float density) const -> MassInfo;
+	auto aabb(Vec2 pos, float orientation) const -> Aabb;
+	~
+}
+
+BoxCollider @Editor {
+	Vec2 size;
+
+	^~
+	// @Performance: Could have an update method on a collider that would update things that are often used like the rotation matrix.
+	// @Performance: Maybe store halfSize and not size because it is used more often.
+	auto massInfo(float density) const -> MassInfo;
+	auto aabb(Vec2 pos, float orientation) const -> Aabb;
+	~
+}

@@ -49,8 +49,6 @@ static auto setCustomImGuiStyle() -> void {
 	io.Fonts->AddFontFromFileTTF("assets/fonts/RobotoMono-Regular.ttf", 20);
 	auto& style = ImGui::GetStyle();
 	style.WindowRounding = 5.0f;
-
-	ImGui::InputFloat()
 };
 
 auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {

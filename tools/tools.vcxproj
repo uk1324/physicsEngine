@@ -116,7 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\user\source\repos\physics_engine\thirdParty\json;./src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/w44062 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -133,7 +133,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>./src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\user\source\repos\physics_engine\thirdParty\json;./src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <AdditionalOptions>/w44062 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -145,11 +145,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\thirdParty\json\JsonParser.cpp" />
+    <ClCompile Include="..\thirdParty\json\JsonPrinter.cpp" />
+    <ClCompile Include="..\thirdParty\json\JsonValue.cpp" />
     <ClCompile Include="src\confParser.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\utils\int.hpp" />
+    <ClInclude Include="..\thirdParty\json\Json.hpp" />
+    <ClInclude Include="..\thirdParty\json\JsonParser.hpp" />
+    <ClInclude Include="..\thirdParty\json\JsonPrinter.hpp" />
+    <ClInclude Include="..\thirdParty\json\JsonValue.hpp" />
     <ClInclude Include="src\asserts.hpp" />
     <ClInclude Include="src\conf.hpp" />
     <ClInclude Include="src\confParser.hpp" />
