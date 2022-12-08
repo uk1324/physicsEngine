@@ -32,6 +32,8 @@ auto Input::update() -> void {
 
 	for (auto& [_, isDown] : buttonDown) isDown = false;
 	for (auto& [_, isUp] : buttonUp) isUp = false;
+
+	scrollDelta_ = 0.0f;
 }
 
 static auto setIfAlreadyExists(std::unordered_map<int, bool>& map, int key, bool value) -> void {
@@ -88,6 +90,10 @@ auto Input::onMouseMove(Vec2 mousePos) -> void {
 	cursorPos_ += Vec2{ -1.0f, 1.0f };
 }
 
+auto Input::onMouseScroll(i16 scroll) -> void {
+	scrollDelta_ = scroll / WHEEL_DELTA;
+}
+
 std::bitset<Input::VIRTUAL_KEY_COUNT> Input::keyDown;
 std::bitset<Input::VIRTUAL_KEY_COUNT> Input::keyUp;
 std::bitset<Input::VIRTUAL_KEY_COUNT> Input::keyHeld;
@@ -98,3 +104,4 @@ std::unordered_map<int, bool> Input::buttonUp;
 std::unordered_map<int, bool> Input::buttonHeld;
 
 Vec2 Input::cursorPos_;
+float Input::scrollDelta_;

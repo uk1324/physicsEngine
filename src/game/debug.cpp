@@ -1,4 +1,5 @@
 #include <game/debug.hpp>
+#include <math/mat2.hpp>
 
 auto Debug::update() -> void {
 	lines.clear();
@@ -53,6 +54,27 @@ auto Debug::drawAabb(const Aabb& aabb, const Vec3& color) -> void {
 
 auto Debug::drawParabola(float a, Vec2 pos, const Vec3& color) -> void {
 	parabolas.push_back({ a, pos, color });
+}
+
+auto Debug::drawBox(Vec2 pos, float orientation, Vec2 size, const Vec3& color) -> void {
+	const auto rotate = Mat2::rotate(orientation);
+	// @Performance: Could just use the basis from the rotate matrix. Or even better precompute the matrix because it is used in a lot of places.
+	const auto edgeX = Vec2{ size.x, 0.0f } *rotate;
+	const auto edgeY = Vec2{ 0.0f, size.y } *rotate;
+	const auto vertex1 = (size / 2.0f) * rotate + pos;
+	const auto vertex2 = vertex1 - edgeX;
+	const auto vertex3 = vertex2 - edgeY;
+	const auto vertex4 = vertex3 + edgeX;
+	Debug::drawLine(vertex1, vertex2, color);
+	Debug::drawLine(vertex2, vertex3, color);
+	Debug::drawLine(vertex3, vertex4, color);
+	Debug::drawLine(vertex4, vertex1, color);
+}
+
+auto Debug::drawCollider(const Collider& collider, Vec2 pos, float orientation, const Vec3& color) -> void {
+	if (const auto box = std::get_if<BoxCollider>(&collider)) Debug::drawBox(pos, orientation, box->size, color);
+	else if (const auto circle = std::get_if<CircleCollider>(&collider)) Debug::drawEmptyCircle(pos, circle->radius, orientation, color);
+	else ASSERT_NOT_REACHED();
 }
 
 std::vector<Debug::Line> Debug::lines;

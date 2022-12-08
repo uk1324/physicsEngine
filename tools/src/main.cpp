@@ -66,7 +66,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 	}
 
 	for (const auto& structure : conf.structs) {
-		hppOut << "struct " << structure.name << " {\n";
+		hppOut << "struct " << structure.name << "Editor {\n";
 
 		for (const auto& field : structure.fields) {
 			hppOut << '\t';
@@ -77,10 +77,6 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 			case FieldTypeType::CPP: hppOut << field.type.cpp; break;
 			}
 			hppOut << " " << field.name << ";\n";
-		}
-
-		for (const auto& code : structure.cppCode) {
-			hppOut << '\t' << code << '\n';
 		}
 
 		auto findFieldProperty = [](const Field& field, FieldPropertyType type) -> std::optional<FieldProperty> {
@@ -97,7 +93,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 			case StructPropertyType::IM_GUI:
 				hppOut << "\tauto displayGui() -> void;\n";
 
-				cppOut << "auto " << structure.name << "::displayGui() -> void {\n";
+				cppOut << "auto " << structure.name << "Editor::displayGui() -> void {\n";
 				for (const auto& field : structure.fields) {
 					const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
 					if (field.type.type == FieldTypeType::CPP && !customProperty.has_value())
@@ -112,14 +108,14 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 					}
 					cppOut << ";\n";
 				}
-				cppOut << "}\n";
+				cppOut << "}\n\n";
 				break;
 
 			case StructPropertyType::SERIALIZABLE:
 				{
 					hppOut << "\tauto toJson() const -> Json::Value;\n";
 
-					cppOut << "auto " << structure.name << "::toJson() const -> Json::Value {\n";
+					cppOut << "auto " << structure.name << "Editor::toJson() const -> Json::Value {\n";
 					cppOut << "\tauto result = Json::Value::emptyObject();\n";
 					for (const auto& field : structure.fields) {
 						const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
@@ -140,21 +136,21 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 						cppOut << ";\n";
 					}
 					cppOut << "\treturn result;\n";
-					cppOut << "}\n";
+					cppOut << "}\n\n";
 				}
 
 				{
-					hppOut << "\tstatic auto fromJson(const Json::Value& json) -> " << structure.name << ";\n";
+					hppOut << "\tstatic auto fromJson(const Json::Value& json) -> " << structure.name << "Editor;\n";
 
-					cppOut << "auto " << structure.name << "::fromJson(const Json::Value& json) -> " << structure.name << " {\n";
-					cppOut << "\t" << structure.name << " result;\n";
+					cppOut << "auto " << structure.name << "Editor::fromJson(const Json::Value& json) -> " << structure.name << "Editor {\n";
+					cppOut << "\treturn " << structure.name << "Editor{\n";
 					for (const auto& field : structure.fields) {
 						const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
 
 						if (field.type.type == FieldTypeType::CPP && !customProperty.has_value())
 							continue;
 
-						cppOut << "\tresult." << field.name << " = ";
+						cppOut << "\t\t." << field.name << " = ";
 
 						auto jsonGet = [](std::ostream& os, std::string_view fieldName) -> char {
 							os << "json.at(\"" << fieldName << "\"";
@@ -170,10 +166,9 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 							case FieldTypeType::VEC2: cppOut << "Vec2{ " << jsonGet(cppOut, field.name) << ".at(\"x\").number(), " << jsonGet(cppOut, field.name) << ".at(\"y\").number() }"; break;
 							}
 						}
-						cppOut << ";\n";
+						cppOut << ",\n";
 					}
-					cppOut << "\treturn result;\n";
-					cppOut << "}\n";
+					cppOut << "\t};\n}\n\n";
 				}
 
 				break;
@@ -182,7 +177,12 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 				break;
 			}
 		}
+		hppOut << "};\n\n";
 
+		hppOut << "struct " << structure.name << " : public " << structure.name << "Editor {\n";
+		for (const auto& code : structure.cppCode) {
+			hppOut << '\t' << code << '\n';
+		}
 		hppOut << "};\n\n";
 	}
 }

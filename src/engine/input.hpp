@@ -72,6 +72,7 @@ public:
 	static auto isMouseButtonHeld(MouseButton button) -> bool;
 
 	static auto cursorPos() -> Vec2 { return cursorPos_; };
+	static auto scrollDelta() -> float { return scrollDelta_; }
 
 	static auto update() -> void;
 
@@ -79,6 +80,7 @@ private:
 	static auto onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void;
 	static auto onKeyUp(u8 virtualKeyCode) -> void;
 	static auto onMouseMove(Vec2 mousePos) -> void;
+	static auto onMouseScroll(i16 scroll) -> void;
 
 	static constexpr auto MOUSE_BUTTON_COUNT = static_cast<size_t>(MouseButton::COUNT);
 	static constexpr auto KEYCODE_COUNT = static_cast<size_t>(Keycode::COUNT);
@@ -94,6 +96,7 @@ private:
 	static std::unordered_map<int, bool> buttonHeld;
 
 	static Vec2 cursorPos_;
+	static float scrollDelta_;
 };
 
 template<typename ButtonEnum>

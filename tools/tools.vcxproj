@@ -161,9 +161,6 @@
     <ClInclude Include="src\conf.hpp" />
     <ClInclude Include="src\confParser.hpp" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="src\test.conf" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

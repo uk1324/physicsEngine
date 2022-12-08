@@ -23,10 +23,10 @@ std::vector<Body> bodies;
 #include <sstream>
 #include <utils/io.hpp>
 #include <json/Json.hpp>
+#include <fstream>
 
 
-Game::Game(Gfx& gfx)
-	: renderer{ gfx } {
+Game::Game() {
 
 	int height = 14;
 	float boxSize = 1.0f;
@@ -36,30 +36,26 @@ Game::Game(Gfx& gfx)
 			float y = (height + 1 - i) * (boxSize + gapSize);
 			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
-			bodies.push_back(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
+			bodies.push_back(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });
 		}
 	}
+	bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxColliderEditor{ Vec2{ 5.0f, 2.5f } }, false });
+
+
 	/*bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });*/
-	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
-	/*bodies.push_back(Body{ Vec2{ -2.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, true });
-	bodies.push_back(Body{ Vec2{ -1.0, 4.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	joints[BodyPair{ &bodies[bodies.size() - 1], &bodies[bodies.size() - 2] }] = DistanceJoint{ .requiredDistance = 4.0f };*/
-	//bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	//bodies.push_back(Body{ Vec2{ 1.0, 1.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	//bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	//bodies.push_back(Body{ Vec2{ 1.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	//bodies.push_back(Body{ Vec2{ 3.0, 7.0 }, BoxCollider{ Vec2{ 1.0f, 1.0f } }, false });
-	//joints[BodyPair{ &bodies[bodies.size() - 2], &bodies[bodies.size() - 3] }] = DistanceJoint{ .requiredDistance = 4.0f };
-	//joints[BodyPair{ &bodies[bodies.size() - 3], &bodies[bodies.size() - 4] }] = DistanceJoint{ .requiredDistance = 4.0f };
-	//joints[BodyPair{ &bodies[bodies.size() - 4], &bodies[bodies.size() - 5] }] = DistanceJoint{ .requiredDistance = 4.0f };
-	//joints[BodyPair{ &bodies[bodies.size() - 5], &bodies[bodies.size() - 6] }] = DistanceJoint{ .requiredDistance = 4.0f };
-	//joints[BodyPair{ &bodies[bodies.size() - 6], &bodies[bodies.size() - 7] }] = DistanceJoint{ .requiredDistance = 4.0f };
+	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
+
+	//int count = 4;
+	//for (int i = 0; i < count; i++) {
+	//	bodies.push_back(Body{ Vec2{ static_cast<float>(i), 6.0f }, CircleColliderEditor{ 0.5f }, false });
+	//}
+
+	//for (int i = 1; i < count; i++) {
+	//	joints[BodyPair{ &bodies[bodies.size() - i], &bodies[bodies.size() - i - 1] }] = DistanceJoint{ .requiredDistance = 2.0f };
+	//	//bodies.push_back(Body{ Vec2{ -1.0, 4.0 }, BoxColliderEditor{ Vec2{ 1.0f, 1.0f } }, false });
+	//}
 	camera.zoom = 0.125f / 2.0f;
-	camera.pos = Vec2{ 0.0f, 6.0f };
-	
-	/*bodies.push_back(Body{ Vec2{ 0.0f, 10.0f }, CircleCollider{ 0.5f }, false });
-	bodies.push_back(Body{ Vec2{ 0.0f, 7.0f }, CircleCollider{ 0.5f }, false });*/
-	//bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxCollider{ Vec2{ 1.0f, 0.5f } }, false });
+	camera.pos = Vec2{ 0.0f, 6.0f };;
 
 	static std::vector<Body*> vAdd;
 	for (auto& body : bodies) {
@@ -69,15 +65,7 @@ Game::Game(Gfx& gfx)
 	collisionSystem.update(vAdd, vDelete);
 
 	Window::maximize();
-	/*followedPos = &bodies[0].pos;
-	controlledValue = &bodies[0].vel;*/
 	gravity = Vec2{ 0.0f, -10.0f };
-
-	std::stringstream s;
-	const auto json = bodies[0].toJson();
-	Json::prettyPrint(s, json);
-	put("%s", s.str().data());
-	const auto x = Body::fromJson(json);
 }
 
 auto doCollision() -> void {
@@ -108,22 +96,6 @@ auto doCollision() -> void {
 	}
 }
 
-static auto drawBox(Vec2 size, Vec2 pos, float orientation) -> void {
-	const auto rotate = Mat2::rotate(orientation);
-	// @Performance: Could just use the basis from the rotate matrix. Or even better precompute the matrix because it is used in a lot of places.
-	const auto edgeX = Vec2{ size.x, 0.0f } *rotate;
-	const auto edgeY = Vec2{ 0.0f, size.y } *rotate;
-	const auto vertex1 = (size / 2.0f) * rotate + pos;
-	const auto vertex2 = vertex1 - edgeX;
-	const auto vertex3 = vertex2 - edgeY;
-	const auto vertex4 = vertex3 + edgeX;
-	const auto color = Vec3{ 1.0f };
-	Debug::drawLine(vertex1, vertex2, color);
-	Debug::drawLine(vertex2, vertex3, color);
-	Debug::drawLine(vertex3, vertex4, color);
-	Debug::drawLine(vertex4, vertex1, color);
-};
-
 auto Game::detectCollisions() -> void {
 	static const std::vector<Body*> v;
 	collisionSystem.update(v, v);
@@ -149,8 +121,8 @@ auto Game::drawUi() -> void {
 	End();
 }
 
-auto Game::update(Gfx& gfx) -> void {
-	camera.aspectRatio = Window::size().x / Window::size().y;
+auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
+	camera.aspectRatio = Window::aspectRatio();
 	if (cameraFollow && followedPos != nullptr) {
 		camera.interpolateTo(*followedPos, 2.0f * Time::deltaTime());
 	} else {
@@ -184,6 +156,8 @@ auto Game::update(Gfx& gfx) -> void {
 		for (const auto& body : ::bodies) {
 			bodies.push_back(body.toJson());
 		}
+		std::ofstream file("test.json");
+		//Json::prettyPrint(file, level);
 	}
 	if (Input::isKeyDown(Keycode::B)) {
 		try {
@@ -197,7 +171,7 @@ auto Game::update(Gfx& gfx) -> void {
 			collisionSystem.update(toAdd, toRemove);
 			::bodies.clear();
 			for (const auto& body : bodies) {
-				::bodies.push_back(Body::fromJson(body));
+				::bodies.push_back(Body{ BodyEditor::fromJson(body) });
 				::bodies.back().updateInvMassAndInertia();
 			}
 			for (auto& body : ::bodies) {
@@ -206,6 +180,10 @@ auto Game::update(Gfx& gfx) -> void {
 			toRemove.clear();
 			collisionSystem.update(toAdd, toRemove);
 		} catch (const Json::ParsingError&) {
+
+		} catch (const Json::Value::OutOfRangeAccess&) {
+
+		} catch (const std::out_of_range&) {
 
 		}
 	}
@@ -310,11 +288,7 @@ auto Game::update(Gfx& gfx) -> void {
 	}
 
 	for (const auto& body : bodies) {
-		if (const auto box = std::get_if<BoxCollider>(&body.collider); box != nullptr) {
-			drawBox(box->size, body.pos, body.orientation);
-		} else if (const auto circle = std::get_if<CircleCollider>(&body.collider); circle != nullptr) {
-			Debug::drawEmptyCircle(body.pos, circle->radius, body.orientation);
-		}
+		Debug::drawCollider(body.collider, body.pos, body.orientation);
 	}
 
 	if (drawContacts) {

@@ -59,11 +59,11 @@ struct JointId {
 
 class Game {
 public:
-	Game(Gfx& gfx);
+	Game();
 
 	auto detectCollisions() -> void;
 	auto drawUi() -> void;
-	auto update(Gfx& gfx) -> void;
+	auto update(Gfx& gfx, Renderer& renderer) -> void;
 
 	Vec2* controlledValue = nullptr;
 	Vec2* followedPos = nullptr;
@@ -85,5 +85,4 @@ public:
 	static bool accumulateImpulses;
 
 	BvhCollisionSystem collisionSystem;
-	Renderer renderer;
 };

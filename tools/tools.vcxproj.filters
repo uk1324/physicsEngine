@@ -57,7 +57,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="src\test.conf" />
-  </ItemGroup>
 </Project>

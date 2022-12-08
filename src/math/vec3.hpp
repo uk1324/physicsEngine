@@ -5,6 +5,10 @@ struct Vec3T {
 	constexpr Vec3T(const T& v);
 	constexpr Vec3T(const T& x, const T& y, const T& z);
 
+	auto operator*(const Vec3T& v) const -> Vec3T;
+	auto operator*=(const Vec3T& v) -> Vec3T&;
+	auto operator/(const T& s) const -> Vec3T;
+
 	// C++ doesn't allow constexpr static members of incomplete types because the initializer has to be inline.
 	static const Vec3T RED;
 	static const Vec3T GREEN;
@@ -28,6 +32,22 @@ constexpr Vec3T<T>::Vec3T(const T& x, const T& y, const T& z)
 	: x{ x } 
 	, y{ y }
 	, z{ z } {}
+
+template<typename T>
+auto Vec3T<T>::operator*(const Vec3T& v) const -> Vec3T {
+	return { x * v.x, y * v.y, z * v.z };
+}
+
+template<typename T>
+auto Vec3T<T>::operator*=(const Vec3T& v) -> Vec3T& {
+	*this = *this * v;
+	return *this;
+}
+
+template<typename T>
+auto Vec3T<T>::operator/(const T& s) const -> Vec3T {
+	return { x / s, y / s, z / s };
+}
 
 template<typename T> const Vec3T<T> Vec3T<T>::RED{ 1, 0, 0 };
 template<typename T> const Vec3T<T> Vec3T<T>::GREEN{ 0, 1, 0 };

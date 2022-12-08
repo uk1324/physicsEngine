@@ -76,6 +76,7 @@ float4 main(float2 texturePos : TexturePos, float3x2 transform : Transform, floa
 	float a = info.x;
 
 	float p = -2.0 * a * pos.y + 1;
+	// Maybe can translate the p and pos.y, but the effect would probably just cancel out.
 	float q = -pos.x;
 	float cubicA = 2.0 * a * a;
 	// Depress the cubic.

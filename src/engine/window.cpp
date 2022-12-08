@@ -89,6 +89,8 @@ auto Window::maximize() -> void {
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+#include <utils/io.hpp>
+
 auto WINAPI Window::windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
 	if (const auto result = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
 		return !result;
@@ -132,6 +134,9 @@ auto WINAPI Window::windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LP
 	case WM_RBUTTONUP: Input::onKeyUp(VK_RBUTTON); break;
 	case WM_MBUTTONUP: Input::onKeyUp(VK_MBUTTON); break;
 
+	case WM_MOUSEWHEEL:
+		Input::onMouseScroll(GET_WHEEL_DELTA_WPARAM(wParam));
+		break;
 	}
 
 	return DefWindowProc(hWnd, msg, wParam, lParam);

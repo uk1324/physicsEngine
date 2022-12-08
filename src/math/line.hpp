@@ -6,6 +6,7 @@ struct Line {
 	// The normal is the line from a to b rotated counterclockwise.
 	Line(Vec2 a, Vec2 b);
 	auto translated(Vec2 v) const -> Line;
+	auto distanceAlong(Vec2 v) const -> float;
 
 	// dot(n, p) = d
 	// This means that the line center is located at the vector n * d and the positive half space lies in the direction of the normal.

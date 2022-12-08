@@ -137,6 +137,8 @@ auto Collision::applyImpulse(Body& a, Body& b) -> void {
 	}
 }
 
+BoxCollider::BoxCollider(const BoxColliderEditor& box) : BoxColliderEditor{ box } {}
+
 auto BoxCollider::massInfo(float density) const -> MassInfo {
 	const auto mass = size.x * size.y * density;
 	return MassInfo{
@@ -151,6 +153,8 @@ auto BoxCollider::aabb(Vec2 pos, float orientation) const -> Aabb {
 	const Vec2 corners[4] = { pos + cornerDir, pos - cornerDir, pos + cornerDir - normals.x() * size.x, pos - cornerDir + normals.x() * size.x };
 	return Aabb::fromPoints(corners);
 }
+
+CircleCollider::CircleCollider(const CircleColliderEditor& circle) : CircleColliderEditor{ circle } {}
 
 auto CircleCollider::massInfo(float density) const -> MassInfo {
 	const auto mass = TAU<float> * pow(radius, 2.0f) * density;
@@ -642,7 +646,7 @@ auto collide(Vec2 aPos, float, const CircleCollider& a, Vec2 bPos, float, const 
 	const auto distance = sqrt(distanceSquared);
 	p.normal = normal / distance;
 	p.penetrationDepth = a.radius + b.radius - distance;
-	p.normal = p.normal.normalized();
+	p.normal = (distanceSquared == 0.0f) ? Vec2{ 1.0f, 0.0f } : p.normal.normalized();
 	p.position = aPos + p.normal * a.radius;
 	return collision;
 }

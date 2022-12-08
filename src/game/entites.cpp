@@ -21,7 +21,7 @@ auto jsonToCollider(const Json::Value& json) -> Collider {
 	else UNJSON(CircleCollider)
 
 	ASSERT_NOT_REACHED();
-	return Collider{};
+	return Collider{ CircleColliderEditor{ 1.0f } };
 }
 
 auto displayColliderGui(const Collider& collider) -> void {

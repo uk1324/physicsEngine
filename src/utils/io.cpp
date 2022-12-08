@@ -1,6 +1,7 @@
 #include <pch.hpp>
 #include <io.h>
 #include <utils/asserts.hpp>
+#include <engine/frameAllocator.hpp>
 
 #include <stdio.h>
 
@@ -16,7 +17,6 @@ auto vput(const char* format, va_list args) -> void {
 		return;
 	}
 
-	ASSERT_NOT_REACHED();
 	// TODO: Use frame allocator to allocate an array big enough;
 }
 

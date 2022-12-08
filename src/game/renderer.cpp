@@ -142,6 +142,61 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 	// checkDraw can be called last in loops because zero sized arrays are not allowed.
 	// remember to put a draw or checkDraw after a loop.
 
+		// Circle
+	{
+		gfx.ctx->VSSetShader(vsCircle.shader.Get(), nullptr, 0);
+		gfx.ctx->PSSetShader(psCircleCollider.Get(), nullptr, 0);
+		UINT toDraw = 0;
+		auto draw = [&] {
+			if (toDraw == 0)
+				return;
+			gfx.updateConstantBuffer(circleShaderConstantBufferResource, &circleShaderConstantBuffer, sizeof(circleShaderConstantBuffer));
+			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
+			toDraw = 0;
+		};
+		auto checkDraw = [&] {
+			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
+				draw();
+			}
+		};
+
+		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
+		for (const auto& [circle, orientation] : Debug::emptyCircles) {
+			circleShaderConstantBuffer.instanceData[toDraw] = {
+				.invRadius = 1.0f / circle.radius / camera.zoom,
+				.transform = makeTransform(circle.pos, orientation, circle.radius),
+				.color = circle.color
+			};
+			toDraw++;
+			checkDraw();
+		}
+		draw();
+
+		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
+		for (const auto& circle : Debug::circles) {
+			circleShaderConstantBuffer.instanceData[toDraw] = {
+				.invRadius = 1.0f / circle.radius / camera.zoom,
+				.transform = makeTransform(circle.pos, 0.0f, circle.radius),
+				.color = circle.color
+			};
+			toDraw++;
+			checkDraw();
+		}
+		draw();
+
+		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
+		for (const auto& point : Debug::points) {
+			circleShaderConstantBuffer.instanceData[toDraw] = {
+				.invRadius = 1.0f / point.radius,
+				.transform = makeTransform(point.pos, 0.0f, point.radius / camera.zoom),
+				.color = point.color
+			};
+			toDraw++;
+			checkDraw();
+		}
+		draw();
+	}
+
 	// Line
 	{
 		gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
@@ -185,61 +240,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		}
 		checkDraw();
 
-		draw();
-	}
-
-	// Circle
-	{
-		gfx.ctx->VSSetShader(vsCircle.shader.Get(), nullptr, 0);
-		gfx.ctx->PSSetShader(psCircleCollider.Get(), nullptr, 0);
-		UINT toDraw = 0;
-		auto draw = [&] {
-			if (toDraw == 0)
-				return;
-			gfx.updateConstantBuffer(circleShaderConstantBufferResource, &circleShaderConstantBuffer, sizeof(circleShaderConstantBuffer));
-			gfx.ctx->DrawIndexedInstanced(static_cast<UINT>(std::size(fullscreenQuadIndices)), toDraw, 0, 0, 0);
-			toDraw = 0;
-		};
-		auto checkDraw = [&] {
-			if (toDraw >= std::size(lineShaderConstantBuffer.instanceData)) {
-				draw();
-			}
-		};
-
-		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
-		for (const auto& [circle, orientation]: Debug::emptyCircles) {
-			circleShaderConstantBuffer.instanceData[toDraw] = {
-				.invRadius = 1.0f / circle.radius / camera.zoom,
-				.transform = makeTransform(circle.pos, orientation, circle.radius),
-				.color = circle.color
-			};
-			toDraw++;
-			checkDraw();
-		}
-		draw();
-
-		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
-		for (const auto& circle : Debug::circles) {
-			circleShaderConstantBuffer.instanceData[toDraw] = {
-				.invRadius = 1.0f / circle.radius / camera.zoom,
-				.transform = makeTransform(circle.pos, 0.0f, circle.radius),
-				.color = circle.color
-			};
-			toDraw++;
-			checkDraw();
-		}
-		draw();
-
-		gfx.ctx->PSSetShader(psCircle.Get(), nullptr, 0);
-		for (const auto& point : Debug::points) {
-			circleShaderConstantBuffer.instanceData[toDraw] = {
-				.invRadius = 1.0f / point.radius,
-				.transform = makeTransform(point.pos, 0.0f, point.radius / camera.zoom),
-				.color = point.color
-			};
-			toDraw++;
-			checkDraw();
-		}
 		draw();
 	}
 

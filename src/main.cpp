@@ -1,7 +1,7 @@
 #include <pch.hpp>
 #include <winUtils.hpp>
 #include <gfx/gfx.hpp>
-#include <game/game.hpp>
+#include <game/gameMain.hpp>
 #include <game/debug.hpp>
 #include <engine/time.hpp>
 #include <engine/window.hpp>
@@ -58,7 +58,7 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 	Gfx gfx{ Window::hWnd() };
 	Audio::init();
 	// Uses too much stack memory.
-	const auto game = std::make_unique<Game>(gfx);
+	const auto gameMain = std::make_unique<GameMain>(gfx);
 
 	ImGui::CreateContext();
 	auto& io = ImGui::GetIO();
@@ -107,10 +107,7 @@ auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) 
 				accumulated = 0ns;
 
 			Debug::update();
-			/*auto start = steady_clock::now();*/
-			game->update(gfx);
-			/*auto end = steady_clock::now();
-			dbg(std::chrono::duration_cast<milliseconds>((end - start)).count());*/
+			gameMain->update();
 
 			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
 			ImGui::Render();

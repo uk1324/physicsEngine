@@ -4,12 +4,12 @@
 #include <numeric>
 
 
-Body::Body(Vec2 pos, const Collider& collider, bool isStatic) 
-	: pos{ pos }
-	, collider{ collider }
-	, orientation{ 0.0f }
-	, angularVel{ 0.0f }
-	, vel{ 0.0f } {
+Body::Body(Vec2 pos, const Collider& collider, bool isStatic) : BodyEditor{ .collider = collider } {
+	this->pos = pos;
+	this->collider = collider;
+	orientation = 0.0f;
+	angularVel = 0.0f;
+	vel = Vec2{ 0.0f };
 
 	if (isStatic) {
 		mass = std::numeric_limits<float>::infinity();
@@ -32,6 +32,13 @@ Body::Body(Vec2 pos, const Collider& collider, bool isStatic)
 	force = Vec2{ 0.0f };
 }
 
+Body::Body(const BodyEditor& body) 
+	: BodyEditor{ body }
+	, invMass{ 1.0f / body.mass }
+	, invRotationalInertia{ 1.0f / body.rotationalInertia }
+	, torque{ 0.0f }
+	, force{ 0.0f } {}
+
 auto Body::updateInvMassAndInertia() -> void {
 	if (mass == std::numeric_limits<float>::infinity()) {
 		invMass = 0.0f;
@@ -43,4 +50,4 @@ auto Body::updateInvMassAndInertia() -> void {
 	}
 }
 
-Body::Body() : Body{ Vec2{ 0.0f }, CircleCollider{ 0.5f }, false } {}
+Body::Body() : Body{ Vec2{ 0.0f }, CircleColliderEditor{ 0.5f }, false } {}

@@ -14,6 +14,7 @@ public:
 	static auto hWnd() -> HWND { return hWnd_; };
 
 	static auto size() -> const Vec2& { return size_; };
+	static auto aspectRatio() -> float { return size_.x / size_.y; }
 	static auto resized() -> bool { return resizedOnThisFrame; };
 
 	static auto running() -> bool { return running_; };
