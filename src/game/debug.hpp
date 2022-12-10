@@ -15,7 +15,8 @@ namespace Debug {
 	auto drawLine(Vec2 start, Vec2 end, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawRay(Vec2 start, Vec2 ray, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawCircle(Vec2 pos, float radius = 0.01f, const Vec3& color = DEFAULT_COLOR) -> void;
-	auto drawEmptyCircle(Vec2 pos, float radius = 0.01f, float orientation = 0.0f, const Vec3& color = DEFAULT_COLOR) -> void;
+	auto drawHollowCircle(Vec2 pos, float radius = 0.01f, const Vec3& color = DEFAULT_COLOR) -> void;
+	auto drawCircleCollider(Vec2 pos, float radius = 0.01f, float orientation = 0.0f, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawPoint(Vec2 pos, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawLines(Span<const Vec2> lines, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawAabb(const Aabb& aabb, const Vec3& color = DEFAULT_COLOR) -> void;
@@ -56,6 +57,7 @@ namespace Debug {
 	extern std::vector<Line> lines;
 	extern std::vector<Circle> circles;
 	extern std::vector<Point> points;
-	extern std::vector<OrientedCircle> emptyCircles;
+	extern std::vector<OrientedCircle> circleColliders;
+	extern std::vector<Circle> hollowCircles;
 	extern std::vector<Parabola> parabolas;
 }

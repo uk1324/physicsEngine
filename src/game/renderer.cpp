@@ -13,6 +13,7 @@ Renderer::Renderer(Gfx& gfx) {
 	vsCircle = gfx.vsFromFile(BUILD_DIR L"vsCircle.cso");
 	psCircleCollider = gfx.psFromFile(BUILD_DIR L"psCircleCollider.cso");
 	psCircle = gfx.psFromFile(BUILD_DIR L"psCircle.cso");
+	psHollowCircle = gfx.psFromFile(BUILD_DIR L"psHollowCircle.cso");
 	circleShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(circleShaderConstantBuffer));
 
 	vsLine = gfx.vsFromFile(BUILD_DIR L"vsLine.cso");
@@ -143,8 +144,10 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 	// remember to put a draw or checkDraw after a loop.
 
 		// Circle
+	// !!!!!!!!!!!!! TODO: Make a templated class or a macro for dealing with drawing debug shapes. Later specifying the width might be needed.
 	{
 		gfx.ctx->VSSetShader(vsCircle.shader.Get(), nullptr, 0);
+
 		gfx.ctx->PSSetShader(psCircleCollider.Get(), nullptr, 0);
 		UINT toDraw = 0;
 		auto draw = [&] {
@@ -161,7 +164,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		};
 
 		gfx.ctx->VSSetConstantBuffers(0, 1, circleShaderConstantBufferResource.GetAddressOf());
-		for (const auto& [circle, orientation] : Debug::emptyCircles) {
+		for (const auto& [circle, orientation] : Debug::circleColliders) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
 				.invRadius = 1.0f / circle.radius / camera.zoom,
 				.transform = makeTransform(circle.pos, orientation, circle.radius),
@@ -190,6 +193,18 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 				.invRadius = 1.0f / point.radius,
 				.transform = makeTransform(point.pos, 0.0f, point.radius / camera.zoom),
 				.color = point.color
+			};
+			toDraw++;
+			checkDraw();
+		}
+		draw();
+
+		gfx.ctx->PSSetShader(psHollowCircle.Get(), nullptr, 0);
+		for (const auto& hollowCircle : Debug::hollowCircles) {
+			circleShaderConstantBuffer.instanceData[toDraw] = {
+				.invRadius = 1.0f / hollowCircle.radius / camera.zoom,
+				.transform = makeTransform(hollowCircle.pos, 0.0f, hollowCircle.radius),
+				.color = hollowCircle.color
 			};
 			toDraw++;
 			checkDraw();

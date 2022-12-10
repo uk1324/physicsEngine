@@ -134,6 +134,12 @@
     <ClCompile Include="src\math\lineSegment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\editor\selectedEntityGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\editor\editorEntity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -289,6 +295,12 @@
     <ClInclude Include="src\math\lineSegment.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\game\editor\selectedEntityGizmo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\editor\editorEntity.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\game\shaders\vsLine.hlsl" />
@@ -299,6 +311,7 @@
     <FxCompile Include="src\game\shaders\vsParabola.hlsl" />
     <FxCompile Include="src\game\shaders\psParabola.hlsl" />
     <FxCompile Include="src\game\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />
+    <FxCompile Include="src\game\shaders\psHollowCircle.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\txt.txt" />

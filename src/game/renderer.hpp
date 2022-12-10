@@ -49,6 +49,7 @@ private:
 	VertexShader vsCircle;
 	ComPtr<ID3D11PixelShader> psCircleCollider;
 	ComPtr<ID3D11PixelShader> psCircle;
+	ComPtr<ID3D11PixelShader> psHollowCircle;
 	struct CircleInstance {
 		float invRadius;
 		float3x2 transform; // Scale has to be uniform.

@@ -5,6 +5,7 @@
 #include <game/collision/collision.hpp>
 #include <engine/time.hpp>
 #include <math/lineSegment.hpp>
+#include <math/mat2.hpp>
 #include <engine/window.hpp>
 #include <utils/io.hpp>
 
@@ -22,7 +23,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	Begin("entites");
 
 	if (Button("+")) {
-		entitesBody.push_back(BodyEditor{
+		entites.entitesBody.push_back(BodyEditor{
 			.pos = Vec2{ camera.pos },
 			.mass = 20.0f,
 			.rotationalInertia = 1.0f,
@@ -35,7 +36,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	for (const auto& entity : selectedEntities) {
 		switch (entity.type) {
 		case EntityType::Null: ImGui::Text("no entity selected"); break;
-		case EntityType::Body: entitesBody[entity.index].displayGui(); break;
+		case EntityType::Body: entites.entitesBody[entity.index].displayGui(); break;
 		}
 	}
 	End();
@@ -44,6 +45,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	// Rename to xAxisGizmo
 	Vec2 xAxis{ 1.0f * lengthScale, 0.0f };
 	Vec2 yAxis{ 0.0f, 1.0f * lengthScale };
+
 	/*
 	* checkGrabTranslationGizmo
 	if (!grabTranslationGizmo()) {
@@ -51,85 +53,142 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		...
 	}
 	*/
+	// Rotation gizmo: just draw a cricle. Should it be a SelectedAxis or something else? There shouldn't be a way to select 2 at one time.
+	// Chain editor. Half spaces or lines?
+	// Commands: pool of (commands of commands)
+	// Proceduraly generating terrain under the chain.
+	// History
+	// Shortcuts.
+	// Cycling select.
+	//static constexpr float AXIS_BOTH_LENGTH_SCALE = 1.0f / 4.0f;
+	//const auto rotationGizmoRadius = lengthScale / 2.0f;
+	//// Could put this into a class instead of a function.
+	//auto gizmos = [&, this]() -> bool {
+	//	Vec2 
+	//		xAxisNormalized = xAxis.normalized(),
+	//		yAxisNormalized = yAxis.normalized();
+	//	LineSegment 
+	//		xAxisLineSegment{ selectedEntitiesCenterPos, selectedEntitiesCenterPos + xAxis },
+	//		yAxisLineSegment{ selectedEntitiesCenterPos, selectedEntitiesCenterPos + yAxis };
 
-	static constexpr float AXIS_BOTH_LENGTH_SCALE = 1.0f / 4.0f;
-	auto translationGizmo = [&, this]() -> bool {
-		Vec2 
-			xAxisNormalized = xAxis.normalized(),
-			yAxisNormalized = yAxis.normalized();
-		LineSegment 
-			xAxisLineSegment{ selectedEntitesCenterPos, selectedEntitesCenterPos + xAxis },
-			yAxisLineSegment{ selectedEntitesCenterPos, selectedEntitesCenterPos + yAxis };
+	//	auto gizmoSelected = false;
+	//	const auto cursorPos = getCursorPos();
+	//	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
+	//		if (!selectedEntities.empty()) {
+	//			// TODO: This and radius is dependent on zoom.
+	//			static constexpr auto LINE_WIDTH = 0.2f;
+	//			selectedGizmo = GizmoType::NONE;
+	//			const auto boxCenter = selectedEntitiesCenterPos + xAxis * AXIS_BOTH_LENGTH_SCALE / 2.0f + yAxis * AXIS_BOTH_LENGTH_SCALE / 2.0f;
+	//			const auto boxSize = Vec2{ xAxis.length(), yAxis.length() } * AXIS_BOTH_LENGTH_SCALE;
+	//			if (contains(cursorPos, boxCenter, 0.0f, BoxCollider{ BoxColliderEditor{ .size = boxSize } })) {
+	//				selectedGizmo = GizmoType::BOTH;
+	//			} else if (xAxisLineSegment.asBoxContains(LINE_WIDTH, cursorPos)) {
+	//				selectedGizmo = GizmoType::X;
+	//			} else if (yAxisLineSegment.asBoxContains(LINE_WIDTH, cursorPos)) {
+	//				selectedGizmo = GizmoType::Y;
+	//			} else if (const auto dist = distance(cursorPos, selectedEntitiesCenterPos); 
+	//				dist > rotationGizmoRadius - 0.05f && dist < rotationGizmoRadius + 0.05f) {
+	//				selectedGizmo = GizmoType::ROTATION;
+	//			}
 
-		auto translationGizmoSelected = false;
-		const auto cursorPos = getCursorPos();
-		if (Input::isMouseButtonDown(MouseButton::LEFT)) {
-			if (!selectedEntities.empty()) {
-				static constexpr auto LINE_WIDTH = 0.2f;
-				selectedAxis = SelectedAxis::NONE;
-				if (contains(
-					cursorPos,
-					selectedEntitesCenterPos + xAxis * AXIS_BOTH_LENGTH_SCALE / 2.0f + yAxis * AXIS_BOTH_LENGTH_SCALE / 2.0f,
-					0.0f,
-					BoxCollider{ BoxColliderEditor{.size = Vec2{ xAxis.length(), yAxis.length() } *AXIS_BOTH_LENGTH_SCALE } })) {
-					selectedAxis = SelectedAxis::BOTH;
-				} else if (xAxisLineSegment.asBoxContains(LINE_WIDTH, cursorPos)) {
-					selectedAxis = SelectedAxis::X;
-				} else if (yAxisLineSegment.asBoxContains(LINE_WIDTH, cursorPos)) {
-					selectedAxis = SelectedAxis::Y;
-				}
+	//			if (selectedGizmo != GizmoType::NONE) {
+	//				axisGrabStartPos = cursorPos;
+	//				selectedEntitesGrabStartPositions.clear();
+	//				for (const auto& entity : selectedEntities) {
+	//					selectedEntitesGrabStartPositions.push_back(getEntityPosOrOrigin(entity));
+	//				}
+	//				gizmoSelected = true;
+	//			}
+	//			
+	//			if (selectedGizmo == GizmoType::ROTATION) {
+	//				// Don't really have to do this if there is only one entity.
+	//				for (const auto& entity : selectedEntities) {
+	//					selectedEntitesGrabStartOrientations.push_back(getEntityPosOrZero(entity));
+	//				}
+	//			}
+	//		}
+	//	}
 
-				if (selectedAxis != SelectedAxis::NONE) {
-					axisGrabStartPos = cursorPos;
-					selectedEntitesGrabStartPositions.clear();
-					for (const auto& entity : selectedEntities) {
-						selectedEntitesGrabStartPositions.push_back(getEntityPosOrOrigin(entity));
-					}
-					translationGizmoSelected = true;
-				}
-			}
-		}
+	//	if (Input::isMouseButtonHeld(MouseButton::LEFT) && !selectedEntities.empty()) {
+	//		const auto grabDifference = cursorPos - axisGrabStartPos;
+	//		if (selectedGizmo == GizmoType::ROTATION) {
+	//			Vec2 center{ 0.0f };
+	//			for (const auto& pos : selectedEntitesGrabStartPositions) {
+	//				center += pos;
+	//			}
+	//			center /= static_cast<float>(selectedEntitesGrabStartPositions.size());
 
-		if (Input::isMouseButtonHeld(MouseButton::LEFT) && !selectedEntities.empty()) {
-			const auto grabDifference = cursorPos - axisGrabStartPos;
-			if (selectedAxis != SelectedAxis::NONE) {
-				Vec2 translation;
-				if (selectedAxis == SelectedAxis::X)
-					translation = xAxisNormalized * xAxisLineSegment.line.distanceAlong(grabDifference);
-				else if (selectedAxis == SelectedAxis::Y)
-					translation = yAxisNormalized * yAxisLineSegment.line.distanceAlong(grabDifference);
-				else if (selectedAxis == SelectedAxis::BOTH)
-					translation = grabDifference;
+	//			// Assumes the center doesn't get translated during a rotation.
+	//			const auto centerToOldPos = (axisGrabStartPos - center).normalized();
+	//			const auto centerToNewPos = (cursorPos - center).normalized();
+	//			Debug::drawRay(center, centerToOldPos);
+	//			Debug::drawRay(center, centerToNewPos);
+	//			if (centerToNewPos.length() > 0.05f && centerToOldPos.length() > 0.05f) {
+	//				auto angleDifference = atan2(centerToNewPos.y, centerToNewPos.x) - atan2(centerToOldPos.y, centerToOldPos.x);
+	//				dbg(angleDifference);
+	//				//dbg(angleDifference);
+	//				//angleDifference = acos(dot(centerToOldPos.normalized(), centerToNewPos.normalized()));
+	//				//angleDifference = grabDifference.x;
 
-				ASSERT(selectedEntities.size() == selectedEntitesGrabStartPositions.size());
-				for (usize i = 0; i < selectedEntities.size(); i++) {
-					setEntityPos(selectedEntities[i], selectedEntitesGrabStartPositions[i] + translation);
-				}
-			}
-		}
-		return translationGizmoSelected;
-	};
+	//				ASSERT(selectedEntities.size() == selectedEntitesGrabStartPositions.size());
+	//				for (usize i = 0; i < selectedEntities.size(); i++) {
+	//					/*const auto transform =
+	//						Mat3x2::translate(-selectedEntitiesCenterPos) *
+	//						Mat3x2::rotate(angleDifference) *
+	//						Mat3x2::translate(selectedEntitiesCenterPos);*/
 
-	auto drawTranslationGizmo = [&, this]() -> void {
-		if (!selectedEntities.empty()) {
-			const auto v0 = xAxis * AXIS_BOTH_LENGTH_SCALE, v1 = yAxis * AXIS_BOTH_LENGTH_SCALE;
-			const auto BLUE = Vec3{ 171.0f, 218.0f, 255.0f } / 255.0f;
-			Debug::drawRay(selectedEntitesCenterPos + v0, v1, BLUE);
-			Debug::drawRay(selectedEntitesCenterPos + v1, v0, BLUE);
+	//					Vec2 p = selectedEntitesGrabStartPositions[i];
+	//					p -= center;
+	//					p *= Mat2::rotate(angleDifference);
+	//					p += center;
+	//					setEntityPos(selectedEntities[i], p);
+	//					/*setEntityPos(selectedEntities[i], selectedEntitesGrabStartPositions[i] * transform);*/
+	//				}
 
-			Debug::drawRay(selectedEntitesCenterPos, xAxis, Vec3::RED);
-			Debug::drawRay(selectedEntitesCenterPos, yAxis, Vec3::GREEN);
-		}
-	};
+	//			}
+	//				//selectedEntitesCenterPos
+	//		} else if (selectedGizmo != GizmoType::NONE) {
+	//			ASSERT(selectedGizmo != GizmoType::ROTATION);
+	//			Vec2 translation{ 0.0f };
+	//			if (selectedGizmo == GizmoType::X)
+	//				translation = xAxisNormalized * xAxisLineSegment.line.distanceAlong(grabDifference);
+	//			else if (selectedGizmo == GizmoType::Y)
+	//				translation = yAxisNormalized * yAxisLineSegment.line.distanceAlong(grabDifference);
+	//			else if (selectedGizmo == GizmoType::BOTH)
+	//				translation = grabDifference;
+	//			
+	//			ASSERT(selectedEntities.size() == selectedEntitesGrabStartPositions.size());
+	//			for (usize i = 0; i < selectedEntities.size(); i++) {
+	//				setEntityPos(selectedEntities[i], selectedEntitesGrabStartPositions[i] + translation);
+	//			}
+	//		}
+	//	}
 
-	const auto translationGizmoSelected = translationGizmo();
+	//	return gizmoSelected;
+	//};
+
+	//auto drawTranslationGizmo = [&, this]() -> void {
+	//	if (!selectedEntities.empty()) {
+	//		const auto v0 = xAxis * AXIS_BOTH_LENGTH_SCALE, v1 = yAxis * AXIS_BOTH_LENGTH_SCALE;
+	//		const auto BLUE = Vec3{ 171.0f, 218.0f, 255.0f } / 255.0f;
+	//		Debug::drawRay(selectedEntitiesCenterPos + v0, v1, BLUE);
+	//		Debug::drawRay(selectedEntitiesCenterPos + v1, v0, BLUE);
+
+	//		Debug::drawRay(selectedEntitiesCenterPos, xAxis, Vec3::RED);
+	//		Debug::drawRay(selectedEntitiesCenterPos, yAxis, Vec3::GREEN);
+
+	//		Debug::drawHollowCircle(selectedEntitiesCenterPos, rotationGizmoRadius, Vec3::WHITE / 2.0f);
+	//	}
+	//};
+
+	const auto translationGizmoSelected = selectedEntityGizmo.update(entites, camera, selectedEntities, selectedEntitiesCenterPos, getCursorPos());
 
 	const auto cursorPos = getCursorPos();
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 		if (!translationGizmoSelected) {
 			selectedEntities.clear();
-			for (usize i = 0; i < entitesBody.size(); i++) {
-				const auto& body = entitesBody[i];
+			for (usize i = 0; i < entites.entitesBody.size(); i++) {
+				const auto& body = entites.entitesBody[i];
 				if (contains(cursorPos, body.pos, body.orientation, body.collider)) {
 					selectedEntities.push_back(Entity{ .type = EntityType::Body, .index = i });
 					break;
@@ -138,15 +197,20 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		}
 	}
 
-	if (Input::isMouseButtonUp(MouseButton::LEFT)) {
-		selectedAxis = SelectedAxis::NONE;
-	}
+	;
 
 	if (Input::isMouseButtonDown(MouseButton::MIDDLE)) {
 		screenGrabStartPos = cursorPos;
 	} else {
 		if (Input::isMouseButtonHeld(MouseButton::MIDDLE)) {
 			camera.pos -= (cursorPos - screenGrabStartPos);
+		}
+	}
+
+	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::A)) {
+		selectedEntities.clear();
+		for (usize i = 0; i < entites.entitesBody.size(); i++) {
+			selectedEntities.push_back(Entity{ .type = EntityType::Body, .index = i });
 		}
 	}
 
@@ -162,10 +226,12 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		camera.pos -= (getCursorPos() - cursorPosBeforeScroll);
 	}
 
-	for (const auto& body : entitesBody)
+	for (const auto& body : entites.entitesBody)
 		Debug::drawCollider(body.collider, body.pos, body.orientation, Vec3::WHITE);
 
-	drawTranslationGizmo();
+	if (!selectedEntities.empty()) {
+		selectedEntityGizmo.draw(selectedEntitiesCenterPos);
+	}
 
 	renderer.update(gfx, camera);
 }
@@ -174,33 +240,9 @@ auto Editor::getCursorPos() -> Vec2 {
 	return camera.screenSpaceToCameraSpace(Input::cursorPos());
 }
 
-auto Editor::setEntityPos(const Entity& entity, Vec2 pos) -> void {
-	switch (entity.type) {
-	case EntityType::Body: entitesBody[entity.index].pos = pos; break;
-	case EntityType::Null: break;
-	}
-}
-
-auto Editor::getEntityPosOrOrigin(const Entity& entity) -> Vec2& {
-	static Vec2 null{ 0.0f };
-	switch (entity.type) {
-	case EntityType::Body: return entitesBody[entity.index].pos;
-	default:
-		null = Vec2{ 0.0f };
-		return null;
-	}
-}
-
 auto Editor::updateSelectedEntitesCenterPos() -> void {
-	selectedEntitesCenterPos = Vec2{ 0.0f };
+	selectedEntitiesCenterPos = Vec2{ 0.0f };
 	for (const auto& entity : selectedEntities)
-		selectedEntitesCenterPos += getEntityPosOrOrigin(entity);
-}
-
-auto Editor::Entity::isNull() const -> bool {
-	return type == EntityType::Null;
-}
-
-auto Editor::Entity::null() -> Entity {
-	return Entity{ .type = EntityType::Null };
+		selectedEntitiesCenterPos += entites.getPosOrOrigin(entity);
+	selectedEntitiesCenterPos /= selectedEntities.size();
 }

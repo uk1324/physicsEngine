@@ -5,7 +5,8 @@ auto Debug::update() -> void {
 	lines.clear();
 	circles.clear();
 	points.clear();
-	emptyCircles.clear();
+	circleColliders.clear();
+	hollowCircles.clear();
 	parabolas.clear();
 }
 
@@ -21,8 +22,12 @@ auto Debug::drawCircle(Vec2 pos, float radius, const Vec3& color) -> void {
 	circles.push_back({ pos, radius, color });
 }
 
-auto Debug::drawEmptyCircle(Vec2 pos, float radius, float orientation, const Vec3& color) -> void {
-	emptyCircles.push_back({ { pos, radius, color }, orientation });
+auto Debug::drawHollowCircle(Vec2 pos, float radius, const Vec3& color) -> void {
+	hollowCircles.push_back({ pos, radius, color });
+}
+
+auto Debug::drawCircleCollider(Vec2 pos, float radius, float orientation, const Vec3& color) -> void {
+	circleColliders.push_back({ { pos, radius, color }, orientation });
 }
 
 auto Debug::drawPoint(Vec2 pos, const Vec3& color) -> void {
@@ -73,12 +78,13 @@ auto Debug::drawBox(Vec2 pos, float orientation, Vec2 size, const Vec3& color) -
 
 auto Debug::drawCollider(const Collider& collider, Vec2 pos, float orientation, const Vec3& color) -> void {
 	if (const auto box = std::get_if<BoxCollider>(&collider)) Debug::drawBox(pos, orientation, box->size, color);
-	else if (const auto circle = std::get_if<CircleCollider>(&collider)) Debug::drawEmptyCircle(pos, circle->radius, orientation, color);
+	else if (const auto circle = std::get_if<CircleCollider>(&collider)) Debug::drawCircleCollider(pos, circle->radius, orientation, color);
 	else ASSERT_NOT_REACHED();
 }
 
 std::vector<Debug::Line> Debug::lines;
 std::vector<Debug::Circle> Debug::circles;
 std::vector<Debug::Point> Debug::points;
-std::vector<Debug::OrientedCircle> Debug::emptyCircles;
+std::vector<Debug::OrientedCircle> Debug::circleColliders;
+std::vector<Debug::Circle> Debug::hollowCircles;
 std::vector<Debug::Parabola> Debug::parabolas;

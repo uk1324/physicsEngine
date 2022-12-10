@@ -31,6 +31,8 @@ using Mat2 = Mat2T<float>;
 
 template<typename T>
 auto operator*(const Vec2T<T>& v, const Mat2T<T>& m) -> Vec2T<T>;
+template<typename T>
+auto operator*=(Vec2T<T>& v, const Mat2T<T>& m) -> Vec2T<T>&;
 
 template<typename T>
 constexpr Mat2T<T>::Mat2T(const Vec2T<T>& x, const Vec2T<T>& y)
@@ -96,4 +98,10 @@ auto operator*(const Vec2T<T>& v, const Mat2T<T>& m) -> Vec2T<T> {
 		v.x * m[0][0] + v.y * m[1][0],
 		v.x * m[0][1] + v.y * m[1][1]
 	};
+}
+
+template<typename T>
+auto operator*=(Vec2T<T>& v, const Mat2T<T>& m) -> Vec2T<T>& {
+	v = v * m;
+	return v;
 }
