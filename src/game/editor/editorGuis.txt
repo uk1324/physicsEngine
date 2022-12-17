@@ -1,0 +1,6 @@
+Editor GUIs handle undo and redo by saving it's state into EditorGuiState. ImGui calls depend on order so this system has to be able to handle (adding a command after editing finished) and (saving the state of a newly selected field) in any order. One solution for this is to keep 2 buffers, one for the old state and one for the newly saved state. 
+I choose to add the command inside the GUI methods, because it is simpler, because it doesn't need to maintain as much state and also there would need to be special handling for custom GUIs. Custom GUIs which use multicommands wouldn't be able to use a system like this without making the code more complicated.
+
+Checking input state.
+Demo > Widgets > Quering Item Status.
+https://github.com/ocornut/imgui/issues/1875

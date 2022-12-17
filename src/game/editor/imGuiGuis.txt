@@ -1,5 +1,0 @@
-
-
-Checking input state.
-Demo > Widgets > Quering Item Status.
-https://github.com/ocornut/imgui/issues/1875

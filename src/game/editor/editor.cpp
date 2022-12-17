@@ -37,13 +37,13 @@ auto sortedInsert(std::vector<T>& vec, const T& item) -> void {
 }
 
 auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
+	using namespace ImGui;
+
 	camera.aspectRatio = Window::aspectRatio();	
 
 	ImGui::ShowDemoWindow();
 
-	using namespace ImGui;
 	Begin("entites");
-
 	if (Button("+")) {
 		entites.entitesBody.push_back(BodyEditor{
 			.pos = Vec2{ camera.pos },
@@ -52,7 +52,6 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			.angularVel = 0.0f,
 			.mass = 20.0f,
 			.rotationalInertia = 1.0f,
-			/*.collider = CircleColliderEditor{ 1.0f }*/
 			.collider = BoxColliderEditor{ Vec2{ 1.0f } }
 		});
 	}
@@ -67,10 +66,6 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 				auto& body = entites.entitesBody[entity.index];
 				guiState.updateBeforeOpeningGui();
 				body.editorGui(guiState, entites, entity, commands);
-				// The state can get modifed by next commands and this changes need to be saved. Either create a copy each time or double buffer 2 currentInputStates.
-				// It might be better to add the command inside the gui method. This will allow for custom guis to use multicommands. Like defaulting collider. This might be better as a separe command thogh becaouse of vectors. This also stores less state, which makes it simpler to understand the program.
-				// Could pass the offset to which field needs to be saved and do the copying here. This might make the generated code simpler, but It requires the custom code to pass the data and also this change wouldn't count towards a custom multicommand.
-				// For storing variable sized types could store pointers to data allocated on the command allocator stack.
 				break;
 			}
 			TreePop();
@@ -91,22 +86,19 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 				// currentCommandStackPosition is either the last execute command or nothing so start one below it.
 				undoCommand(commands.commandStack[currentCommandStackPosition - 1 - i]);
 			}
-			dbg("undo");
 		} else if (commands.commandsSizesTop < commands.commandSizes.size() && Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::Y)) {
 			for (usize i = 0; i < commands.commandSizes[commands.commandsSizesTop]; i++) {
 				redoCommand(commands.commandStack[currentCommandStackPosition + i]);
 			}
-			dbg("redo");
 			commands.commandsSizesTop++;
 		}
 	}
 
-	// Chain editor. Half spaces or lines?
-	// Proceduraly generating terrain under the chain.
-
 	const auto isGizmoSelected = selectedEntityGizmo.update(entites, camera, selectedEntities, selectedEntitiesCenterPos, getCursorPos());
 
 	const auto cursorPos = getCursorPos();
+
+	const auto oldSelectedEntites = selectedEntities;
 
 	if (!isGizmoSelected) {
 		if (Input::isMouseButtonDown(MouseButton::LEFT)) {
@@ -161,7 +153,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 					const auto selectedEntity = Entity{ EntityType::Body, i };
 
 					// With the current implementation the is no need for sorting because things are iterated in order, but with some acceleration structure in place it would be needed.
-					// @Performance: Could also try using a set instead. This would make indexing solwer which shouldn't be an issue.
+					// @Performance: Could also try using a set instead. This would make indexing slower which shouldn't be an issue.
 					sortedInsert(currentSelectedEntitesUnderCursor, selectedEntity);
 
 					// No reason to continue if the cycling select isn't going to happen.
@@ -202,6 +194,10 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		for (usize i = 0; i < entites.entitesBody.size(); i++) {
 			selectedEntities.push_back(Entity{ .type = EntityType::Body, .index = i });
 		}
+	}
+
+	if (selectedEntities != oldSelectedEntites) {
+		commands.addSelectCommand(oldSelectedEntites, selectedEntities);
 	}
 
 	if (Input::isMouseButtonDown(MouseButton::MIDDLE)) {
@@ -257,6 +253,9 @@ auto Editor::undoCommand(const Command& command) -> void {
 			auto field = entites.getFieldPointer(setField.entity, setField.pointerOffset);
 			memcpy(field, commands.getPtr(setField.oldDataPtr), setField.size);
 		},
+		[this](const SelectCommand& select) {
+			selectedEntities = select.oldSelectedEntites;
+		},
 	}, command);
 }
 
@@ -265,6 +264,9 @@ auto Editor::redoCommand(const Command& command) -> void {
 		[this](const SetFieldCommand& setField) {
 			auto field = entites.getFieldPointer(setField.entity, setField.pointerOffset);
 			memcpy(field, commands.getPtr(setField.newDataPtr), setField.size);
+		},
+		[this](const SelectCommand& select) {
+			selectedEntities = select.newSelectedEntites;
 		},
 	}, command);
 }

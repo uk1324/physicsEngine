@@ -143,7 +143,7 @@
     <ClCompile Include="src\game\editor\commands.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\editor\editorInputState.cpp">
+    <ClCompile Include="src\game\editor\editorGuiState.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -313,7 +313,7 @@
     <ClInclude Include="src\game\editor\commands.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game\editor\editorInputState.hpp">
+    <ClInclude Include="src\game\editor\editorGuiState.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -330,5 +330,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\txt.txt" />
+    <Text Include="src\todo.txt" />
+    <Text Include="src\game\editor\editorGuis.txt" />
   </ItemGroup>
 </Project>

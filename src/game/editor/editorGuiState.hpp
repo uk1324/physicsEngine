@@ -7,7 +7,7 @@ struct EditorGuiState {
 
 	auto updateBeforeOpeningGui() -> void;
 	auto placeToSaveDataAfterNewChange() -> u8*;
-	auto oldSavedData()-> u8*;
+	auto oldSavedData() -> u8*;
 
 private:
 	bool updatedNewSaveDataLastCall = false;

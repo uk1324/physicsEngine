@@ -3,7 +3,7 @@
 #include <game/renderer.hpp>
 #include <game/editor/selectedEntityGizmo.hpp>
 #include <game/editor/commands.hpp>
-#include <game/editor/editorInputState.hpp>
+#include <game/editor/editorGuiState.hpp>
 
 class Editor {
 public:

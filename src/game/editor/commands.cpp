@@ -61,6 +61,13 @@ auto Commands::addSetFieldCommand(const Entity& entity, usize pointerOffset, voi
     });
 }
 
+auto Commands::addSelectCommand(Span<const Entity> oldSelectedEntites, Span<const Entity> newSelectedEntites) -> void {
+    addCommand(SelectCommand{
+        .oldSelectedEntites = std::vector<Entity>{ oldSelectedEntites.begin(), oldSelectedEntites.end() },
+        .newSelectedEntites = std::vector<Entity>{ newSelectedEntites.begin(), newSelectedEntites.end() },
+    });
+}
+
 auto Commands::getPtr(usize ptr) -> u8* {
     return data.data() + ptr;
 }

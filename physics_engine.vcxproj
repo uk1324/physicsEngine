@@ -206,7 +206,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\game\editor\editorInputState.cpp">
+    <ClCompile Include="src\game\editor\editorGuiState.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -320,7 +320,7 @@
     <ClInclude Include="src\game\editor\commands.hpp" />
     <ClInclude Include="src\game\editor\editor.hpp" />
     <ClInclude Include="src\game\editor\editorEntity.hpp" />
-    <ClInclude Include="src\game\editor\editorInputState.hpp" />
+    <ClInclude Include="src\game\editor\editorGuiState.hpp" />
     <ClInclude Include="src\game\editor\input.hpp" />
     <ClInclude Include="src\game\editor\selectedEntityGizmo.hpp" />
     <ClInclude Include="src\game\entitesData.hpp" />
@@ -428,6 +428,8 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="src\game\editor\editorGuis.txt" />
+    <Text Include="src\todo.txt" />
     <Text Include="src\txt.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

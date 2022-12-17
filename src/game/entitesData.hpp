@@ -1,6 +1,6 @@
 #pragma once
 
-#include <game/editor/editorInputState.hpp>
+#include <game/editor/editorGuiState.hpp>
 struct Commands;
 struct EditorEntities;
 struct Entity;

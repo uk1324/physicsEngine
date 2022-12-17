@@ -1,4 +1,4 @@
-#include <game/editor/editorInputState.hpp>
+#include <game/editor/editorGuiState.hpp>
 
 auto EditorGuiState::updateBeforeOpeningGui() -> void {
 	if (updatedNewSaveDataLastCall) {
