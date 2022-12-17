@@ -71,7 +71,7 @@ auto Window::update() -> void {
 		resizedOnThisFrame = false;
 
 	MSG msg;
-	if (bool anyNewMessages{ PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE) == TRUE }) {
+	while (bool anyNewMessages = PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
 		// Translate virtual-key messages (WM_KEY_DOWN) to character messages (VM_CHAR) and puts them back onto the message queue.
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
@@ -88,8 +88,6 @@ auto Window::maximize() -> void {
 }
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-#include <utils/io.hpp>
 
 auto WINAPI Window::windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
 	if (const auto result = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {

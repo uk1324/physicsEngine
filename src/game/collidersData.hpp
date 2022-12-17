@@ -1,6 +1,10 @@
 #pragma once
 
-#include <utils/int.hpp>
+#include <game/editor/editorInputState.hpp>
+struct Commands;
+struct EditorEntities;
+struct Entity;
+#include <utils/typeInfo.hpp>
 #include <json/JsonValue.hpp>
 
 #include <math/aabb.hpp>
@@ -12,10 +16,13 @@ struct MassInfo {
 
 struct CircleColliderEditor {
 	float radius;
-	auto displayGui() -> void;
+
+	auto editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void;
 	auto toJson() const -> Json::Value;
 	static auto fromJson(const Json::Value& json) -> CircleColliderEditor;
 };
+
+static constexpr auto CIRCLE_COLLIDER_EDITOR_RADIUS_OFFSET = offsetof(CircleColliderEditor, radius);
 
 struct CircleCollider : public CircleColliderEditor {
 	CircleCollider(const CircleColliderEditor& circle);
@@ -26,10 +33,13 @@ struct CircleCollider : public CircleColliderEditor {
 
 struct BoxColliderEditor {
 	Vec2 size;
-	auto displayGui() -> void;
+
+	auto editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void;
 	auto toJson() const -> Json::Value;
 	static auto fromJson(const Json::Value& json) -> BoxColliderEditor;
 };
+
+static constexpr auto BOX_COLLIDER_EDITOR_SIZE_OFFSET = offsetof(BoxColliderEditor, size);
 
 struct BoxCollider : public BoxColliderEditor {
 	BoxCollider(const BoxColliderEditor& box);

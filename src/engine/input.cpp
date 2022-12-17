@@ -72,6 +72,9 @@ auto Input::onKeyUp(u8 virtualKeyCode) -> void {
 	if (virtualKeyCode >= VIRTUAL_KEY_COUNT)
 		return;
 
+	if (ImGui::GetIO().WantCaptureMouse && isMouseButton(virtualKeyCode))
+		return;
+
 	keyUp.set(virtualKeyCode);
 	keyHeld.set(virtualKeyCode, false);
 
@@ -91,6 +94,9 @@ auto Input::onMouseMove(Vec2 mousePos) -> void {
 }
 
 auto Input::onMouseScroll(i16 scroll) -> void {
+	if (ImGui::GetIO().WantCaptureMouse)
+		return;
+
 	scrollDelta_ = scroll / WHEEL_DELTA;
 }
 

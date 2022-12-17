@@ -13,10 +13,10 @@ LineSegment::LineSegment(Vec2 start, Vec2 end)
 	}
 }
 
-auto LineSegment::asBoxContains(float width, Vec2 p) -> bool {
+auto LineSegment::asBoxContains(float halfWidth, Vec2 p) -> bool {
 	const auto along = line.distanceAlong(p);
 	if (along < minDistanceAlongLine || along > maxDistanceAlongLine)
 		return false;
 
-	return distance(line, p) < width;
+	return distance(line, p) < halfWidth;
 }

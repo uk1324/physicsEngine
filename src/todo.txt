@@ -1,0 +1,5 @@
+Editor
+// TODO: Evaluating expressions in ImGui inputs. Could also include access to variables.
+// TODO: Sequencer system for cutscenes. Triggers, Camera panning action
+// The scene hierarchy should be a seperate part of the file format. Entites should still be stored in arrays.
+// This makes it easier to remove it from the final file and also import it is easier.

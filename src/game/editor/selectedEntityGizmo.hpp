@@ -15,7 +15,7 @@ The issue is that all the state has to be passed into the methods.
 class SelectedEntityGizmo {
 public:
 	auto update(
-		EditorEntites& entites,
+		EditorEntities& entites,
 		const Camera& camera, 
 		const std::vector<Entity>& selectedEntities,
 		Vec2 selectedEntitiesCenterPos, 
@@ -37,6 +37,8 @@ private:
 	};
 	GizmoType selectedGizmo = GizmoType::NONE;
 	Vec2 axisGrabStartPos;
+
+	// Using a union or std::variant might be better organization-wise, but it would also require deallcating and allocating objects on change.
 
 	// X, Y, BOTH, ROTATION
 	std::vector<Vec2> selectedEntitesGrabStartPositions;

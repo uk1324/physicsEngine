@@ -82,7 +82,7 @@ private:
 	Token previousToken;
 	Token currentToken;
 
-	bool isAtEnd;
+	bool isAtEnd = false;
 
 	Scanner scanner;
 };

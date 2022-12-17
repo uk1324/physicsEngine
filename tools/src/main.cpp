@@ -45,19 +45,30 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 		}
 	}
 
+	static constexpr auto DEBUG_PRINT_OLD_SAVED_STATE_BEFORE_ADDING_COMMAND = true;
+
 	{
 		hppOut << "#pragma once\n\n";
-		hppOut << "#include <utils/int.hpp>\n";
+		hppOut << "#include <game/editor/editorInputState.hpp>\n";
+		hppOut << "struct Commands;\n";
+		hppOut << "struct EditorEntities;\n";
+		hppOut << "struct Entity;\n";
+		hppOut << "#include <utils/typeInfo.hpp>\n";
 		if (jsonUsed) hppOut << "#include <json/JsonValue.hpp>\n";
 		hppOut << '\n';
 	}
 
 	{
 		cppOut << "#include <" << includePath << ">\n";
+		cppOut << "#include <game/editor/commands.hpp>\n";
 		if (imGuiUsed) cppOut << "#include <imgui/imgui.h>\n";
+		if (DEBUG_PRINT_OLD_SAVED_STATE_BEFORE_ADDING_COMMAND) cppOut << "#include <utils/io.hpp>\n";
+
 		cppOut << '\n';
+
 		if (imGuiUsed) cppOut << "using namespace ImGui;\n";
 		if (jsonUsed) cppOut << "using namespace Json;\n";
+
 		cppOut << '\n';
 	}
 
@@ -79,6 +90,8 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 			hppOut << " " << field.name << ";\n";
 		}
 
+		hppOut << '\n';
+
 		auto findFieldProperty = [](const Field& field, FieldPropertyType type) -> std::optional<FieldProperty> {
 			for (const auto& property : field.properties) {
 				if (property.type == type) {
@@ -88,12 +101,30 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 			return std::nullopt;
 		};
 
+		auto outUpperSnakeCase = [](std::ostream& os, std::string_view str) -> void {
+			for (usize i = 0; i < str.size(); i++) {
+				const auto c = str[i];
+				if (isupper(c) && i != 0 && i != str.size() - 1)
+					os << '_';
+				os << static_cast<char>(toupper(c));
+			}
+		};
+
+		auto outOffsetName = [outUpperSnakeCase](std::ostream& os, std::string_view structName, std::string_view fieldName) -> void {
+			outUpperSnakeCase(os, structName);
+			os << "_EDITOR_";
+			outUpperSnakeCase(os, fieldName);
+			os << "_OFFSET";
+		};
+
 		for (const auto& property : structure.properties) {
 			switch (property) {
-			case StructPropertyType::IM_GUI:
-				hppOut << "\tauto displayGui() -> void;\n";
+			case StructPropertyType::IM_GUI: {
+				
+				const auto editorGuiSignature = "editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void";
+				hppOut << "\tauto " << editorGuiSignature << ";\n";
 
-				cppOut << "auto " << structure.name << "Editor::displayGui() -> void {\n";
+				cppOut << "auto " << structure.name << "Editor::" << editorGuiSignature << " {\n";
 				for (const auto& field : structure.fields) {
 					const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
 					if (field.type.type == FieldTypeType::CPP && !customProperty.has_value())
@@ -107,9 +138,31 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 					case FieldTypeType::CPP: cppOut << customProperty->customGuiFn << "(" << field.name << ")"; break;
 					}
 					cppOut << ";\n";
+
+					if (field.type.type != FieldTypeType::CPP) {
+						cppOut << "\tif (IsItemActivated()) {\n "
+							"\t\tinputState.inputing = true;\n"
+							"\t\t*reinterpret_cast<decltype(" << field.name << ")*>(inputState.placeToSaveDataAfterNewChange()) = " << field.name << ";\n"
+							"\t}\n";
+
+						cppOut << "\tif (IsItemDeactivatedAfterEdit()) {\n";
+						if (DEBUG_PRINT_OLD_SAVED_STATE_BEFORE_ADDING_COMMAND) {
+							cppOut << "\t\tdbg(*reinterpret_cast<decltype(" << field.name << ")*>(inputState.oldSavedData()));\n";
+						}
+						cppOut << "\t\tcommands.addSetFieldCommand(entity, ";
+						outOffsetName(cppOut, structure.name, field.name);
+						cppOut << ", inputState.oldSavedData(), entites.getFieldPointer(entity, ";
+						outOffsetName(cppOut, structure.name, field.name);
+						cppOut << "), static_cast<u8>(sizeof(" << field.name << ")));\n";
+						cppOut << "\t}\n";
+
+						cppOut << "\tif (IsItemDeactivated()) { inputState.inputing = false; }\n\n";
+					}
 				}
 				cppOut << "}\n\n";
 				break;
+			}
+				
 
 			case StructPropertyType::SERIALIZABLE:
 				{
@@ -178,6 +231,26 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 			}
 		}
 		hppOut << "};\n\n";
+
+		// If offsetof is inside the class it is referencing it results in an error.
+		for (const auto& field : structure.fields) {
+			hppOut << "static constexpr auto ";
+			outOffsetName(hppOut, structure.name, field.name);
+			hppOut << " = offsetof(" << structure.name << "Editor, " << field.name << ");\n";
+		}
+		hppOut << '\n';
+
+		// TODO: Could use this for finding common properites on objects.
+		//hppOut << "static constexpr StructField ";
+		//outUpperSnakeCase(hppOut, structure.name);
+		//hppOut << "_EDITOR_OFFSETS[] { ";
+		//for (const auto& field : structure.fields) {
+		//	hppOut << "{ ";
+		//	hppOut << "\"" << field.name << "\", ";
+		//	outOffsetName(hppOut, structure.name, field.name);
+		//	hppOut << " }, ";
+		//}
+		//hppOut << "};\n\n";
 
 		hppOut << "struct " << structure.name << " : public " << structure.name << "Editor {\n";
 		for (const auto& code : structure.cppCode) {

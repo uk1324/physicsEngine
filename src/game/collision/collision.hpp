@@ -79,7 +79,7 @@ auto contains(Vec2 point, Vec2 pos, float orientation, const Collider& collider)
 
 auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision>;
 auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 circlePos, float circleOrientation, const CircleCollider& circle) -> std::optional<Collision>;
-auto collide(Vec2 aPos, float aOrientation, const CircleCollider& a, Vec2 bPos, float bOrientation, const CircleCollider& b)->std::optional<Collision>;
+auto collide(Vec2 aPos, float aOrientation, const CircleCollider& a, Vec2 bPos, float bOrientation, const CircleCollider& b) -> std::optional<Collision>;
 
 auto contains(Vec2 point, Vec2 pos, float orientation, const BoxCollider& box) -> bool;
 auto contains(Vec2 point, Vec2 pos, float orientation, const CircleCollider& circle) -> bool;
@@ -92,4 +92,8 @@ struct RaycastResult {
 // Doesn't return a hit if the ray comes from inside the collider.
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const Collider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult>;
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult>;
-auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 pos, float orientation)->std::optional<RaycastResult>;
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult>;
+
+// For intersection tests could just use collide.
+
+auto aabbContains(const Aabb& aabb, const Collider& collider, Vec2 pos, float orientation) -> bool;

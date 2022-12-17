@@ -32,6 +32,7 @@ enum class Keycode : u8 {
 	W = 'W',
 	X = 'X',
 	Y = 'Y',
+	Z = 'Z',
 	Plus = 0xBB,
 	Minus = 0xBD,
 	COUNT

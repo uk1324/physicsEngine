@@ -4,6 +4,7 @@
 #include <utils/int.hpp>
 
 #include <algorithm>
+#include <ostream>
 #include <cmath>
 
 template<typename T>
@@ -47,6 +48,12 @@ struct Vec2T {
 };
 
 using Vec2 = Vec2T<float>;
+
+template<typename T> 
+auto operator<< (std::ostream& os, const Vec2T<T>& v) -> std::ostream& {
+	os << '[' << v.x << ", " << v.y << ']';
+	return os;
+}
 
 template<typename T>
 auto operator*(T s, const Vec2T<T>& v) -> Vec2T<T> {

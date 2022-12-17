@@ -16,6 +16,7 @@ struct BodyPair {
 		}
 	}
 
+	// TODO: Convert this to =default
 	auto operator==(const BodyPair& other) const -> bool {
 		return a == other.a && b == other.b;
 	}

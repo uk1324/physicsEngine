@@ -1,0 +1,50 @@
+#pragma once
+
+#include <game/editor/editorEntity.hpp>
+#include <memory>
+
+struct SetFieldCommand;
+using Command = std::variant<SetFieldCommand>;
+
+struct SetFieldCommand {
+	Entity entity;
+	u8 size;
+	usize pointerOffset;
+
+	// It should be possible to represent the difference between 2 states as a sequence which stores which bits were changed.
+	// a - 1010110
+	// b - 0010101
+	// d - 1000011
+	// The difference between 2 n-bit numbers can be stored using n+1 bits (+1 for the sign).
+	// This is just XOR. One issue with this if something was changed, but it wasn't added as a command then it might not get undone correctly.
+	// @Performance: Could store the data appended to this struct so the pointer doesn't need to be stored. This would require storing the usize ptr in the variant.
+	usize oldDataPtr;
+	usize newDataPtr;
+};
+
+struct Commands {
+	std::vector<Command> commandStack;
+	// Could rename to command range sizes or crate a struct to make this more readable.
+	std::vector<usize> commandSizes;
+	usize commandsSizesTop = 0; // 1 above the current command.
+
+	// Could use RAII for this instead.
+	auto beginMulticommand() -> void;
+	auto endMulticommand() -> void;
+
+	auto addCommand(Command&& command) noexcept -> void;
+	auto addSetFieldCommand(const Entity& entity, usize pointerOffset, void* oldValue, void* newValue, u8 size) -> void;
+
+	auto getPtr(usize ptr) -> u8*;
+private:
+	bool multicommandStarted = false;
+	usize currentMulticommandSize = 0;
+
+	auto freeSetFieldCommand(const SetFieldCommand& command) -> void;
+	auto allocate(usize size) -> usize;
+	auto freeTop() -> void;
+
+	auto topHeader() -> u64&;
+
+	std::vector<u8> data;
+};

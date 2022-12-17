@@ -1,6 +1,10 @@
 #pragma once
 
-#include <utils/int.hpp>
+#include <game/editor/editorInputState.hpp>
+struct Commands;
+struct EditorEntities;
+struct Entity;
+#include <utils/typeInfo.hpp>
 #include <json/JsonValue.hpp>
 
 #include <game/collidersData.hpp>
@@ -20,10 +24,20 @@ struct BodyEditor {
 	float rotationalInertia;
 	float coefficientOfFriction;
 	Collider collider;
-	auto displayGui() -> void;
+
+	auto editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void;
 	auto toJson() const -> Json::Value;
 	static auto fromJson(const Json::Value& json) -> BodyEditor;
 };
+
+static constexpr auto BODY_EDITOR_POS_OFFSET = offsetof(BodyEditor, pos);
+static constexpr auto BODY_EDITOR_ORIENTATION_OFFSET = offsetof(BodyEditor, orientation);
+static constexpr auto BODY_EDITOR_VEL_OFFSET = offsetof(BodyEditor, vel);
+static constexpr auto BODY_EDITOR_ANGULAR_VEL_OFFSET = offsetof(BodyEditor, angularVel);
+static constexpr auto BODY_EDITOR_MASS_OFFSET = offsetof(BodyEditor, mass);
+static constexpr auto BODY_EDITOR_ROTATIONAL_INERTIA_OFFSET = offsetof(BodyEditor, rotationalInertia);
+static constexpr auto BODY_EDITOR_COEFFICIENT_OF_FRICTION_OFFSET = offsetof(BodyEditor, coefficientOfFriction);
+static constexpr auto BODY_EDITOR_COLLIDER_OFFSET = offsetof(BodyEditor, collider);
 
 struct Body : public BodyEditor {
 	Body(Vec2 pos, const Collider& collider, bool isStatic);

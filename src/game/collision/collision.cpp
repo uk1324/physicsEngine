@@ -751,3 +751,13 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 po
 		.normal = (hitPoint - pos).normalized()
 	};
 }
+
+// An aabb contains a shape if it contains it's aabb, because if an aabb contains a shape <=> it contains the points on it most in the -x, x, -y and y directions (which just means the aabb of the shape) and vice-versa.
+auto aabbContains(const Aabb& aabb, const Collider& collider, Vec2 pos, float orientation) -> bool {
+	return std::visit(
+		[&](auto&& collider) -> bool {
+			return aabb.contains(collider.aabb(pos, orientation));
+		},
+		collider
+	);
+}

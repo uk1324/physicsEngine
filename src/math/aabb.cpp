@@ -4,6 +4,27 @@ Aabb::Aabb(Vec2 min, Vec2 max)
 	: min{ min }
 	, max{ max } {}
 
+auto Aabb::fromCorners(Vec2 a, Vec2 b) -> Aabb {
+	Vec2 min, max;
+	if (a.x < b.x) {
+		min.x = a.x;
+		max.x = b.x;
+	} else {
+		min.x = b.x;
+		max.x = a.x;
+	}
+
+	if (a.y < b.y) {
+		min.y= a.y;
+		max.y= b.y;
+	} else {
+		min.y = b.y;
+		max.y = a.y;
+	}
+
+	return Aabb{ min, max };
+}
+
 auto Aabb::fromPoints(Span<const Vec2> points) -> Aabb {
 	Vec2 min{ std::numeric_limits<float>::infinity() }, max{ -std::numeric_limits<float>::infinity() };
 
@@ -22,6 +43,16 @@ auto Aabb::size() const -> Vec2 {
 auto Aabb::contains(Vec2 p) const -> bool {
 	return p.x >= min.x && p.x <= max.x
 		&& p.y >= min.y && p.y <= max.y;
+}
+
+auto Aabb::contains(const Aabb& aabb) const -> bool {
+	const auto shrinkedMax = max - (aabb.max - aabb.min);
+
+	if (shrinkedMax.x - min.x < 0.0f || shrinkedMax.y - min.y < 0.0f)
+		// aabb is bigger than this
+		return false;
+
+	return Aabb{ min, shrinkedMax }.contains(aabb.min);
 }
 
 auto Aabb::combined(const Aabb& aabb) const -> Aabb {
