@@ -114,13 +114,12 @@ auto WINAPI Window::windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LP
 
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN: {
-		const auto autoRepeat{ static_cast<bool>(lParam >> 30) };
+		const auto autoRepeat = static_cast<bool>(lParam >> 30);
 		Input::onKeyDown(static_cast<u8>(wParam), autoRepeat);
 	} break;
 
 	case WM_KEYUP:
-	case WM_SYSKEYUP:
-	{
+	case WM_SYSKEYUP: {
 		Input::onKeyUp(static_cast<u8>(wParam));
 	} break;
 

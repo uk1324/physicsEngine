@@ -28,6 +28,10 @@ union FeaturePair
 // The bias term is used to create new momentum.
 // JV = -b
 // The impluse magnitude is clamped to prevent further penetration. The value can be negative because when a collision happens the objects might already be separating.
+
+// The below is wrong the last therm is the bias term.
+// The hyper-planes visualization might be misleading because there are inifnitely many lines which correspond to a given state.
+// TODO: What do transformations look like if every 3D point is represented by a 2D line. 3D points can also be converted to planes. What does this look like. Would need to choose some representation of a 3D plane. For 2D could use angle and distance from origin.
 struct ContactPoint {
 	ContactPoint()
 		: accumulatedNormalImpluse{ 0.0f }

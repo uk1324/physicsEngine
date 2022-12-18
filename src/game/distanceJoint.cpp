@@ -6,6 +6,7 @@ auto DistanceJoint::preStep(Body& a, Body& b, float invDeltaTime) -> void {
 	bias = invDeltaTime;
 }
 
+// Don't know what a correct pendulum should look like. Car keys that were left in the ignition were oscillating back and forth for around 3 minutes and if no one interrupted them, they would have continuted for a bit longer. The car keys were connected by a circle so the friction is should probably different from this kind of joint.
 auto DistanceJoint::applyImpluse(Body& a, Body& b) -> void {
 	const auto bToA = a.pos - b.pos;
 	const auto distanceAb = bToA.length();

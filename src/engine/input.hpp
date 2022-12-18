@@ -60,12 +60,15 @@ public:
 
 	template<typename ButtonEnum> 
 	static auto isButtonDown(ButtonEnum button) -> bool;
+	template<typename ButtonEnum>
+	static auto isButtonDownWithAutoRepeat(ButtonEnum button) -> bool;
 	template<typename ButtonEnum> 
 	static auto isButtonUp(ButtonEnum button) -> bool;
 	template<typename ButtonEnum> 
 	static auto isButtonHeld(ButtonEnum button) -> bool;
 
 	static auto isKeyDown(Keycode key) -> bool;
+	static auto isKeyDownWithAutoRepeat(Keycode key) -> bool;
 	static auto isKeyUp(Keycode key) -> bool;
 	static auto isKeyHeld(Keycode key) -> bool;
 
@@ -89,11 +92,14 @@ private:
 	// Virtual keycodes are always one byte so this is kind of pointless.
 	static constexpr auto VIRTUAL_KEY_COUNT = (MOUSE_BUTTON_COUNT > KEYCODE_COUNT) ? MOUSE_BUTTON_COUNT : KEYCODE_COUNT;
 	static std::bitset<VIRTUAL_KEY_COUNT> keyDown;
+	static std::bitset<VIRTUAL_KEY_COUNT> keyDownWithAutoRepeat;
+	// KeyUp doesn't get auto repeated.
 	static std::bitset<VIRTUAL_KEY_COUNT> keyUp;
 	static std::bitset<VIRTUAL_KEY_COUNT> keyHeld;
 
 	static std::unordered_multimap<u8, int> virtualKeyToButton;
 	static std::unordered_map<int, bool> buttonDown;
+	static std::unordered_map<int, bool> buttonDownWithAutoRepeat;
 	static std::unordered_map<int, bool> buttonUp;
 	static std::unordered_map<int, bool> buttonHeld;
 
@@ -106,6 +112,7 @@ auto Input::registerKeyButton(Keycode key, ButtonEnum button) -> void {
 	const auto code = static_cast<int>(button);
 	virtualKeyToButton.insert({ static_cast<u8>(key), code });
 	buttonDown[code] = false;
+	buttonDownWithAutoRepeat[code] = false;
 	buttonUp[code] = false;
 	buttonHeld[code] = false;
 }
@@ -122,6 +129,12 @@ template<typename ButtonEnum>
 auto Input::isButtonDown(ButtonEnum button) -> bool {
 	CHECK_BUTTON_ENUM();
 	return buttonDown[static_cast<int>(button)];
+}
+
+template<typename ButtonEnum>
+auto Input::isButtonDownWithAutoRepeat(ButtonEnum button) -> bool {
+	CHECK_BUTTON_ENUM();
+	return buttonDownWithAutoRepeat[static_cast<int>(button)];
 }
 
 template<typename ButtonEnum>

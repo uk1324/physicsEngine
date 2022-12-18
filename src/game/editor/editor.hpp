@@ -8,6 +8,7 @@
 class Editor {
 public:
 	Editor();
+	auto registerInputButtons() -> void;
 	auto update(Gfx& gfx, Renderer& renderer) -> void;
 
 private:
@@ -16,11 +17,19 @@ private:
 	// Maybe make this a single struct.
 	std::vector<Entity> selectedEntities;
 	auto addToSelectedEntities(const Entity& entity) -> void;
-	auto updateSelectedEntitesCenterPos() -> void;
+	auto updateSelectedEntitesData() -> void;
 	Vec2 selectedEntitiesCenterPos;
+	Vec2 lastFrameSelectedEntitiesCenterPos;
+	bool selectedEntitesMoved = false;
+	Aabb selectedEntitesAabb{ Vec2{ 0.0f }, Vec2{ 0.0f } };
+	bool selectedEntitesChanged = false;
 	std::vector<Entity> lastSelectedEntitesUnderCursor;
 	std::vector<Entity> currentSelectedEntitesUnderCursor;
 	usize currentEntityIndexInSelectCycle = 0;
+
+	Vec2 lastFrameFocusPos{ 0.0f };
+	float elapsedSinceFocusStart = 0.0f;
+	bool focusing = false;
 
 	Vec2 screenGrabStartPos;
 	Vec2 centerGrabStartPos;

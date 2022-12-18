@@ -16,6 +16,7 @@ struct Aabb {
 	auto area() const -> float;
 	auto collides(const Aabb& other) const -> bool;
 	auto rayHits(Vec2 start, Vec2 end) const -> bool;
+	auto center() const -> Vec2;
 
 	Vec2 min;
 	Vec2 max;

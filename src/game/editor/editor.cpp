@@ -6,14 +6,21 @@
 #include <engine/time.hpp>
 #include <math/lineSegment.hpp>
 #include <math/mat2.hpp>
+#include <math/utils.hpp>
 #include <engine/window.hpp>
 #include <utils/io.hpp>
 #include <utils/overloaded.hpp>
 
 #include <engine/frameAllocator.hpp>
 Editor::Editor() {
-	camera.zoom = 0.125f / 2.0f;
+	//camera.zoom = 0.125f / 2.0f;
+	camera.zoom = 1.0f;
 	camera.pos = Vec2{ 0.0f, 0.0f };
+	registerInputButtons();
+}
+
+auto Editor::registerInputButtons() -> void {
+	Input::registerKeyButton(Keycode::F, EditorButton::FOCUS);
 }
 
 template<typename T>
@@ -80,13 +87,13 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			currentCommandStackPosition += commands.commandSizes[i];
 		}
 
-		if (commands.commandsSizesTop > 0 && Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::Z)) {
+		if (commands.commandsSizesTop > 0 && Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDownWithAutoRepeat(Keycode::Z)) {
 			commands.commandsSizesTop--;
 			for (usize i = 0; i < commands.commandSizes[commands.commandsSizesTop]; i++) {
 				// currentCommandStackPosition is either the last execute command or nothing so start one below it.
 				undoCommand(commands.commandStack[currentCommandStackPosition - 1 - i]);
 			}
-		} else if (commands.commandsSizesTop < commands.commandSizes.size() && Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::Y)) {
+		} else if (commands.commandsSizesTop < commands.commandSizes.size() && Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDownWithAutoRepeat(Keycode::Y)) {
 			for (usize i = 0; i < commands.commandSizes[commands.commandsSizesTop]; i++) {
 				redoCommand(commands.commandStack[currentCommandStackPosition + i]);
 			}
@@ -196,19 +203,55 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		}
 	}
 
+	selectedEntitesChanged = false;
 	if (selectedEntities != oldSelectedEntites) {
 		commands.addSelectCommand(oldSelectedEntites, selectedEntities);
+		selectedEntitesChanged = true;
+	} 
+
+	if ((focusing && lastFrameFocusPos != camera.pos) || selectedEntitesChanged || selectedEntitesMoved) {
+		focusing = false;
 	}
+
+	if (Input::isButtonDown(EditorButton::FOCUS)) {
+		focusing = true;
+		elapsedSinceFocusStart = 0.0f;
+	}
+
+	if (!selectedEntities.empty() && focusing) {
+		elapsedSinceFocusStart = std::min(elapsedSinceFocusStart + Time::deltaTime(), 1.0f);
+		// The camera view is 2 units wide at zoom = 1;
+		const auto aabbSize = selectedEntitesAabb.max - selectedEntitesAabb.min;
+		const auto targetZoom = 1.0f / std::max(aabbSize.y, aabbSize.x / camera.aspectRatio);
+		const auto zoomRatio = camera.zoom / targetZoom;
+
+		// This code is interpolating between the current state and the target state, but it also works for interpolating between the start state and an end state. This just looks better.
+		if (zoomRatio == 1.0f) {
+			camera.pos = lerp(camera.pos, selectedEntitesAabb.center(), elapsedSinceFocusStart);
+		} else {
+			// https://gamedev.stackexchange.com/questions/188841/how-to-smoothly-interpolate-2d-camera-with-pan-and-zoom/188859#188859
+			// Interpolate zoom using logarithms because for example if zooms were powers of 2 then to linearly interpolate between 0.5 and 2 it should reach 1.0 at t = 0.5. The interpolated value should be how many times should the start value be multipled by 2 which is what a logarithm is. To make this work for non integer arguments the exponential function is used because it's rate of changes is equal to itself for all arguments.
+			camera.zoom = exp(lerp(log(camera.zoom), log(targetZoom), elapsedSinceFocusStart));
+			// To make it look like the position is moving with the same speed as the zooming at each point in time the rate of change of position should be proportional to the camera zoom. This proportion can be calculated by integrating the zoom speed which is zoomRatio^x. This integral = (zoomRatio^x - 1) / ln(zoomRatio). The constant ln(zoomRatio) can be ignored because only the proportions are needed for normalizing the values. To normalize the values to the range <0, 1> the value needs to be divided. For 0 the integral is equal to 0 and for 1 it is equals (zoomRatio - 1).
+			const auto posInterpolationSpeed = (pow(zoomRatio, elapsedSinceFocusStart) - 1) / (zoomRatio - 1);
+			camera.pos = lerp(camera.pos, selectedEntitesAabb.center(), posInterpolationSpeed);
+		}
+		
+		lastFrameFocusPos = camera.pos;
+	}
+	
+	selectedEntitesMoved = false;
+	updateSelectedEntitesData();
+	if (selectedEntitiesCenterPos != lastFrameSelectedEntitiesCenterPos) {
+		selectedEntitesMoved = true;
+	}
+	lastFrameSelectedEntitiesCenterPos = selectedEntitiesCenterPos;
 
 	if (Input::isMouseButtonDown(MouseButton::MIDDLE)) {
 		screenGrabStartPos = cursorPos;
-	} else {
-		if (Input::isMouseButtonHeld(MouseButton::MIDDLE)) {
-			camera.pos -= (cursorPos - screenGrabStartPos);
-		}
+	} else if (Input::isMouseButtonHeld(MouseButton::MIDDLE)) {
+		camera.pos -= (cursorPos - screenGrabStartPos);
 	}
-
-	updateSelectedEntitesCenterPos();
 
 	if (const auto scroll = Input::scrollDelta(); scroll != 0.0f) {
 		const auto cursorPosBeforeScroll = getCursorPos();
@@ -240,11 +283,36 @@ auto Editor::addToSelectedEntities(const Entity& entity) -> void {
 	}
 }
 
-auto Editor::updateSelectedEntitesCenterPos() -> void {
+auto Editor::updateSelectedEntitesData() -> void {
+	if (selectedEntities.empty())
+		return;
+
 	selectedEntitiesCenterPos = Vec2{ 0.0f };
-	for (const auto& entity : selectedEntities)
-		selectedEntitiesCenterPos += entites.getPosOrOrigin(entity);
-	selectedEntitiesCenterPos /= static_cast<float>(selectedEntities.size());
+	usize positions = 0;
+	for (const auto& entity : selectedEntities) {
+		const auto pos = entites.getPos(entity);
+		if (!pos.has_value())
+			continue;
+
+		positions++;
+		selectedEntitiesCenterPos += *pos;
+	}
+	selectedEntitiesCenterPos /= static_cast<float>(positions);
+
+	std::optional<Aabb> aabb;
+	for (const auto& entity : selectedEntities) {
+		if (aabb.has_value()) {
+			const auto entityAabb = entites.getAabb(entity);
+			if (entityAabb.has_value()) {
+				aabb = aabb->combined(*entityAabb);
+			}
+		} else {
+			aabb = entites.getAabb(entity);
+		}
+	}
+	if (aabb.has_value()) {
+		selectedEntitesAabb = *aabb;
+	}
 }
 
 auto Editor::undoCommand(const Command& command) -> void {

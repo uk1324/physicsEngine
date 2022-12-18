@@ -3,6 +3,8 @@
 #include <utils/int.hpp>
 #include <game/entitesData.hpp>
 
+#include <optional>
+
 enum class EntityType : u8 {
 	Body,
 	Null,
@@ -20,6 +22,7 @@ struct Entity {
 };
 
 struct EditorEntities {
+	// TODO: Iterator that iterates only the alive entites.
 	std::vector<BodyEditor> entitesBody;
 	// At some point a garbage collector like step should happen because there shouldn't be references to entites which don't exist. This would require also storing bitset for checking if an entity was already traversed.
 
@@ -45,11 +48,14 @@ struct EditorEntities {
 
 	// https://gamedev.stackexchange.com/questions/101964/implementing-the-command-pattern-undo-and-entity-references
 
-	auto getFieldPointer(const Entity& entity, usize fieldOffset)->u8*;
+	auto getFieldPointer(const Entity& entity, usize fieldOffset) -> u8*;
 
 	auto setPos(const Entity& entity, Vec2 pos) -> void;
 	auto getPosOrOrigin(const Entity& entity) -> Vec2&;
+	auto getPos(const Entity& entity) -> std::optional<Vec2>;
 
 	auto setOrientation(const Entity& entity, float orientation) -> void;
 	auto getOrientationOrZero(const Entity& entity) -> float;
+
+	auto getAabb(const Entity& entity) -> std::optional<Aabb>;
 };

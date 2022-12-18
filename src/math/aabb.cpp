@@ -89,3 +89,7 @@ auto Aabb::rayHits(Vec2 start, Vec2 end) const -> bool {
 
 	return true;
 }
+
+auto Aabb::center() const -> Vec2 {
+	return min + (max - min) / 2.0f;
+}

@@ -1,4 +1,5 @@
 #include <game/editor/editorEntity.hpp>
+#include <game/collision/collision.hpp>
 
 auto Entity::operator>(const Entity& entity) const -> bool {
 	return index > entity.index && (static_cast<u32>(type) == static_cast<u32>(entity.type))
@@ -48,6 +49,14 @@ auto EditorEntities::getPosOrOrigin(const Entity& entity) -> Vec2& {
 	}
 }
 
+auto EditorEntities::getPos(const Entity& entity) -> std::optional<Vec2> {
+	switch (entity.type) {
+	case EntityType::Body: return entitesBody[entity.index].pos;
+	default:
+		return std::nullopt;
+	}
+}
+
 auto EditorEntities::setOrientation(const Entity& entity, float orientation) -> void {
 	switch (entity.type) {
 	case EntityType::Body: entitesBody[entity.index].orientation = orientation; break;
@@ -62,5 +71,16 @@ auto EditorEntities::getOrientationOrZero(const Entity& entity) -> float {
 	default:
 		null = 0.0f;
 		return null;
+	}
+}
+
+auto EditorEntities::getAabb(const Entity& entity) -> std::optional<Aabb> {
+	// If the entity is just a pos the return an Aabb with min = max = pos.
+	switch (entity.type) {
+	case EntityType::Body: {
+		const auto& body = entitesBody[entity.index];
+		return aabb(body.collider, body.pos, body.orientation);
+	}
+	default: return std::nullopt; break;
 	}
 }
