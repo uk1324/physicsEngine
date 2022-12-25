@@ -304,7 +304,7 @@ auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
 		Debug::drawRay(bodyPair.a->pos, (bodyPair.b->pos - bodyPair.a->pos).normalized() * joint.requiredDistance);
 	}
 
-	renderer.update(gfx, camera);
+	renderer.update(gfx, camera, Window::size(), false);
 }	
 
 bool Game::warmStarting = true;

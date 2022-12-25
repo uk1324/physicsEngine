@@ -49,6 +49,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 	{
 		hppOut << "#pragma once\n\n";
+		hppOut << "#include <game/editor/customGuis.hpp>\n";
 		hppOut << "#include <game/editor/editorGuiState.hpp>\n";
 		hppOut << "struct Commands;\n";
 		hppOut << "struct EditorEntities;\n";
@@ -83,7 +84,10 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 			hppOut << '\t';
 			switch (field.type.type) {
 			case FieldTypeType::I32: hppOut << "i32"; break;
-			case FieldTypeType::FLOAT: hppOut << "float"; break;
+			case FieldTypeType::FLOAT: 
+			case FieldTypeType::ANGLE:
+				hppOut << "float"; 
+				break;
 			case FieldTypeType::VEC2: hppOut << "Vec2"; break;
 			case FieldTypeType::CPP: hppOut << field.type.cpp; break;
 			}
@@ -134,6 +138,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 					switch (field.type.type) {
 					case FieldTypeType::I32: cppOut << "InputInt(\"" << field.name << "\", &" << field.name << ")"; break;
 					case FieldTypeType::FLOAT: cppOut << "InputFloat(\"" << field.name << "\", &" << field.name << ")"; break;
+					case FieldTypeType::ANGLE: cppOut << "inputAngle(\"" << field.name << "\", &" << field.name << ")"; break;
 					case FieldTypeType::VEC2: cppOut << "InputFloat2(\"" << field.name << "\", " << field.name << ".data())"; break;
 					case FieldTypeType::CPP: cppOut << customProperty->customGuiFn << "(" << field.name << ")"; break;
 					}
@@ -182,7 +187,10 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 						} else {
 							switch (field.type.type) {
 							case FieldTypeType::I32: cppOut << "Json::Value(" << field.name << ")"; break;
-							case FieldTypeType::FLOAT: cppOut << "Json::Value(" << field.name << ")"; break;
+							case FieldTypeType::FLOAT: 
+							case FieldTypeType::ANGLE:
+								cppOut << "Json::Value(" << field.name << ")"; 
+								break;
 							case FieldTypeType::VEC2: cppOut << "{ { \"x\", " << field.name << ".x }, { \"y\", " << field.name << ".y } }"; break;
 							}
 						}
@@ -215,7 +223,10 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 						} else {
 							switch (field.type.type) {
 							case FieldTypeType::I32: cppOut << jsonGet(cppOut, field.name) << ".intNumber()"; break;
-							case FieldTypeType::FLOAT: cppOut << jsonGet(cppOut, field.name) << ".number()"; break;
+							case FieldTypeType::FLOAT: 
+							case FieldTypeType::ANGLE:
+								cppOut << jsonGet(cppOut, field.name) << ".number()"; break;
+							
 							case FieldTypeType::VEC2: cppOut << "Vec2{ " << jsonGet(cppOut, field.name) << ".at(\"x\").number(), " << jsonGet(cppOut, field.name) << ".at(\"y\").number() }"; break;
 							}
 						}
@@ -239,18 +250,6 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 			hppOut << " = offsetof(" << structure.name << "Editor, " << field.name << ");\n";
 		}
 		hppOut << '\n';
-
-		// TODO: Could use this for finding common properites on objects.
-		//hppOut << "static constexpr StructField ";
-		//outUpperSnakeCase(hppOut, structure.name);
-		//hppOut << "_EDITOR_OFFSETS[] { ";
-		//for (const auto& field : structure.fields) {
-		//	hppOut << "{ ";
-		//	hppOut << "\"" << field.name << "\", ";
-		//	outOffsetName(hppOut, structure.name, field.name);
-		//	hppOut << " }, ";
-		//}
-		//hppOut << "};\n\n";
 
 		hppOut << "struct " << structure.name << " : public " << structure.name << "Editor {\n";
 		for (const auto& code : structure.cppCode) {

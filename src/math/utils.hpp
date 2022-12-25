@@ -1,5 +1,7 @@
 #pragma once
 
+#include <math/vec2.hpp>
+
 template<typename T>
 constexpr T PI = static_cast<T>(3.14159265359);
 template<typename T>
@@ -15,9 +17,26 @@ auto lerp(T a, T b, U t) -> T {
 	return a * (1 - t) + b * t;
 }
 
+struct PosAndZoom {
+	Vec2 pos;
+	float zoom;
+};
+
+auto lerpPosAndZoom(const PosAndZoom& current, const PosAndZoom& target, float t) -> PosAndZoom;
+
 template<typename T>
 auto sign(T x) -> T {
 	return x < 0 ? static_cast<T>(-1) : static_cast<T>(1);
+}
+
+template<typename T>
+auto degToRad(T s) -> T {
+	return s * (TAU<T> / 360);
+}
+
+template<typename T>
+auto radToDeg(T s) -> T {
+	return s * (360 / TAU<T>);
 }
 
 // To move 2 conntected lines with unconstrained roatation to a point you just need to construct a triangle with the side lengths(using law of sines or cosines). There are 2 ways to do this. Use the triangle sides sum law to check if this is possible or check if it lies in a hollowed out circle. 

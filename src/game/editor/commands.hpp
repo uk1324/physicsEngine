@@ -39,12 +39,12 @@ struct Commands {
 	auto endMulticommand() -> void;
 
 	auto addCommand(Command&& command) noexcept -> void;
-	auto addSetFieldCommand(const Entity& entity, usize pointerOffset, void* oldValue, void* newValue, u8 size) -> void;
+	auto addSetFieldCommand(const Entity& entity, usize pointerOffset, const void* oldValue, const void* newValue, u8 size) -> void;
 	auto addSelectCommand(Span<const Entity> oldSelectedEntites, Span<const Entity> newSelectedEntites) -> void;
 
 	auto getPtr(usize ptr) -> u8*;
 private:
-	bool multicommandStarted = false;
+	bool recordingMulticommand = false;
 	usize currentMulticommandSize = 0;
 
 	auto freeSetFieldCommand(const SetFieldCommand& command) -> void;

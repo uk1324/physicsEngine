@@ -13,14 +13,14 @@
 
 #include <engine/frameAllocator.hpp>
 Editor::Editor() {
-	//camera.zoom = 0.125f / 2.0f;
-	camera.zoom = 1.0f;
+	camera.zoom = 0.125f / 2.0f;
 	camera.pos = Vec2{ 0.0f, 0.0f };
 	registerInputButtons();
 }
 
 auto Editor::registerInputButtons() -> void {
 	Input::registerKeyButton(Keycode::F, EditorButton::FOCUS);
+	Input::registerKeyButton(Keycode::CTRL, EditorButton::GIZMO_GRID_SNAP);
 }
 
 template<typename T>
@@ -46,13 +46,31 @@ auto sortedInsert(std::vector<T>& vec, const T& item) -> void {
 auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	using namespace ImGui;
 
-	camera.aspectRatio = Window::aspectRatio();	
+	DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
+	ImGui::Begin("testabc");
+	sceneWindowWindowSpace = Aabb::fromCorners(
+		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMin(),
+		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMax()
+	);
+	const auto sceneWindowSize = sceneWindowWindowSpace.size();
+	camera.aspectRatio = sceneWindowSize.x / sceneWindowSize.y;
+	ImGui::Image(reinterpret_cast<void*>(renderer.textureShaderResourceView.Get()), sceneWindowSize, Vec2{ 0.0f }, sceneWindowSize / renderer.textureSize);
+
+	if (IsWindowHovered()) {
+		Input::ignoreImGuiWantCapture = true;
+	} else {
+		Input::ignoreImGuiWantCapture = false;
+	}
+
+	ImGui::End();
+	
 	ImGui::ShowDemoWindow();
 
 	Begin("entites");
+	ImGui::Checkbox("testa", &Input::ignoreImGuiWantCapture);
 	if (Button("+")) {
-		entites.entitesBody.push_back(BodyEditor{
+		entites.body.add(BodyEditor{
 			.pos = Vec2{ camera.pos },
 			.orientation = 0.0f,
 			.vel = Vec2{ 0.0f },
@@ -70,7 +88,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			switch (entity.type) {
 			case EntityType::Null: ImGui::Text("no entity selected"); break;
 			case EntityType::Body: 
-				auto& body = entites.entitesBody[entity.index];
+				auto& body = entites.body[entity.index];
 				guiState.updateBeforeOpeningGui();
 				body.editorGui(guiState, entites, entity, commands);
 				break;
@@ -78,6 +96,10 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			TreePop();
 		}
 	}
+	End();
+
+	Begin("gizmo settings");
+	selectedEntitiesGizmo.settingsGui();
 	End();
 
 	if (!guiState.inputing) {
@@ -101,12 +123,13 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		}
 	}
 
-	const auto isGizmoSelected = selectedEntityGizmo.update(entites, camera, selectedEntities, selectedEntitiesCenterPos, getCursorPos());
+	// For the camera not to lag behind it is updated first so all functions have the same information about the camera.
+	updateCamera();
+
+	const auto isGizmoSelected = selectedEntitiesGizmo.update(entites, commands, camera, selectedEntities, selectedEntitiesCenterPos, getCursorPos());
 
 	const auto cursorPos = getCursorPos();
-
 	const auto oldSelectedEntites = selectedEntities;
-
 	if (!isGizmoSelected) {
 		if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 			selectGrabStartPos = cursorPos;
@@ -123,10 +146,9 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			}
 
 			if (selectedBox.area() > 0.1f) {
-				for (usize i = 0; i < entites.entitesBody.size(); i++) {
-					const auto& body = entites.entitesBody[i];
-					if (aabbContains(selectedBox, body.collider, body.pos, body.orientation)) {
-						const auto entity = Entity{ EntityType::Body, i };
+				for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
+					if (aabbContains(selectedBox, body->collider, body->pos, body->orientation)) {
+						const auto entity = Entity{ EntityType::Body, body.index };
 						const auto it = std::find(selectedEntities.begin(), selectedEntities.end(), entity);
 						if (it == selectedEntities.end()) {
 							selectedEntities.push_back(entity);
@@ -136,10 +158,10 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 					}
 				}
 			} else if (Input::isKeyHeld(Keycode::CTRL)) {
-				for (usize i = 0; i < entites.entitesBody.size(); i++) {
-					const auto& body = entites.entitesBody[i];
-					if (contains(cursorPos, body.pos, body.orientation, body.collider)) {
-						const auto entity = Entity{ EntityType::Body, i };
+
+				for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
+					if (contains(cursorPos, body->pos, body->orientation, body->collider)) {
+						const auto entity = Entity{ EntityType::Body, body.index };
 						const auto it = std::find(selectedEntities.begin(), selectedEntities.end(), entity);
 						if (it == selectedEntities.end()) {
 							selectedEntities.push_back(entity);
@@ -151,13 +173,13 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 				}
 			} else {
 				currentSelectedEntitesUnderCursor.clear();
-				for (usize i = 0; i < entites.entitesBody.size(); i++) {
-					const auto& body = entites.entitesBody[i];
-					if (!contains(cursorPos, body.pos, body.orientation, body.collider)) {
+
+				for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
+					if (!contains(cursorPos, body->pos, body->orientation, body->collider)) {
 						continue;
 					}
 
-					const auto selectedEntity = Entity{ EntityType::Body, i };
+					const auto selectedEntity = Entity{ EntityType::Body, body.index };
 
 					// With the current implementation the is no need for sorting because things are iterated in order, but with some acceleration structure in place it would be needed.
 					// @Performance: Could also try using a set instead. This would make indexing slower which shouldn't be an issue.
@@ -198,8 +220,8 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::A)) {
 		selectedEntities.clear();
-		for (usize i = 0; i < entites.entitesBody.size(); i++) {
-			selectedEntities.push_back(Entity{ .type = EntityType::Body, .index = i });
+		for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
+			selectedEntities.push_back(Entity{ .type = EntityType::Body, .index = body.index });
 		}
 	}
 
@@ -209,7 +231,31 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		selectedEntitesChanged = true;
 	} 
 
-	if ((focusing && lastFrameFocusPos != camera.pos) || selectedEntitesChanged || selectedEntitesMoved) {
+	selectedEntitesMoved = false;
+	updateSelectedEntitesData();
+	if (selectedEntitiesCenterPos != lastFrameSelectedEntitiesCenterPos || selectedEntitesAabb != lastFrameSelectedEntitiesAabb) {
+		selectedEntitesMoved = true;
+	}
+	lastFrameSelectedEntitiesCenterPos = selectedEntitiesCenterPos;
+	lastFrameSelectedEntitiesAabb = selectedEntitesAabb;
+
+	for (const auto& body : entites.body.alive()) {
+		Debug::drawCollider(body.collider, body.pos, body.orientation, Vec3::WHITE);
+	}
+
+	if (!selectedEntities.empty()) {
+		selectedEntitiesGizmo.draw(selectedEntitiesCenterPos);
+	}
+
+	renderer.update(gfx, camera, sceneWindowSize, true);
+}
+
+auto Editor::updateCamera() -> void {
+	//camera.aspectRatio = Window::aspectRatio(); // ~!!!!!!!!!!!!!!!!!!!!
+	const auto cursorPos = getCursorPos();
+
+	const auto userMovedCamera = lastFrameFocusPos != camera.pos;
+	if (userMovedCamera || selectedEntitesChanged || selectedEntitesMoved) {
 		focusing = false;
 	}
 
@@ -222,30 +268,15 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		elapsedSinceFocusStart = std::min(elapsedSinceFocusStart + Time::deltaTime(), 1.0f);
 		// The camera view is 2 units wide at zoom = 1;
 		const auto aabbSize = selectedEntitesAabb.max - selectedEntitesAabb.min;
-		const auto targetZoom = 1.0f / std::max(aabbSize.y, aabbSize.x / camera.aspectRatio);
-		const auto zoomRatio = camera.zoom / targetZoom;
 
-		// This code is interpolating between the current state and the target state, but it also works for interpolating between the start state and an end state. This just looks better.
-		if (zoomRatio == 1.0f) {
-			camera.pos = lerp(camera.pos, selectedEntitesAabb.center(), elapsedSinceFocusStart);
-		} else {
-			// https://gamedev.stackexchange.com/questions/188841/how-to-smoothly-interpolate-2d-camera-with-pan-and-zoom/188859#188859
-			// Interpolate zoom using logarithms because for example if zooms were powers of 2 then to linearly interpolate between 0.5 and 2 it should reach 1.0 at t = 0.5. The interpolated value should be how many times should the start value be multipled by 2 which is what a logarithm is. To make this work for non integer arguments the exponential function is used because it's rate of changes is equal to itself for all arguments.
-			camera.zoom = exp(lerp(log(camera.zoom), log(targetZoom), elapsedSinceFocusStart));
-			// To make it look like the position is moving with the same speed as the zooming at each point in time the rate of change of position should be proportional to the camera zoom. This proportion can be calculated by integrating the zoom speed which is zoomRatio^x. This integral = (zoomRatio^x - 1) / ln(zoomRatio). The constant ln(zoomRatio) can be ignored because only the proportions are needed for normalizing the values. To normalize the values to the range <0, 1> the value needs to be divided. For 0 the integral is equal to 0 and for 1 it is equals (zoomRatio - 1).
-			const auto posInterpolationSpeed = (pow(zoomRatio, elapsedSinceFocusStart) - 1) / (zoomRatio - 1);
-			camera.pos = lerp(camera.pos, selectedEntitesAabb.center(), posInterpolationSpeed);
-		}
-		
+		const auto targetZoom = 1.0f / std::max(aabbSize.y, camera.heightIfWidthIs(aabbSize.x));
+
+		const auto [pos, zoom] = lerpPosAndZoom({ camera.pos, camera.zoom }, { selectedEntitesAabb.center(), targetZoom }, elapsedSinceFocusStart);
+		camera.pos = pos;
+		camera.zoom = zoom;
+
 		lastFrameFocusPos = camera.pos;
 	}
-	
-	selectedEntitesMoved = false;
-	updateSelectedEntitesData();
-	if (selectedEntitiesCenterPos != lastFrameSelectedEntitiesCenterPos) {
-		selectedEntitesMoved = true;
-	}
-	lastFrameSelectedEntitiesCenterPos = selectedEntitiesCenterPos;
 
 	if (Input::isMouseButtonDown(MouseButton::MIDDLE)) {
 		screenGrabStartPos = cursorPos;
@@ -262,19 +293,12 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 
 		camera.pos -= (getCursorPos() - cursorPosBeforeScroll);
 	}
-
-	for (const auto& body : entites.entitesBody)
-		Debug::drawCollider(body.collider, body.pos, body.orientation, Vec3::WHITE);
-
-	if (!selectedEntities.empty()) {
-		selectedEntityGizmo.draw(selectedEntitiesCenterPos);
-	}
-
-	renderer.update(gfx, camera);
 }
 
 auto Editor::getCursorPos() -> Vec2 {
-	return camera.screenSpaceToCameraSpace(Input::cursorPos());
+	const auto windowSpace = (Input::cursorPosWindowSpace() - sceneWindowWindowSpace.min) * (Window::size() / sceneWindowWindowSpace.size());
+	const auto screenSpace = Input::windowSpaceToScreenSpace(windowSpace);
+	return camera.screenSpaceToCameraSpace(screenSpace);
 }
 
 auto Editor::addToSelectedEntities(const Entity& entity) -> void {

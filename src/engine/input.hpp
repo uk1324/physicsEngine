@@ -76,10 +76,14 @@ public:
 	static auto isMouseButtonUp(MouseButton button) -> bool;
 	static auto isMouseButtonHeld(MouseButton button) -> bool;
 
+	static auto windowSpaceToScreenSpace(Vec2 v) -> Vec2;
 	static auto cursorPos() -> Vec2 { return cursorPos_; };
-	static auto scrollDelta() -> float { return scrollDelta_; }
+	static auto cursorPosWindowSpace() -> Vec2 { return cursorPosWindowSpace_; };
+	static auto scrollDelta() -> float;
 
 	static auto update() -> void;
+
+	static bool ignoreImGuiWantCapture;
 
 private:
 	static auto onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void;
@@ -104,6 +108,7 @@ private:
 	static std::unordered_map<int, bool> buttonHeld;
 
 	static Vec2 cursorPos_;
+	static Vec2 cursorPosWindowSpace_;
 	static float scrollDelta_;
 };
 

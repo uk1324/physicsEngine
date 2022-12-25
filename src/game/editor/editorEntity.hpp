@@ -21,9 +21,40 @@ struct Entity {
 	static auto null() -> Entity;
 };
 
+template<typename T>
+struct EditorEntityArray {
+	struct AliveIterator {
+		auto operator++() -> AliveIterator&;
+		auto operator!=(const AliveIterator& other) const -> bool;
+		auto operator->() -> T*;
+		auto operator*() -> T&;
+
+		usize index;
+		EditorEntityArray& array;
+	};
+
+	struct Alive {
+		auto begin() -> AliveIterator;
+		auto end() -> AliveIterator;
+		EditorEntityArray& array;
+	};
+	auto alive() -> Alive;
+	auto add(const T& body) -> void;
+
+	std::vector<bool> isAlive;
+
+	auto operator[](usize i) -> T&;
+	auto operator[](usize i) const -> const T&;
+
+private:
+	std::vector<T> data;
+};
+
 struct EditorEntities {
 	// TODO: Iterator that iterates only the alive entites.
-	std::vector<BodyEditor> entitesBody;
+	//std::vector<BodyEditor> entitesBody;
+	EditorEntityArray<BodyEditor> body;
+
 	// At some point a garbage collector like step should happen because there shouldn't be references to entites which don't exist. This would require also storing bitset for checking if an entity was already traversed.
 
 	// Making an undoable and redoable delete would require preserving objects which got deleted. This could be done by creating a copy, but this would require a dynamic allocation when it could be using the preexisting entity pools for storing them.
@@ -48,6 +79,8 @@ struct EditorEntities {
 
 	// https://gamedev.stackexchange.com/questions/101964/implementing-the-command-pattern-undo-and-entity-references
 
+	auto getPosPointerOffset(const Entity& entity) -> std::optional<usize>;
+	auto getOrientationPointerOffset(const Entity& entity) -> std::optional<usize>;
 	auto getFieldPointer(const Entity& entity, usize fieldOffset) -> u8*;
 
 	auto setPos(const Entity& entity, Vec2 pos) -> void;
@@ -59,3 +92,63 @@ struct EditorEntities {
 
 	auto getAabb(const Entity& entity) -> std::optional<Aabb>;
 };
+
+template<typename T>
+auto EditorEntityArray<T>::alive() -> Alive {
+	return Alive{ .array = *this };
+}
+
+template<typename T>
+auto EditorEntityArray<T>::add(const T& body) -> void {
+	data.push_back(body);
+	isAlive.push_back(true);
+}
+
+template<typename T>
+auto EditorEntityArray<T>::operator[](usize i) -> T& {
+	return data[i];
+}
+
+template<typename T>
+auto EditorEntityArray<T>::operator[](usize i) const -> const T& {
+	return data[i];
+}
+
+template<typename T>
+auto EditorEntityArray<T>::AliveIterator::operator++() -> AliveIterator& {
+	if (*this != array.alive().end()) {
+		index++;
+	} else {
+		while (*this != array.alive().end() && !array.isAlive[index]) {
+			index++;
+		}
+	}
+	
+	return *this;
+}
+
+template<typename T>
+auto EditorEntityArray<T>::AliveIterator::operator!=(const AliveIterator& other) const -> bool {
+	ASSERT(&array == &other.array);
+	return index != other.index;
+}
+
+template<typename T>
+auto EditorEntityArray<T>::AliveIterator::operator->() -> T* {
+	return &array.data[index];
+}
+
+template<typename T>
+auto EditorEntityArray<T>::AliveIterator::operator*() -> T& {
+	return array.data[index];
+}
+
+template<typename T>
+auto EditorEntityArray<T>::Alive::begin() -> AliveIterator {
+	return AliveIterator{ .index = 0, .array = array };
+}
+
+template<typename T>
+auto EditorEntityArray<T>::Alive::end() -> AliveIterator {
+	return AliveIterator{ .index = array.data.size(), .array = array };
+}

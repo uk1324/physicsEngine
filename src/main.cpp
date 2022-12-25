@@ -47,6 +47,7 @@ auto testAreaAllocator() -> void {
 static auto setCustomImGuiStyle() -> void {
 	auto& io = ImGui::GetIO();
 	io.Fonts->AddFontFromFileTTF("assets/fonts/RobotoMono-Regular.ttf", 20);
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	auto& style = ImGui::GetStyle();
 	style.WindowRounding = 5.0f;
 };

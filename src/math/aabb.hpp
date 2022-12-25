@@ -18,6 +18,8 @@ struct Aabb {
 	auto rayHits(Vec2 start, Vec2 end) const -> bool;
 	auto center() const -> Vec2;
 
+	auto operator==(const Aabb& other) const -> bool = default;
+
 	Vec2 min;
 	Vec2 max;
 };

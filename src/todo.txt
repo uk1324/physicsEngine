@@ -5,3 +5,14 @@ The scene hierarchy should be a seperate part of the file format. Entites should
 This makes it easier to remove it from the final file and also import it is easier.
 Chain editor. Half spaces or lines?
 Proceduraly generating textures under the chain.
+
+Modifiers
+In the editor could store a map<Entity, Modifier>.
+
+Modifiers a just functions that are updated every frame and get the entity as the input.
+They could be used to make motors(set velocity of something). Could also integrate a scripting language for making more complicated scripts.
+
+Maybe add a unit type system for the langage. mass * length = velocity
+
+To generatae angles of a convex poylgon could generate a sum of angles that are less than 90 and then normalize it.
+These ides wouldn't work, but are cool. Generating a point on a sphere. Angles or generate on cube and then normalize.

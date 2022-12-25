@@ -32,6 +32,8 @@ union FeaturePair
 // The below is wrong the last therm is the bias term.
 // The hyper-planes visualization might be misleading because there are inifnitely many lines which correspond to a given state.
 // TODO: What do transformations look like if every 3D point is represented by a 2D line. 3D points can also be converted to planes. What does this look like. Would need to choose some representation of a 3D plane. For 2D could use angle and distance from origin.
+
+// It is the jacobian because it is literally just an array of first order partial derivatives like in the definition.
 struct ContactPoint {
 	ContactPoint()
 		: accumulatedNormalImpluse{ 0.0f }

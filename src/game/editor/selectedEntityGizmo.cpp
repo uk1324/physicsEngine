@@ -1,29 +1,34 @@
 #include <game/editor/selectedEntityGizmo.hpp>
+#include <game/editor/commands.hpp>
+#include <game/editor/customGuis.hpp>
 #include <game/debug.hpp>
 #include <game/editor/input.hpp>
 #include <math/lineSegment.hpp>
 #include <math/mat2.hpp>
 #include <game/collision/collision.hpp>
 
-static const auto ROTATION_GIZMO_COLOR = Vec3::WHITE / 2.0f;
+#include <imgui/imgui.h>
 
+static const auto ROTATION_GIZMO_COLOR = Vec3::WHITE / 2.0f;
 
 auto SelectedEntityGizmo::update(
 	EditorEntities& entites,
+	Commands& commands,
 	const Camera& camera,
 	const std::vector<Entity>& selectedEntities,
 	Vec2 selectedEntitiesCenterPos,
 	Vec2 cursorPos) -> bool {
 
-	if (selectedEntities.empty()) {
-		selectedGizmo = GizmoType::NONE;
-		return false;
-	}
-
+	// This has to be set even if selectedEntities.empty() to allow update and draw to be called in any order. Otherwise it wouldn't be initalized to the most up to date values, which causes gliches when selecting for the first time or after zooming.
 	undoZoomScale = 1.0f / (camera.zoom * 8.0f);
 	xyAxisGizmosLength = undoZoomScale;
 	bothGizmoBoxSize = xyAxisGizmosLength / 4.0f;
 	rotationGizmoRadius = xyAxisGizmosLength / 2.0f;
+
+	if (selectedEntities.empty()) {
+		selectedGizmo = GizmoType::NONE;
+		return false;
+	}
 
 	LineSegment
 		xAxisLineSegment{ selectedEntitiesCenterPos, selectedEntitiesCenterPos + xAxis * xyAxisGizmosLength },
@@ -78,12 +83,18 @@ auto SelectedEntityGizmo::update(
 			const auto centerToOldPos = (axisGrabStartPos - center).normalized();
 			const auto centerToNewPos = (cursorPos - center).normalized();
 
-			// Putting this into the draw method would require creating new variables with confusing names. The only reason for a separate draw method is to avoid lag which doesn't matter here.
-			Debug::drawRay(center, centerToOldPos * rotationGizmoRadius, ROTATION_GIZMO_COLOR);
-			Debug::drawRay(center, centerToNewPos * rotationGizmoRadius, ROTATION_GIZMO_COLOR);
 
 			// In unity moving left and right rotates the object. This might be a better option for 3D but I thing using the actual angle works better in 2D.
-			auto angleDifference = atan2(centerToNewPos.y, centerToNewPos.x) - atan2(centerToOldPos.y, centerToOldPos.x);
+			const auto startAngle = atan2(centerToOldPos.y, centerToOldPos.x);
+			auto angleDifference = atan2(centerToNewPos.y, centerToNewPos.x) - startAngle;
+
+			if (Input::isButtonHeld(EditorButton::GIZMO_GRID_SNAP)) {
+				angleDifference -= fmod(angleDifference, rotationGridCellSize);
+			}
+
+			// Putting this into the draw method would require creating new variables with confusing names. The only reason for a separate draw method is to avoid lag which doesn't matter here.
+			Debug::drawRay(center, centerToOldPos * rotationGizmoRadius, ROTATION_GIZMO_COLOR);
+			Debug::drawRay(center, Vec2::oriented(startAngle + angleDifference) * rotationGizmoRadius, ROTATION_GIZMO_COLOR);
 
 			ASSERT(selectedEntities.size() == selectedEntitesGrabStartPositions.size());
 			for (usize i = 0; i < selectedEntities.size(); i++) {
@@ -105,6 +116,12 @@ auto SelectedEntityGizmo::update(
 			else if (selectedGizmo == GizmoType::BOTH)
 				translation = grabDifference;
 
+			if (Input::isButtonHeld(EditorButton::GIZMO_GRID_SNAP)) {
+				const Vec2 dist{ dot(xAxis, translation), det(xAxis, translation) };
+				const Vec2 distSnapped = dist - Vec2{ fmod(dist.x, gridCellSize),  fmod(dist.y, gridCellSize) };
+				translation = xAxis * distSnapped.x + yAxis * distSnapped.y;
+			}
+
 			ASSERT(selectedEntities.size() == selectedEntitesGrabStartPositions.size());
 			for (usize i = 0; i < selectedEntities.size(); i++) {
 				entites.setPos(selectedEntities[i], selectedEntitesGrabStartPositions[i] + translation);
@@ -115,6 +132,42 @@ auto SelectedEntityGizmo::update(
 	if (Input::isMouseButtonUp(MouseButton::LEFT)) {
 		const auto wasSelected = selectedGizmo != GizmoType::NONE;
 		selectedGizmo = GizmoType::NONE;
+
+		const auto selectedEntitesChanged = selectedEntities.size() != selectedEntitesGrabStartPositions.size();
+		// Don't need to save a command if the LEFT up is caused by selecting different entites. Alternatively could store a flag if the gizmo is being draged and check it.
+		if (selectedEntitesChanged)
+			return wasSelected;
+
+		commands.beginMulticommand();
+		for (usize i = 0; i < selectedEntitesGrabStartPositions.size(); i++) {
+			const auto& entity = selectedEntities[i];
+			const auto posOffset = entites.getPosPointerOffset(entity);
+			if (posOffset.has_value()) {
+				const auto newPos = entites.getPosOrOrigin(entity);
+				const auto oldPos = selectedEntitesGrabStartPositions[i];
+				if (newPos != oldPos) {
+					commands.addSetFieldCommand(entity, *posOffset, &oldPos, &newPos, sizeof(newPos));
+				}
+			}
+		}
+
+		// These have to be 2 separate loops because not all transformations require orientations.
+		if (selectedEntities.size() == selectedEntitesGrabStartOrientations.size()) {
+			for (usize i = 0; i < selectedEntitesGrabStartOrientations.size(); i++) {
+				const auto& entity = selectedEntities[i];
+				const auto orientationOffset = entites.getOrientationPointerOffset(entity);
+				if (orientationOffset.has_value()) {
+					const auto newOrientation = entites.getOrientationOrZero(entity);
+					const auto oldOrientation = selectedEntitesGrabStartOrientations[i];
+					if (newOrientation != oldOrientation) {
+						commands.addSetFieldCommand(entity, *orientationOffset, &oldOrientation, &newOrientation, sizeof(newOrientation));
+					}
+				}
+			}
+		}
+		
+		commands.endMulticommand();
+
 		return wasSelected;
 	}
 
@@ -131,4 +184,13 @@ auto SelectedEntityGizmo::draw(Vec2 selectedEntitiesCenterPos) -> void {
 	Debug::drawRay(selectedEntitiesCenterPos, yAxis * xyAxisGizmosLength, Vec3::GREEN);
 
 	Debug::drawHollowCircle(selectedEntitiesCenterPos, rotationGizmoRadius, ROTATION_GIZMO_COLOR);
+}
+
+auto SelectedEntityGizmo::settingsGui() -> void {
+	using namespace ImGui;
+	auto angle = atan2(xAxis.y, xAxis.x);
+	if (inputAngle("axis gizmos angle", &angle)) {
+		xAxis = Vec2::oriented(angle);
+		yAxis = Vec2::oriented(angle + PI<float> / 2.0f);
+	}
 }

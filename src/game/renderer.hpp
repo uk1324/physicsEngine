@@ -9,6 +9,7 @@ struct Camera {
 	auto interpolateTo(Vec2 desiredPos, float speed) -> void;
 	auto cameraTransform() const -> Mat3x2;
 	auto screenSpaceToCameraSpace(Vec2 screenSpacePos) -> Vec2;
+	auto heightIfWidthIs(float width) -> float;
 
 	Vec2 pos;
 	float zoom;
@@ -23,8 +24,12 @@ struct Camera {
 class Renderer {
 public:
 	Renderer(Gfx& gfx);
-	auto update(Gfx& gfx, const Camera& camera) -> void;
+	auto update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool renderToTexture) -> void;
 
+	static constexpr Vec2 textureSize{ 1920.0f, 1080.0f };
+	ComPtr<ID3D11Texture2D> texture;
+	ComPtr<ID3D11RenderTargetView> textureRenderTargetView;
+	ComPtr<ID3D11ShaderResourceView> textureShaderResourceView;
 private:
 
 	struct PtVert {

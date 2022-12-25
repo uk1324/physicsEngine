@@ -60,8 +60,8 @@ private:
 public:
 	std::string_view text;
 private:
-	usize tokenStartIndex;
-	usize currentIndex;
+	usize tokenStartIndex = 0;
+	usize currentIndex = 0;
 };
 
 class Parser {

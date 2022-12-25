@@ -9,6 +9,8 @@
 
 #define BUILD_DIR "./x64/Debug/"
 
+#include <imgui/imgui.h>
+
 Renderer::Renderer(Gfx& gfx) {
 	vsCircle = gfx.vsFromFile(BUILD_DIR L"vsCircle.cso");
 	psCircleCollider = gfx.psFromFile(BUILD_DIR L"psCircleCollider.cso");
@@ -84,8 +86,8 @@ Renderer::Renderer(Gfx& gfx) {
 				.SrcBlend = D3D11_BLEND_SRC_ALPHA,
 				.DestBlend = D3D11_BLEND_INV_SRC_ALPHA,
 				.BlendOp = D3D11_BLEND_OP_ADD,
-				.SrcBlendAlpha = D3D11_BLEND_ONE,
-				.DestBlendAlpha = D3D11_BLEND_ZERO,
+				.SrcBlendAlpha = D3D11_BLEND_ZERO,
+				.DestBlendAlpha = D3D11_BLEND_ONE,
 				.BlendOpAlpha = D3D11_BLEND_OP_ADD,
 				.RenderTargetWriteMask = 0x0f,
 			}
@@ -94,24 +96,68 @@ Renderer::Renderer(Gfx& gfx) {
 	ComPtr<ID3D11BlendState> blendState;
 	CHECK_WIN_HRESULT(gfx.device->CreateBlendState(&blendDesc, blendState.GetAddressOf()));
 	gfx.ctx->OMSetBlendState(blendState.Get(), nullptr, 0xffffffff);
+
+	{
+		const D3D11_TEXTURE2D_DESC textureDesc{
+			.Width = static_cast<UINT>(textureSize.x),
+			.Height = static_cast<UINT>(textureSize.y),
+			.MipLevels = 1,
+			.ArraySize = 1,
+			.Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+			.SampleDesc = {
+				.Count = 1,
+				.Quality = 0,
+			},
+			.Usage = D3D11_USAGE_DEFAULT,
+			.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,
+			.CPUAccessFlags = 0,
+			.MiscFlags = 0,
+		};
+
+		gfx.device->CreateTexture2D(&textureDesc, nullptr, texture.GetAddressOf());
+
+		const D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc{
+			.Format = textureDesc.Format,
+			.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D,
+			.Texture2D = {
+				.MipSlice = 0
+			}
+		};
+
+		gfx.device->CreateRenderTargetView(texture.Get(), &renderTargetViewDesc, textureRenderTargetView.GetAddressOf());
+
+		const D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc{
+			.Format = textureDesc.Format,
+			.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+			.Texture2D = {
+				.MostDetailedMip = 0,
+				.MipLevels = 1,
+			}
+		};
+		gfx.device->CreateShaderResourceView(texture.Get(), &shaderResourceViewDesc, textureShaderResourceView.GetAddressOf());
+	}
 }
 
 #include <utils/io.hpp>
 
-auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
-	if (Window::resized()) {
-		const D3D11_VIEWPORT viewport{
-			.TopLeftX = 0.0f,
-			.TopLeftY = 0.0f,
-			.Width = Window::size().x,
-			.Height = Window::size().y,
-			.MinDepth = 0.0f,
-			.MaxDepth = 1.0f,
-		};
-		gfx.ctx->RSSetViewports(1, &viewport);
-	}
+auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool renderToTexture) -> void {
+	const D3D11_VIEWPORT viewport{
+		.TopLeftX = 0.0f,
+		.TopLeftY = 0.0f,
+		.Width = windowSize.x,
+		.Height = windowSize.y,
+		.MinDepth = 0.0f,
+		.MaxDepth = 1.0f,
+	};
+	gfx.ctx->RSSetViewports(1, &viewport);
 
-	gfx.ctx->OMSetRenderTargets(1, gfx.backBufferRenderTargetView.GetAddressOf(), nullptr);
+	if (renderToTexture) {
+		float color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		gfx.ctx->ClearRenderTargetView(textureRenderTargetView.Get(), color);
+		gfx.ctx->OMSetRenderTargets(1, textureRenderTargetView.GetAddressOf(), nullptr);
+	} else {
+		gfx.ctx->OMSetRenderTargets(1, gfx.backBufferRenderTargetView.GetAddressOf(), nullptr);
+	}
 
 	{
 		float color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -127,7 +173,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 	gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
 	gfx.ctx->IASetInputLayout(ptLayout.Get());
 
-	const auto aspectRatio{ Window::size().x / Window::size().y };
+	const auto aspectRatio{ windowSize.x / windowSize.y };
 	const auto screenScale{ Mat3x2::scale(Vec2{ 1.0f, aspectRatio }) };
 
 	const auto cameraTransform = camera.cameraTransform();
@@ -136,7 +182,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
 	};
 
-	debugShapesFragmentShaderConstantBuffer.lineWidth = 0.003f * 1920.0f / Window::size().x;
+	debugShapesFragmentShaderConstantBuffer.lineWidth = 0.003f * 1920.0f / windowSize.x;
 	debugShapesFragmentShaderConstantBuffer.smoothingWidth = debugShapesFragmentShaderConstantBuffer.lineWidth * (2.0f / 3.0f);
 	gfx.updateConstantBuffer(debugShapesFragmentShaderConstantBufferResource, &debugShapesFragmentShaderConstantBuffer, sizeof(debugShapesFragmentShaderConstantBuffer));
 
@@ -293,6 +339,10 @@ auto Renderer::update(Gfx& gfx, const Camera& camera) -> void {
 
 		draw();
 	}
+
+	if (renderToTexture) {
+		gfx.ctx->OMSetRenderTargets(1, gfx.backBufferRenderTargetView.GetAddressOf(), nullptr);
+	}
 }
 
 Camera::Camera(Vec2 pos, float zoom) 
@@ -309,4 +359,9 @@ auto Camera::cameraTransform() const -> Mat3x2 {
 
 auto Camera::screenSpaceToCameraSpace(Vec2 screenSpacePos) -> Vec2 {
 	return (screenSpacePos * Vec2{ 1.0f, 1.0f / aspectRatio } / zoom) + pos;
+}
+
+// Assumes aspect ratio is width / height.
+auto Camera::heightIfWidthIs(float width) -> float {
+	return width / aspectRatio;
 }

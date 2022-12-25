@@ -14,11 +14,25 @@ auto Entity::null() -> Entity {
 	return Entity{ .type = EntityType::Null };
 }
 
+auto EditorEntities::getPosPointerOffset(const Entity& entity) -> std::optional<usize> {
+	switch (entity.type) {
+	case EntityType::Body: return BODY_EDITOR_POS_OFFSET;
+	default: return std::nullopt;
+	}
+}
+
+auto EditorEntities::getOrientationPointerOffset(const Entity& entity) -> std::optional<usize> {
+	switch (entity.type) {
+	case EntityType::Body: return BODY_EDITOR_ORIENTATION_OFFSET;
+	default: return std::nullopt;
+	}
+}
+
 auto EditorEntities::getFieldPointer(const Entity& entity, usize fieldOffset) -> u8* {
 	u8* ptr;
 
 	switch (entity.type) {
-	case EntityType::Body: ptr = reinterpret_cast<u8*>(&entitesBody[entity.index]);
+	case EntityType::Body: ptr = reinterpret_cast<u8*>(&body[entity.index]);
 		if (fieldOffset > sizeof(BodyEditor)) {
 			ASSERT_NOT_REACHED();
 			return nullptr;
@@ -34,7 +48,7 @@ auto EditorEntities::getFieldPointer(const Entity& entity, usize fieldOffset) ->
 
 auto EditorEntities::setPos(const Entity& entity, Vec2 pos) -> void {
 	switch (entity.type) {
-	case EntityType::Body: entitesBody[entity.index].pos = pos; break;
+	case EntityType::Body: body[entity.index].pos = pos; break;
 	case EntityType::Null: break;
 	}
 }
@@ -42,7 +56,7 @@ auto EditorEntities::setPos(const Entity& entity, Vec2 pos) -> void {
 auto EditorEntities::getPosOrOrigin(const Entity& entity) -> Vec2& {
 	static Vec2 null{ 0.0f };
 	switch (entity.type) {
-	case EntityType::Body: return entitesBody[entity.index].pos;
+	case EntityType::Body: return body[entity.index].pos;
 	default:
 		null = Vec2{ 0.0f };
 		return null;
@@ -51,7 +65,7 @@ auto EditorEntities::getPosOrOrigin(const Entity& entity) -> Vec2& {
 
 auto EditorEntities::getPos(const Entity& entity) -> std::optional<Vec2> {
 	switch (entity.type) {
-	case EntityType::Body: return entitesBody[entity.index].pos;
+	case EntityType::Body: return body[entity.index].pos;
 	default:
 		return std::nullopt;
 	}
@@ -59,7 +73,7 @@ auto EditorEntities::getPos(const Entity& entity) -> std::optional<Vec2> {
 
 auto EditorEntities::setOrientation(const Entity& entity, float orientation) -> void {
 	switch (entity.type) {
-	case EntityType::Body: entitesBody[entity.index].orientation = orientation; break;
+	case EntityType::Body: body[entity.index].orientation = orientation; break;
 	case EntityType::Null: break;
 	}
 }
@@ -67,7 +81,7 @@ auto EditorEntities::setOrientation(const Entity& entity, float orientation) -> 
 auto EditorEntities::getOrientationOrZero(const Entity& entity) -> float {
 	static float null{ 0.0f };
 	switch (entity.type) {
-	case EntityType::Body: return entitesBody[entity.index].orientation;
+	case EntityType::Body: return body[entity.index].orientation;
 	default:
 		null = 0.0f;
 		return null;
@@ -78,8 +92,8 @@ auto EditorEntities::getAabb(const Entity& entity) -> std::optional<Aabb> {
 	// If the entity is just a pos the return an Aabb with min = max = pos.
 	switch (entity.type) {
 	case EntityType::Body: {
-		const auto& body = entitesBody[entity.index];
-		return aabb(body.collider, body.pos, body.orientation);
+		const auto& bodyEntity = body[entity.index];
+		return aabb(bodyEntity.collider, bodyEntity.pos, bodyEntity.orientation);
 	}
 	default: return std::nullopt; break;
 	}

@@ -22,7 +22,8 @@ enum class FieldTypeType {
 	FLOAT,
 	I32,
 	VEC2,
-	CPP
+	CPP,
+	ANGLE,
 };
 
 struct FieldType {

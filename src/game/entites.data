@@ -10,7 +10,7 @@ auto displayColliderGui(const Collider& collider) -> void;
 
 Body @Editor {
 	Vec2 pos;
-	float orientation;
+	angle orientation;
 	Vec2 vel;
 	float angularVel;
 	float mass;

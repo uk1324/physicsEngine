@@ -86,7 +86,7 @@
 
 #define IM_VEC2_CLASS_EXTRA                                                     \
         constexpr ImVec2(const Vec2& f) : x(f.x), y(f.y) {}                   \
-        operator Vec2() const { Vec2(x,y); }
+        operator Vec2() const { return Vec2(x, y); }
 
 /*
 #define IM_VEC4_CLASS_EXTRA                                                     \

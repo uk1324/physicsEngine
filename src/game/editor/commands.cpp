@@ -11,15 +11,18 @@ static auto alignUpTo(usize v, usize alignment) -> usize {
 using Header = u64;
 
 auto Commands::beginMulticommand() -> void {
-    ASSERT(!multicommandStarted);
-    multicommandStarted = true;
+    ASSERT(!recordingMulticommand);
+    recordingMulticommand = true;
     currentMulticommandSize = 0;
 }
 
 auto Commands::endMulticommand() -> void {
-    ASSERT(multicommandStarted);
-    multicommandStarted = false;
-    commandSizes.push_back(currentMulticommandSize);
+    ASSERT(recordingMulticommand);
+    recordingMulticommand = false;
+    if (currentMulticommandSize != 0) {
+        commandSizes.push_back(currentMulticommandSize);
+        commandsSizesTop++;
+    }
 }
 
 auto Commands::addCommand(Command&& command) noexcept -> void {
@@ -38,7 +41,7 @@ auto Commands::addCommand(Command&& command) noexcept -> void {
         }
         commandsSizesTop = commandSizes.size();
     }
-    if (multicommandStarted) {
+    if (recordingMulticommand) {
         currentMulticommandSize++;
     } else {
         commandsSizesTop++;
@@ -47,7 +50,7 @@ auto Commands::addCommand(Command&& command) noexcept -> void {
     commandStack.push_back(std::move(command));
 }
 
-auto Commands::addSetFieldCommand(const Entity& entity, usize pointerOffset, void* oldValue, void* newValue, u8 size) -> void {
+auto Commands::addSetFieldCommand(const Entity& entity, usize pointerOffset, const void* oldValue, const void* newValue, u8 size) -> void {
     const auto oldPtr = allocate(static_cast<usize>(size) * 2);
     const auto newPtr = oldPtr + size;
     memcpy(getPtr(oldPtr), oldValue, size);

@@ -3,6 +3,7 @@
 #include <game/entitesData.hpp>
 #include <game/editor/editorEntity.hpp>
 #include <game/renderer.hpp>
+#include <math/utils.hpp>
 
 /*
 Using a class for this instead of just storing it in the editor is bettern, because 
@@ -16,15 +17,20 @@ class SelectedEntityGizmo {
 public:
 	auto update(
 		EditorEntities& entites,
+		Commands& commands,
 		const Camera& camera, 
 		const std::vector<Entity>& selectedEntities,
 		Vec2 selectedEntitiesCenterPos, 
 		Vec2 cursorPos) -> bool;
 	auto draw(Vec2 selectedEntitiesCenterPos) -> void;
+	auto settingsGui() -> void;
 
 	// Has to be normalized.
 	Vec2 xAxis{ 1.0f, 0.0f };
 	Vec2 yAxis{ 0.0f, 1.0f };
+
+	float gridCellSize = 0.25f;
+	float rotationGridCellSize = PI<float> / 8.0f;
 
 private:
 	float undoZoomScale;

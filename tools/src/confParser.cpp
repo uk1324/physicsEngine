@@ -39,6 +39,7 @@ auto Data::tokenTypeToString(TokenType type) -> std::string_view {
 	case TokenType::RIGHT_PAREN: return "')'";
 	}
 	ASSERT_NOT_REACHED();
+	return "";
 }
 
 Token::Token() 
@@ -265,6 +266,7 @@ auto Parser::fieldType() -> FieldType {
 		return type;
 	} 
 	else if (matchIdentifier("float")) return FieldType{ FieldTypeType::FLOAT };
+	else if (matchIdentifier("angle")) return FieldType{ FieldTypeType::ANGLE };
 	else if (matchIdentifier("i32")) return FieldType{ FieldTypeType::I32 };
 	else if (matchIdentifier("Vec2")) return FieldType{ FieldTypeType::VEC2 };
 	else {

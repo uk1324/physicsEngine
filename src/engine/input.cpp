@@ -19,15 +19,34 @@ auto Input::isKeyHeld(Keycode key) -> bool {
 }
 
 auto Input::isMouseButtonDown(MouseButton button) -> bool {
+	if (!ignoreImGuiWantCapture && ImGui::GetIO().WantCaptureMouse)
+		return false;
 	return isKeyDown(static_cast<Keycode>(button));
 }
 
 auto Input::isMouseButtonUp(MouseButton button) -> bool {
+	if (!ignoreImGuiWantCapture && ImGui::GetIO().WantCaptureMouse)
+		return false;
 	return isKeyUp(static_cast<Keycode>(button));
 }
 
 auto Input::isMouseButtonHeld(MouseButton button) -> bool {
+	if (!ignoreImGuiWantCapture && ImGui::GetIO().WantCaptureMouse)
+		return false;
 	return isKeyHeld(static_cast<Keycode>(button));
+}
+
+auto Input::windowSpaceToScreenSpace(Vec2 v) -> Vec2 {
+	v /= (Window::size() / 2.0f);
+	v.y = -v.y;
+	v += Vec2{ -1.0f, 1.0f };
+	return v;
+}
+
+auto Input::scrollDelta() -> float {
+	if (!ignoreImGuiWantCapture && ImGui::GetIO().WantCaptureMouse)
+		return 0.0f;
+	return scrollDelta_;
 }
 
 auto Input::update() -> void {
@@ -59,9 +78,6 @@ static auto isKeyboardKey(u8 vkCode) -> bool {
 auto Input::onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void {
 	if (virtualKeyCode >= VIRTUAL_KEY_COUNT)
 		return;
-	
-	if (ImGui::GetIO().WantCaptureMouse && isMouseButton(virtualKeyCode))
-		return;
 
 	if (!autoRepeat) {
 		keyDown.set(virtualKeyCode);
@@ -85,9 +101,6 @@ auto Input::onKeyUp(u8 virtualKeyCode) -> void {
 	if (virtualKeyCode >= VIRTUAL_KEY_COUNT)
 		return;
 
-	if (ImGui::GetIO().WantCaptureMouse && isMouseButton(virtualKeyCode))
-		return;
-
 	keyUp.set(virtualKeyCode);
 	keyHeld.set(virtualKeyCode, false);
 
@@ -100,18 +113,15 @@ auto Input::onKeyUp(u8 virtualKeyCode) -> void {
 }
 
 auto Input::onMouseMove(Vec2 mousePos) -> void {
-	cursorPos_ = mousePos;
-	cursorPos_ /= (Window::size() / 2.0f);
-	cursorPos_.y = -cursorPos_.y;
-	cursorPos_ += Vec2{ -1.0f, 1.0f };
+	cursorPos_ = windowSpaceToScreenSpace(mousePos);
+	cursorPosWindowSpace_ = mousePos;
 }
 
 auto Input::onMouseScroll(i16 scroll) -> void {
-	if (ImGui::GetIO().WantCaptureMouse)
-		return;
-
-	scrollDelta_ = scroll / WHEEL_DELTA;
+	scrollDelta_ = static_cast<float>(scroll / WHEEL_DELTA);
 }
+
+bool Input::ignoreImGuiWantCapture = false;
 
 std::bitset<Input::VIRTUAL_KEY_COUNT> Input::keyDown;
 std::bitset<Input::VIRTUAL_KEY_COUNT> Input::keyUp;
@@ -125,4 +135,5 @@ std::unordered_map<int, bool> Input::buttonUp;
 std::unordered_map<int, bool> Input::buttonHeld;
 
 Vec2 Input::cursorPos_;
+Vec2 Input::cursorPosWindowSpace_;
 float Input::scrollDelta_;

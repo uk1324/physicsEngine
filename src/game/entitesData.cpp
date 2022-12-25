@@ -18,7 +18,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	InputFloat("orientation", &orientation);
+	inputAngle("orientation", &orientation);
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(orientation)*>(inputState.placeToSaveDataAfterNewChange()) = orientation;

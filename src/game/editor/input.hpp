@@ -3,5 +3,6 @@
 #include <engine/input.hpp>
 
 enum class EditorButton {
-	FOCUS
+	FOCUS,
+	GIZMO_GRID_SNAP,
 };
