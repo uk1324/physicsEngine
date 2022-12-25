@@ -40,6 +40,7 @@ struct EditorEntityArray {
 	};
 	auto alive() -> Alive;
 	auto add(const T& body) -> void;
+	auto size() const -> usize;
 
 	std::vector<bool> isAlive;
 
@@ -91,6 +92,9 @@ struct EditorEntities {
 	auto getOrientationOrZero(const Entity& entity) -> float;
 
 	auto getAabb(const Entity& entity) -> std::optional<Aabb>;
+
+	auto isAlive(const Entity& entity) const -> bool;
+	auto setIsAlive(const Entity& entity, bool value) -> void;
 };
 
 template<typename T>
@@ -102,6 +106,12 @@ template<typename T>
 auto EditorEntityArray<T>::add(const T& body) -> void {
 	data.push_back(body);
 	isAlive.push_back(true);
+}
+
+template<typename T>
+auto EditorEntityArray<T>::size() const -> usize {
+	ASSERT(data.size() == isAlive.size());
+	return data.size();
 }
 
 template<typename T>
@@ -145,7 +155,11 @@ auto EditorEntityArray<T>::AliveIterator::operator*() -> T& {
 
 template<typename T>
 auto EditorEntityArray<T>::Alive::begin() -> AliveIterator {
-	return AliveIterator{ .index = 0, .array = array };
+	usize index = 0;
+	while (index < array.isAlive.size() && !array.isAlive[index]) {
+		index++;
+	}
+	return AliveIterator{ .index = index, .array = array };
 }
 
 template<typename T>

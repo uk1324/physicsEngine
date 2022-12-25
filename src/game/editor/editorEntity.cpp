@@ -95,6 +95,20 @@ auto EditorEntities::getAabb(const Entity& entity) -> std::optional<Aabb> {
 		const auto& bodyEntity = body[entity.index];
 		return aabb(bodyEntity.collider, bodyEntity.pos, bodyEntity.orientation);
 	}
-	default: return std::nullopt; break;
+	default: return std::nullopt;
 	}
+}
+
+auto EditorEntities::isAlive(const Entity& entity) const -> bool {
+	switch (entity.type) {
+	case EntityType::Body: return body.isAlive[entity.index];
+	default: return false;
+	}
+}
+
+auto EditorEntities::setIsAlive(const Entity& entity, bool value) -> void {
+	switch (entity.type) {
+	case EntityType::Body: body.isAlive[entity.index] = value; return;
+	}
+	ASSERT_NOT_REACHED();
 }

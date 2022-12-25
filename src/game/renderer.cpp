@@ -113,8 +113,7 @@ Renderer::Renderer(Gfx& gfx) {
 			.CPUAccessFlags = 0,
 			.MiscFlags = 0,
 		};
-
-		gfx.device->CreateTexture2D(&textureDesc, nullptr, texture.GetAddressOf());
+		CHECK_WIN_HRESULT(gfx.device->CreateTexture2D(&textureDesc, nullptr, texture.GetAddressOf()));
 
 		const D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc{
 			.Format = textureDesc.Format,
@@ -123,8 +122,7 @@ Renderer::Renderer(Gfx& gfx) {
 				.MipSlice = 0
 			}
 		};
-
-		gfx.device->CreateRenderTargetView(texture.Get(), &renderTargetViewDesc, textureRenderTargetView.GetAddressOf());
+		CHECK_WIN_HRESULT(gfx.device->CreateRenderTargetView(texture.Get(), &renderTargetViewDesc, textureRenderTargetView.GetAddressOf()));
 
 		const D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc{
 			.Format = textureDesc.Format,
@@ -134,7 +132,7 @@ Renderer::Renderer(Gfx& gfx) {
 				.MipLevels = 1,
 			}
 		};
-		gfx.device->CreateShaderResourceView(texture.Get(), &shaderResourceViewDesc, textureShaderResourceView.GetAddressOf());
+		CHECK_WIN_HRESULT(gfx.device->CreateShaderResourceView(texture.Get(), &shaderResourceViewDesc, textureShaderResourceView.GetAddressOf()));
 	}
 }
 

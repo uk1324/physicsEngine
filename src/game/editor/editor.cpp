@@ -54,7 +54,6 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMax()
 	);
 	const auto sceneWindowSize = sceneWindowWindowSpace.size();
-	camera.aspectRatio = sceneWindowSize.x / sceneWindowSize.y;
 	ImGui::Image(reinterpret_cast<void*>(renderer.textureShaderResourceView.Get()), sceneWindowSize, Vec2{ 0.0f }, sceneWindowSize / renderer.textureSize);
 
 	if (IsWindowHovered()) {
@@ -79,6 +78,8 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			.rotationalInertia = 1.0f,
 			.collider = BoxColliderEditor{ Vec2{ 1.0f } }
 		});
+		const Entity entity{ .index = entites.body.size() - 1 };
+		commands.addCommand(CreateEntityCommand{ entity });
 	}
 	End();
 
@@ -124,7 +125,8 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	// For the camera not to lag behind it is updated first so all functions have the same information about the camera.
-	updateCamera();
+	const auto aspectRatio = sceneWindowSize.x / sceneWindowSize.y;
+	updateCamera(aspectRatio);
 
 	const auto isGizmoSelected = selectedEntitiesGizmo.update(entites, commands, camera, selectedEntities, selectedEntitiesCenterPos, getCursorPos());
 
@@ -239,6 +241,22 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	lastFrameSelectedEntitiesCenterPos = selectedEntitiesCenterPos;
 	lastFrameSelectedEntitiesAabb = selectedEntitesAabb;
 
+	if (Input::isKeyDown(Keycode::DEL)) {
+		commands.beginMulticommand();
+
+		const Span<const Entity> empty{ nullptr, 0 };
+		commands.addSelectCommand(selectedEntities, empty);
+
+		for (auto& entity : selectedEntities) {
+			entites.setIsAlive(entity, false);
+			commands.addCommand(DeleteEntityCommand{ entity });
+		}
+		
+		commands.endMulticommand();
+
+		selectedEntities.clear();
+	}
+
 	for (const auto& body : entites.body.alive()) {
 		Debug::drawCollider(body.collider, body.pos, body.orientation, Vec3::WHITE);
 	}
@@ -248,10 +266,12 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	renderer.update(gfx, camera, sceneWindowSize, true);
+
+	debugChecks();
 }
 
-auto Editor::updateCamera() -> void {
-	//camera.aspectRatio = Window::aspectRatio(); // ~!!!!!!!!!!!!!!!!!!!!
+auto Editor::updateCamera(float aspectRatio) -> void {
+	camera.aspectRatio = aspectRatio;
 	const auto cursorPos = getCursorPos();
 
 	const auto userMovedCamera = lastFrameFocusPos != camera.pos;
@@ -292,6 +312,12 @@ auto Editor::updateCamera() -> void {
 		else camera.zoom /= scrollIncrement;
 
 		camera.pos -= (getCursorPos() - cursorPosBeforeScroll);
+	}
+}
+
+auto Editor::debugChecks() -> void {
+	for (auto& entity : selectedEntities) {
+		ASSERT(entites.isAlive(entity));
 	}
 }
 
@@ -348,6 +374,12 @@ auto Editor::undoCommand(const Command& command) -> void {
 		[this](const SelectCommand& select) {
 			selectedEntities = select.oldSelectedEntites;
 		},
+		[this](const CreateEntityCommand& create) {
+			entites.setIsAlive(create.entity, false);
+		},
+		[this](const DeleteEntityCommand& deleteEntity) {
+			entites.setIsAlive(deleteEntity.entity, true);
+		},
 	}, command);
 }
 
@@ -359,6 +391,12 @@ auto Editor::redoCommand(const Command& command) -> void {
 		},
 		[this](const SelectCommand& select) {
 			selectedEntities = select.newSelectedEntites;
+		},
+		[this](const CreateEntityCommand& create) {
+			entites.setIsAlive(create.entity, true);
+		},
+		[this](const DeleteEntityCommand& deleteEntity) {
+			entites.setIsAlive(deleteEntity.entity, false);
 		},
 	}, command);
 }

@@ -12,7 +12,8 @@ public:
 	auto update(Gfx& gfx, Renderer& renderer) -> void;
 
 private:
-	auto updateCamera() -> void;
+	auto updateCamera(float aspectRatio) -> void;
+	auto debugChecks() -> void;
 
 	Aabb sceneWindowWindowSpace{ Vec2{ 0.0f }, Vec2{ 0.0f } };
 	auto getCursorPos() -> Vec2;

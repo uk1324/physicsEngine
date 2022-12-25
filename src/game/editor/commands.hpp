@@ -3,10 +3,6 @@
 #include <game/editor/editorEntity.hpp>
 #include <memory>
 
-struct SetFieldCommand;
-struct SelectCommand;
-using Command = std::variant<SetFieldCommand, SelectCommand>;
-
 struct SetFieldCommand {
 	Entity entity;
 	u8 size;
@@ -26,6 +22,16 @@ struct SelectCommand {
 	std::vector<Entity> oldSelectedEntites;
 	std::vector<Entity> newSelectedEntites;
 };
+
+struct CreateEntityCommand {
+	Entity entity;
+};
+
+struct DeleteEntityCommand {
+	Entity entity;
+};
+
+using Command = std::variant<SetFieldCommand, SelectCommand, CreateEntityCommand, DeleteEntityCommand>;
 
 // @Performance: For storing variable sized types could store pointers to data allocated on the command allocator stack.
 struct Commands {

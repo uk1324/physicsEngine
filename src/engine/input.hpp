@@ -13,6 +13,7 @@ enum class Keycode : u8 {
 	UP = 0x26,
 	RIGHT = 0x27,
 	DOWN = 0x28,
+	DEL = 0x2E,
 	A = 'A',
 	B = 'B',
 	C = 'C',

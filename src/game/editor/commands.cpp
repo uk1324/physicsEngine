@@ -18,6 +18,7 @@ auto Commands::beginMulticommand() -> void {
 
 auto Commands::endMulticommand() -> void {
     ASSERT(recordingMulticommand);
+    // Not asserting that the multicommand isn't empty because it allows writing easier code when adding commands in a loop over a range which can be empty.
     recordingMulticommand = false;
     if (currentMulticommandSize != 0) {
         commandSizes.push_back(currentMulticommandSize);
