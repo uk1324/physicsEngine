@@ -7,7 +7,19 @@ using namespace ImGui;
 using namespace Json;
 
 auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
-	InputFloat2("pos", pos.data());
+	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
+	PopStyleVar();
+		return;
+	}
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("pos");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat2("##pos", pos.data());
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(pos)*>(inputState.placeToSaveDataAfterNewChange()) = pos;
@@ -18,7 +30,14 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	inputAngle("orientation", &orientation);
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("orientation");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	inputAngle("##orientation", &orientation);
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(orientation)*>(inputState.placeToSaveDataAfterNewChange()) = orientation;
@@ -29,7 +48,14 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	InputFloat2("vel", vel.data());
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("vel");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat2("##vel", vel.data());
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(vel)*>(inputState.placeToSaveDataAfterNewChange()) = vel;
@@ -40,7 +66,14 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	InputFloat("angularVel", &angularVel);
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("angularVel");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat("##angularVel", &angularVel);
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(angularVel)*>(inputState.placeToSaveDataAfterNewChange()) = angularVel;
@@ -51,7 +84,14 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	InputFloat("mass", &mass);
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("mass");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat("##mass", &mass);
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(mass)*>(inputState.placeToSaveDataAfterNewChange()) = mass;
@@ -62,7 +102,14 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	InputFloat("rotationalInertia", &rotationalInertia);
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("rotationalInertia");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat("##rotationalInertia", &rotationalInertia);
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(rotationalInertia)*>(inputState.placeToSaveDataAfterNewChange()) = rotationalInertia;
@@ -73,7 +120,14 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	InputFloat("coefficientOfFriction", &coefficientOfFriction);
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("coefficientOfFriction");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat("##coefficientOfFriction", &coefficientOfFriction);
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(coefficientOfFriction)*>(inputState.placeToSaveDataAfterNewChange()) = coefficientOfFriction;
@@ -84,7 +138,16 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("collider");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
 	displayColliderGui(collider);
+	NextColumn();
+	EndTable();
+	PopStyleVar();
 }
 
 auto BodyEditor::toJson() const -> Json::Value {
@@ -114,7 +177,19 @@ auto BodyEditor::fromJson(const Json::Value& json) -> BodyEditor {
 }
 
 auto DistanceJointAnchorEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
+	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
+	PopStyleVar();
+		return;
+	}
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("body");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
 	;
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(body)*>(inputState.placeToSaveDataAfterNewChange()) = body;
@@ -125,7 +200,14 @@ auto DistanceJointAnchorEditor::editorGui(EditorGuiState& inputState, EditorEnti
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	InputFloat2("objectSpaceOffset", objectSpaceOffset.data());
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("objectSpaceOffset");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat2("##objectSpaceOffset", objectSpaceOffset.data());
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(objectSpaceOffset)*>(inputState.placeToSaveDataAfterNewChange()) = objectSpaceOffset;
@@ -136,6 +218,8 @@ auto DistanceJointAnchorEditor::editorGui(EditorGuiState& inputState, EditorEnti
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
+	EndTable();
+	PopStyleVar();
 }
 
 auto DistanceJointAnchorEditor::toJson() const -> Json::Value {
@@ -153,9 +237,35 @@ auto DistanceJointAnchorEditor::fromJson(const Json::Value& json) -> DistanceJoi
 }
 
 auto DistanceJointEntityEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
+	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
+	PopStyleVar();
+		return;
+	}
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("anchorA");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
 	anchorA.editorGui(inputState, entites, entity, commands);
+	NextColumn();
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("staticWorldSpaceAnchorOrBodyAnchorB");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
 	displayAnchorGui(staticWorldSpaceAnchorOrBodyAnchorB);
-	InputFloat("distance", &distance);
+	NextColumn();
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("distance");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat("##distance", &distance);
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(distance)*>(inputState.placeToSaveDataAfterNewChange()) = distance;
@@ -166,6 +276,8 @@ auto DistanceJointEntityEditor::editorGui(EditorGuiState& inputState, EditorEnti
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
+	EndTable();
+	PopStyleVar();
 }
 
 auto DistanceJointEntityEditor::toJson() const -> Json::Value {

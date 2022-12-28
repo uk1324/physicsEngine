@@ -65,11 +65,20 @@ auto findFieldProperty(const Field& field, FieldPropertyType type) -> std::optio
 };
 
 auto outFieldEditor(std::ostream& os, const Field& field, const FieldType& type, std::string_view name) -> void {
+	os << "\tTableNextRow();\n"
+		"\tTableSetColumnIndex(0);\n"
+		"\tAlignTextToFramePadding();\n"
+		"\tText(\"" << name << "\");\n";
+
+	os << "\tTableSetColumnIndex(1);\n"
+		"\tSetNextItemWidth(-FLT_MIN);\n";
+
+	os << "\t";
 	switch (type.type) {
-	case FieldTypeType::I32: os << "InputInt(\"" << name << "\", &" << name << ")"; break;
-	case FieldTypeType::FLOAT: os << "InputFloat(\"" << name << "\", &" << name << ")"; break;
-	case FieldTypeType::ANGLE: os << "inputAngle(\"" << name << "\", &" << name << ")"; break;
-	case FieldTypeType::VEC2: os << "InputFloat2(\"" << name << "\", " << name << ".data())"; break;
+	case FieldTypeType::I32: os << "InputInt(\"##" << name << "\", &" << name << ")"; break;
+	case FieldTypeType::FLOAT: os << "InputFloat(\"##" << name << "\", &" << name << ")"; break;
+	case FieldTypeType::ANGLE: os << "inputAngle(\"##" << name << "\", &" << name << ")"; break;
+	case FieldTypeType::VEC2: os << "InputFloat2(\"##" << name << "\", " << name << ".data())"; break;
 	case FieldTypeType::CPP: {
 		const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
 		if (customProperty.has_value()) {
@@ -91,6 +100,8 @@ auto outFieldEditor(std::ostream& os, const Field& field, const FieldType& type,
 		}
 		break;
 	}
+	os << ";\n";
+	os << "\tNextColumn();\n";
 }
 
 auto outFieldSerialize(std::ostream& os, const Field& field, const FieldType& type, std::string_view name) -> void {
@@ -201,12 +212,17 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 					hppOut << "\tauto " << editorGuiSignature << ";\n";
 
 					cppOut << "auto " << structure.name << "Editor::" << editorGuiSignature << " {\n";
+
+					cppOut << "\tPushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));\n"
+						"\tif (!BeginTable(\"properites\", 2, ImGuiTableFlags_SizingStretchProp)) {\n"
+						"\t\PopStyleVar();\n"
+						"\t\treturn;\n"
+						"\t}\n";
+
 					for (const auto& field : structure.fields) {
-						if (field.type.type != FieldTypeType::VARIANT)
-							cppOut << '\t';
+						
 						outFieldEditor(cppOut, field, field.type, field.name);
-						if (field.type.type != FieldTypeType::VARIANT)
-							cppOut << ";\n";
+						
 
 						if (field.type.type != FieldTypeType::CPP) {
 							cppOut << "\tif (IsItemActivated()) {\n "
@@ -226,8 +242,13 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 							cppOut << "\t}\n";
 
 							cppOut << "\tif (IsItemDeactivated()) { inputState.inputing = false; }\n\n";
+
 						}
 					}
+
+					cppOut << "\tEndTable();\n"
+						"\tPopStyleVar();\n";
+
 					cppOut << "}\n\n";
 					break;
 				}

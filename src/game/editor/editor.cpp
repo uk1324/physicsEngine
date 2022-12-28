@@ -86,23 +86,23 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	bool openLevelsModal = false;
 
-	ImGui::ShowDemoWindow();
+	//ImGui::ShowDemoWindow();
 
-	if (ImGui::BeginMainMenuBar()) {
-		if (ImGui::BeginMenu("Editor")) {
-			if (ImGui::MenuItem("Level")) {
-				openLevelsModal = true;
-			}
-			ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-			ImGui::EndMenu();
-		}
-		ImGui::EndMainMenuBar();
-	}
+	//if (ImGui::BeginMainMenuBar()) {
+	//	if (ImGui::BeginMenu("Editor")) {
+	//		if (ImGui::MenuItem("Level")) {
+	//			openLevelsModal = true;
+	//		}
+	//		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+	//		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+	//		ImGui::EndMenu();
+	//	}
+	//	ImGui::EndMainMenuBar();
+	//}
 
-	if (openLevelsModal) {
-		ImGui::OpenPopup("Levels");
-	}
+	//if (openLevelsModal) {
+	//	ImGui::OpenPopup("Levels");
+	//}
 
 	//ImGui::ViewportS
 	//ImGui::SetNextWindowSize()
@@ -143,6 +143,49 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	//	if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
 	//	ImGui::EndPopup();
 	//}
+
+	//ImGui::Begin("Example: Property editor");
+
+
+	//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 2));
+	//if (ImGui::BeginTable("split", 2, ImGuiTableFlags_SizingStretchProp))
+	//{
+	//	
+	//	// Use object uid as identifier. Most commonly you could also use the object pointer as a base ID.
+
+	//	// Text and Tree nodes are less high than framed widgets, using AlignTextToFramePadding() we add vertical spacing to make the tree lines equal high.
+	//	/*ImGui::TableNextRow();
+	//	ImGui::TableSetColumnIndex(0);
+	//	ImGui::AlignTextToFramePadding();
+	//	ImGui::TableSetColumnIndex(1);
+	//	ImGui::Text("my sailor is rich");*/
+
+	//	{
+	//		static float placeholder_members[8] = { 0.0f, 0.0f, 1.0f, 3.1416f, 100.0f, 999.0f };
+	//		for (int i = 0; i < 8; i++)
+	//		{
+	//			ImGui::PushID(i); // Use field index as identifier.
+	//			{
+	//				// Here we use a TreeNode to highlight on hover (we could use e.g. Selectable as well)
+	//				ImGui::TableNextRow();
+	//				ImGui::TableSetColumnIndex(0);
+	//				ImGui::AlignTextToFramePadding();
+	//				ImGui::Text("Field");
+
+	//				ImGui::TableSetColumnIndex(1);
+	//				ImGui::SetNextItemWidth(-FLT_MIN);
+	//				ImGui::InputFloat("##value", &placeholder_members[i], 1.0f);
+	//				ImGui::NextColumn();
+	//			}
+	//			ImGui::PopID();
+	//		}
+	//		//ImGui::TreePop();
+	//	}
+
+	//	ImGui::EndTable();
+	//}
+	//ImGui::PopStyleVar();
+	//ImGui::End();
 
 
 

@@ -7,7 +7,19 @@ using namespace ImGui;
 using namespace Json;
 
 auto CircleColliderEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
-	InputFloat("radius", &radius);
+	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
+	PopStyleVar();
+		return;
+	}
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("radius");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat("##radius", &radius);
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(radius)*>(inputState.placeToSaveDataAfterNewChange()) = radius;
@@ -18,6 +30,8 @@ auto CircleColliderEditor::editorGui(EditorGuiState& inputState, EditorEntities&
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
+	EndTable();
+	PopStyleVar();
 }
 
 auto CircleColliderEditor::toJson() const -> Json::Value {
@@ -33,7 +47,19 @@ auto CircleColliderEditor::fromJson(const Json::Value& json) -> CircleColliderEd
 }
 
 auto BoxColliderEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
-	InputFloat2("size", size.data());
+	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
+	PopStyleVar();
+		return;
+	}
+	TableNextRow();
+	TableSetColumnIndex(0);
+	AlignTextToFramePadding();
+	Text("size");
+	TableSetColumnIndex(1);
+	SetNextItemWidth(-FLT_MIN);
+	InputFloat2("##size", size.data());
+	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(size)*>(inputState.placeToSaveDataAfterNewChange()) = size;
@@ -44,6 +70,8 @@ auto BoxColliderEditor::editorGui(EditorGuiState& inputState, EditorEntities& en
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
+	EndTable();
+	PopStyleVar();
 }
 
 auto BoxColliderEditor::toJson() const -> Json::Value {

@@ -5,3 +5,12 @@ https://www.youtube.com/watch?v=Ac3BHeZFhMU
 A worker thread pauses all threads and gets their call stack info unpauses them and sleeps for 10 ms in a loop.
 
 Using an enum instead of bools allows inside editors prevents invalid states.
+
+Undo system
+https://docs.unity3d.com/ScriptReference/Undo.html
+https://docs.unity3d.com/ScriptReference/Undo.RecordObject.html
+To make it easy to create custom GUIs could do something similar to unity and store the object's entire binary representation and the if any of the inputs is ufocused save the diffs. This would allow for writing custom editor GUIs without having to worry about making anything undoable.
+Another option would be to extend the data language to allow more customization like only displaying things if something is true, but this seems like it would be really complicated and pointless because it will always have more limits than the other idea.
+
+The current undo API I have create seems similar to the godot api.
+https://docs.godotengine.org/en/stable/classes/class_undoredo.html
