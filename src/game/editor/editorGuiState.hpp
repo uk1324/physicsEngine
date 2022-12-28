@@ -12,5 +12,5 @@ struct EditorGuiState {
 private:
 	bool updatedNewSaveDataLastCall = false;
 	i32 oldSavedDataIndex = 0;
-	u8 savedInputData[256][2];
+	u8 savedInputData[256][2]{ 0 };
 };

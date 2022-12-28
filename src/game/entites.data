@@ -1,6 +1,7 @@
 ~
 #include <game/collidersData.hpp>
 #include <variant>
+#include <optional>
 
 using Collider = std::variant<BoxCollider, CircleCollider>;
 auto colliderToJson(const Collider& collider) -> Json::Value;
@@ -30,4 +31,21 @@ Body @Editor {
 	float invMass;
 	float invRotationalInertia;
 	~
+}
+
+DistanceJointAnchor @Editor {
+	usize body;
+	Vec2 objectSpaceOffset;
+}
+
+~
+auto anchorToJson(const std::variant<Vec2, DistanceJointAnchorEditor>& anchor) -> Json::Value;
+auto jsonToAnchor(const Json::Value& json) -> std::variant<Vec2, DistanceJointAnchorEditor>;
+auto displayAnchorGui(const std::variant<Vec2, DistanceJointAnchorEditor>& anchor) -> void;
+~
+
+DistanceJointEntity @Editor {
+	~DistanceJointAnchorEditor~ anchorA;
+	~std::variant<Vec2, DistanceJointAnchorEditor>~ staticWorldSpaceAnchorOrBodyAnchorB Custom(anchorToJson jsonToAnchor displayAnchorGui);
+	float distance;
 }

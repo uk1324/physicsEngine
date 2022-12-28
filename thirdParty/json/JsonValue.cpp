@@ -452,6 +452,8 @@ void Json::Value::destructValue()
 	case Type::Array:
 		m_value.array.~vector();
 		break;
+	default:
+		break;
 	}
 }
 
@@ -487,7 +489,7 @@ Json::Value::Union::Union(bool boolean)
 	: boolean(boolean)
 {}
 
-Json::Value::Union::Union(std::nullptr_t null)
+Json::Value::Union::Union(std::nullptr_t)
 	: null(nullptr)
 {}
 

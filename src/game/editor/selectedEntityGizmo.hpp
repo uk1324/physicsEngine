@@ -2,7 +2,7 @@
 
 #include <game/entitesData.hpp>
 #include <game/editor/editorEntity.hpp>
-#include <game/renderer.hpp>
+#include <game/camera.hpp>
 #include <math/utils.hpp>
 
 /*
@@ -33,10 +33,10 @@ public:
 	float rotationGridCellSize = PI<float> / 8.0f;
 
 private:
-	float undoZoomScale;
-	float xyAxisGizmosLength;
-	float bothGizmoBoxSize;
-	float rotationGizmoRadius;
+	float undoZoomScale = 0.0f;
+	float xyAxisGizmosLength = 0.0f;
+	float bothGizmoBoxSize = 0.0f;
+	float rotationGizmoRadius = 0.0f;
 
 	enum class GizmoType {
 		X, Y, BOTH, NONE, ROTATION

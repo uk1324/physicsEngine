@@ -148,6 +148,7 @@
     <ClCompile Include="..\thirdParty\json\JsonParser.cpp" />
     <ClCompile Include="..\thirdParty\json\JsonPrinter.cpp" />
     <ClCompile Include="..\thirdParty\json\JsonValue.cpp" />
+    <ClCompile Include="src\conf.cpp" />
     <ClCompile Include="src\confParser.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>

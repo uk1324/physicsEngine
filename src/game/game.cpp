@@ -152,9 +152,9 @@ auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
 	if (Input::isKeyDown(Keycode::V)) {
 		level = Json::Value::emptyObject();
 		level["bodies"] = Json::Value::emptyArray();
-		auto& bodies = level["bodies"].array();
+		auto& bodyList = level["bodies"].array();
 		for (const auto& body : ::bodies) {
-			bodies.push_back(body.toJson());
+			bodyList.push_back(body.toJson());
 		}
 		std::ofstream file("test.json");
 		//Json::prettyPrint(file, level);

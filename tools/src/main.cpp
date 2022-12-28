@@ -29,6 +29,85 @@ auto readFile(std::string_view path) -> std::optional<std::string> {
 	return result;
 }
 
+static auto operator<<(std::ostream& os, const Data::FieldType& type) -> std::ostream& {
+	using namespace Data;
+	switch (type.type) {
+	case FieldTypeType::I32: os << "i32"; break;
+	case FieldTypeType::FLOAT:
+	case FieldTypeType::ANGLE:
+		os << "float";
+		break;
+	case FieldTypeType::VEC2: os << "Vec2"; break;
+	case FieldTypeType::CPP: os << type.cpp; break;
+	case FieldTypeType::USIZE: os << "usize"; break;
+	case FieldTypeType::VARIANT:
+		os << "std::variant<";
+		for (usize i = 0; i < type.variant.size(); i++) {
+			os << type.variant[i];
+			if (i != type.variant.size() - 1) {
+				os << ", ";
+			}
+		}
+		os << ">";
+	}
+	return os;
+}
+
+using namespace Data;
+
+auto findFieldProperty(const Field& field, FieldPropertyType type) -> std::optional<FieldProperty> {
+	for (const auto& property : field.properties) {
+		if (property.type == type) {
+			return property;
+		}
+	}
+	return std::nullopt;
+};
+
+auto outFieldEditor(std::ostream& os, const Field& field, const FieldType& type, std::string_view name) -> void {
+	switch (type.type) {
+	case FieldTypeType::I32: os << "InputInt(\"" << name << "\", &" << name << ")"; break;
+	case FieldTypeType::FLOAT: os << "InputFloat(\"" << name << "\", &" << name << ")"; break;
+	case FieldTypeType::ANGLE: os << "inputAngle(\"" << name << "\", &" << name << ")"; break;
+	case FieldTypeType::VEC2: os << "InputFloat2(\"" << name << "\", " << name << ".data())"; break;
+	case FieldTypeType::CPP: {
+		const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
+		if (customProperty.has_value()) {
+			os << customProperty->customGuiFn << "(" << name << ")"; 
+		} else {
+			os << name << ".editorGui(inputState, entites, entity, commands)";
+		}
+		break;
+	}
+	case FieldTypeType::USIZE:
+		break;
+	case FieldTypeType::VARIANT:
+		for (const auto& type : type.variant) {
+			os << "\tif (const auto value = std::get_if<" << type << ">(&" << name << ")){\n";
+			os << "\t\t";
+			outFieldEditor(os, field, type, "(*value)");
+			os << ";\n\t}\n";
+			os << "\n";
+		}
+		break;
+	}
+}
+
+auto outFieldSerialize(std::ostream& os, const Field& field, const FieldType& type, std::string_view name) -> void {
+	switch (type.type) {
+	case FieldTypeType::I32: os << "Json::Value(" << field.name << ")"; break;
+	case FieldTypeType::FLOAT:
+	case FieldTypeType::ANGLE:
+		os << "Json::Value(" << field.name << ")";
+		break;
+	case FieldTypeType::VEC2: os << "{ { \"x\", " << field.name << ".x }, { \"y\", " << field.name << ".y } }"; break;
+	case FieldTypeType::USIZE: os << "Json::Value(static_cast<Json::Value::IntType>(" << field.name << "))"; break;
+	case FieldTypeType::CPP: os << name << ".toJson()"; break;
+	case FieldTypeType::VARIANT:
+		break;
+	}
+}
+
 auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath, std::ostream& hppOut, std::ostream& cppOut) -> void {
 	using namespace Data;
 
@@ -73,103 +152,88 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 		cppOut << '\n';
 	}
 
-	for (const auto& cppCode : conf.cppCode) {
-		hppOut << cppCode << '\n';
-	}
-
-	for (const auto& structure : conf.structs) {
-		hppOut << "struct " << structure.name << "Editor {\n";
-
-		for (const auto& field : structure.fields) {
-			hppOut << '\t';
-			switch (field.type.type) {
-			case FieldTypeType::I32: hppOut << "i32"; break;
-			case FieldTypeType::FLOAT: 
-			case FieldTypeType::ANGLE:
-				hppOut << "float"; 
-				break;
-			case FieldTypeType::VEC2: hppOut << "Vec2"; break;
-			case FieldTypeType::CPP: hppOut << field.type.cpp; break;
-			}
-			hppOut << " " << field.name << ";\n";
+	for (const auto& code : conf.orderedCode) {
+		switch (code.type) {
+		case DataFile::CodeType::CPP_CODE: {
+			const auto& cppCode = conf.cppCode[code.index];
+			hppOut << cppCode << '\n';
 		}
+		break;
 
-		hppOut << '\n';
+		case DataFile::CodeType::STRUCT: {
+			const auto& structure = conf.structs[code.index];
+			hppOut << "struct " << structure.name << "Editor {\n";
 
-		auto findFieldProperty = [](const Field& field, FieldPropertyType type) -> std::optional<FieldProperty> {
-			for (const auto& property : field.properties) {
-				if (property.type == type) {
-					return property;
+			for (const auto& field : structure.fields) {
+				hppOut << '\t' << field.type << " " << field.name << ";\n";
+			}
+
+			hppOut << '\n';
+
+			auto outFirstLetterUppercase = [](std::ostream& os, std::string_view str) -> void {
+				if (str.length() > 0) {
+					os << static_cast<char>(toupper(str[0]));
+					os << str.substr(1);
 				}
-			}
-			return std::nullopt;
-		};
+			};
 
-		auto outUpperSnakeCase = [](std::ostream& os, std::string_view str) -> void {
-			for (usize i = 0; i < str.size(); i++) {
-				const auto c = str[i];
-				if (isupper(c) && i != 0 && i != str.size() - 1)
-					os << '_';
-				os << static_cast<char>(toupper(c));
-			}
-		};
+			auto outUpperSnakeCase = [](std::ostream& os, std::string_view str) -> void {
+				for (usize i = 0; i < str.size(); i++) {
+					const auto c = str[i];
+					if (isupper(c) && i != 0)
+						os << '_';
+					os << static_cast<char>(toupper(c));
+				}
+			};
 
-		auto outOffsetName = [outUpperSnakeCase](std::ostream& os, std::string_view structName, std::string_view fieldName) -> void {
-			outUpperSnakeCase(os, structName);
-			os << "_EDITOR_";
-			outUpperSnakeCase(os, fieldName);
-			os << "_OFFSET";
-		};
+			auto outOffsetName = [outUpperSnakeCase](std::ostream& os, std::string_view structName, std::string_view fieldName) -> void {
+				outUpperSnakeCase(os, structName);
+				os << "_EDITOR_";
+				outUpperSnakeCase(os, fieldName);
+				os << "_OFFSET";
+			};
 
-		for (const auto& property : structure.properties) {
-			switch (property) {
-			case StructPropertyType::IM_GUI: {
-				
-				const auto editorGuiSignature = "editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void";
-				hppOut << "\tauto " << editorGuiSignature << ";\n";
+			for (const auto& property : structure.properties) {
+				switch (property) {
+				case StructPropertyType::IM_GUI: {
 
-				cppOut << "auto " << structure.name << "Editor::" << editorGuiSignature << " {\n";
-				for (const auto& field : structure.fields) {
-					const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
-					if (field.type.type == FieldTypeType::CPP && !customProperty.has_value())
-						continue;
+					const auto editorGuiSignature = "editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void";
+					hppOut << "\tauto " << editorGuiSignature << ";\n";
 
-					cppOut << '\t';
-					switch (field.type.type) {
-					case FieldTypeType::I32: cppOut << "InputInt(\"" << field.name << "\", &" << field.name << ")"; break;
-					case FieldTypeType::FLOAT: cppOut << "InputFloat(\"" << field.name << "\", &" << field.name << ")"; break;
-					case FieldTypeType::ANGLE: cppOut << "inputAngle(\"" << field.name << "\", &" << field.name << ")"; break;
-					case FieldTypeType::VEC2: cppOut << "InputFloat2(\"" << field.name << "\", " << field.name << ".data())"; break;
-					case FieldTypeType::CPP: cppOut << customProperty->customGuiFn << "(" << field.name << ")"; break;
-					}
-					cppOut << ";\n";
+					cppOut << "auto " << structure.name << "Editor::" << editorGuiSignature << " {\n";
+					for (const auto& field : structure.fields) {
+						if (field.type.type != FieldTypeType::VARIANT)
+							cppOut << '\t';
+						outFieldEditor(cppOut, field, field.type, field.name);
+						if (field.type.type != FieldTypeType::VARIANT)
+							cppOut << ";\n";
 
-					if (field.type.type != FieldTypeType::CPP) {
-						cppOut << "\tif (IsItemActivated()) {\n "
-							"\t\tinputState.inputing = true;\n"
-							"\t\t*reinterpret_cast<decltype(" << field.name << ")*>(inputState.placeToSaveDataAfterNewChange()) = " << field.name << ";\n"
-							"\t}\n";
+						if (field.type.type != FieldTypeType::CPP) {
+							cppOut << "\tif (IsItemActivated()) {\n "
+								"\t\tinputState.inputing = true;\n"
+								"\t\t*reinterpret_cast<decltype(" << field.name << ")*>(inputState.placeToSaveDataAfterNewChange()) = " << field.name << ";\n"
+								"\t}\n";
 
-						cppOut << "\tif (IsItemDeactivatedAfterEdit()) {\n";
-						if (DEBUG_PRINT_OLD_SAVED_STATE_BEFORE_ADDING_COMMAND) {
-							cppOut << "\t\tdbg(*reinterpret_cast<decltype(" << field.name << ")*>(inputState.oldSavedData()));\n";
+							cppOut << "\tif (IsItemDeactivatedAfterEdit()) {\n";
+							if (DEBUG_PRINT_OLD_SAVED_STATE_BEFORE_ADDING_COMMAND) {
+								cppOut << "\t\tdbg(*reinterpret_cast<decltype(" << field.name << ")*>(inputState.oldSavedData()));\n";
+							}
+							cppOut << "\t\tcommands.addSetFieldCommand(entity, ";
+							outOffsetName(cppOut, structure.name, field.name);
+							cppOut << ", inputState.oldSavedData(), entites.getFieldPointer(entity, ";
+							outOffsetName(cppOut, structure.name, field.name);
+							cppOut << "), static_cast<u8>(sizeof(" << field.name << ")));\n";
+							cppOut << "\t}\n";
+
+							cppOut << "\tif (IsItemDeactivated()) { inputState.inputing = false; }\n\n";
 						}
-						cppOut << "\t\tcommands.addSetFieldCommand(entity, ";
-						outOffsetName(cppOut, structure.name, field.name);
-						cppOut << ", inputState.oldSavedData(), entites.getFieldPointer(entity, ";
-						outOffsetName(cppOut, structure.name, field.name);
-						cppOut << "), static_cast<u8>(sizeof(" << field.name << ")));\n";
-						cppOut << "\t}\n";
-
-						cppOut << "\tif (IsItemDeactivated()) { inputState.inputing = false; }\n\n";
 					}
+					cppOut << "}\n\n";
+					break;
 				}
-				cppOut << "}\n\n";
-				break;
-			}
-				
 
-			case StructPropertyType::SERIALIZABLE:
+
+				case StructPropertyType::SERIALIZABLE:
 				{
 					hppOut << "\tauto toJson() const -> Json::Value;\n";
 
@@ -178,21 +242,11 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 					for (const auto& field : structure.fields) {
 						const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
 
-						if (field.type.type == FieldTypeType::CPP && !customProperty.has_value())
-							continue;
-
 						cppOut << "\tresult[\"" << field.name << "\"] = ";
 						if (customProperty.has_value()) {
 							cppOut << customProperty->customSerializeFn << "(" << field.name << ")";
 						} else {
-							switch (field.type.type) {
-							case FieldTypeType::I32: cppOut << "Json::Value(" << field.name << ")"; break;
-							case FieldTypeType::FLOAT: 
-							case FieldTypeType::ANGLE:
-								cppOut << "Json::Value(" << field.name << ")"; 
-								break;
-							case FieldTypeType::VEC2: cppOut << "{ { \"x\", " << field.name << ".x }, { \"y\", " << field.name << ".y } }"; break;
-							}
+							outFieldSerialize(cppOut, field, field.type, field.name);
 						}
 						cppOut << ";\n";
 					}
@@ -223,11 +277,13 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 						} else {
 							switch (field.type.type) {
 							case FieldTypeType::I32: cppOut << jsonGet(cppOut, field.name) << ".intNumber()"; break;
-							case FieldTypeType::FLOAT: 
+							case FieldTypeType::FLOAT:
 							case FieldTypeType::ANGLE:
 								cppOut << jsonGet(cppOut, field.name) << ".number()"; break;
-							
+
 							case FieldTypeType::VEC2: cppOut << "Vec2{ " << jsonGet(cppOut, field.name) << ".at(\"x\").number(), " << jsonGet(cppOut, field.name) << ".at(\"y\").number() }"; break;
+
+							case FieldTypeType::USIZE: cppOut << "static_cast<usize>(" << jsonGet(cppOut, field.name) << ".intNumber())";
 							}
 						}
 						cppOut << ",\n";
@@ -237,25 +293,47 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 				break;
 
-			default:
-				break;
+				default:
+					break;
+				}
 			}
-		}
-		hppOut << "};\n\n";
 
-		// If offsetof is inside the class it is referencing it results in an error.
-		for (const auto& field : structure.fields) {
-			hppOut << "static constexpr auto ";
-			outOffsetName(hppOut, structure.name, field.name);
-			hppOut << " = offsetof(" << structure.name << "Editor, " << field.name << ");\n";
-		}
-		hppOut << '\n';
+			//for (const auto& field : structure.fields) {
+			//	std::stringstream signature;
+			//	signature << "set";
+			//	outFirstLetterUppercase(signature, field.name);
+			//	signature << "(" << field.type << " value, const Entity& entity, Commands& commands" << ") -> void";
 
-		hppOut << "struct " << structure.name << " : public " << structure.name << "Editor {\n";
-		for (const auto& code : structure.cppCode) {
-			hppOut << '\t' << code << '\n';
+			//	hppOut << "\tauto " << signature.str() << ";\n"; 
+
+			//	cppOut << "auto " << structure.name << "Editor::" << signature.str() << " {\n";
+			//	cppOut << "\tcommands.addSetFieldCommand(entity, ";
+			//	outOffsetName(cppOut, structure.name, field.name);
+			//	cppOut << ", &" << field.name << ", &value, sizeof(" << field.name << "));\n";
+			//	cppOut << "\t" << field.name << " = value;\n";
+			//	cppOut << "}\n";
+			//}
+
+
+			hppOut << "};\n\n";
+
+			// If offsetof is inside the class it is referencing it results in an error.
+			for (const auto& field : structure.fields) {
+				hppOut << "static constexpr auto ";
+				outOffsetName(hppOut, structure.name, field.name);
+				hppOut << " = offsetof(" << structure.name << "Editor, " << field.name << ");\n";
+			}
+			hppOut << '\n';
+
+
+
+			hppOut << "struct " << structure.name << " : public " << structure.name << "Editor {\n";
+			for (const auto& code : structure.cppCode) {
+				hppOut << '\t' << code << '\n';
+			}
+			hppOut << "};\n\n";
 		}
-		hppOut << "};\n\n";
+		}
 	}
 }
 

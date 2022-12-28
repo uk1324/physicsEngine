@@ -30,6 +30,9 @@
     <ClCompile Include="..\thirdParty\json\JsonValue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\conf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\conf.hpp">

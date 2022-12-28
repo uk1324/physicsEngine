@@ -17,7 +17,7 @@ struct Vec2T {
 	auto lengthSq() const -> T;
 	auto length() const -> T;
 	auto normalized() const -> Vec2T;
-	auto rotBy90deg() const -> const Vec2T;
+	auto rotBy90deg() const -> Vec2T;
 	auto applied(T (*function)(T)) const -> Vec2T;
 	auto min(const Vec2T& other) const -> Vec2T;
 	auto max(const Vec2T& other) const -> Vec2T;
@@ -136,7 +136,7 @@ auto Vec2T<T>::normalized() const -> Vec2T {
 }
 
 template<typename T>
-auto Vec2T<T>::rotBy90deg() const -> const Vec2T {
+auto Vec2T<T>::rotBy90deg() const -> Vec2T {
 	return Vec2{ y, -x };
 }
 

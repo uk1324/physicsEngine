@@ -2,19 +2,7 @@
 
 #include <gfx/gfx.hpp>
 #include <gfx/hlslTypes.hpp>
-
-struct Camera {
-	Camera(Vec2 pos = Vec2{ 0.0f }, float zoom = 1.0f);
-
-	auto interpolateTo(Vec2 desiredPos, float speed) -> void;
-	auto cameraTransform() const -> Mat3x2;
-	auto screenSpaceToCameraSpace(Vec2 screenSpacePos) -> Vec2;
-	auto heightIfWidthIs(float width) -> float;
-
-	Vec2 pos;
-	float zoom;
-	float aspectRatio = 1.0f;
-};
+#include <game/camera.hpp>
 
 // TODO: Maybe use order independent transparency. It shouldn't be expensive because it is just quads.
 // TODO: Shader preprocesor that when it find DEBUG_OUT(<variable>) it replaces it with if (<variable_flag>) return <variable> and creates a variable <variable_flag>. It also creates maybe a json struct describing the flags. It uses the struct to display a select menu using ImGui. One limitation that it can only be used in the main function.

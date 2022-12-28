@@ -3,3 +3,5 @@ When hard coding min or max calculations of fixed sized sets there is one less c
 Writing CPU profilers.
 https://www.youtube.com/watch?v=Ac3BHeZFhMU
 A worker thread pauses all threads and gets their call stack info unpauses them and sleeps for 10 ms in a loop.
+
+Using an enum instead of bools allows inside editors prevents invalid states.

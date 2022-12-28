@@ -1,5 +1,7 @@
 #include <game/editor/editorEntity.hpp>
 #include <game/collision/collision.hpp>
+#include <math/mat2.hpp>
+#include <utils/overloaded.hpp>
 
 auto Entity::operator>(const Entity& entity) const -> bool {
 	return index > entity.index && (static_cast<u32>(type) == static_cast<u32>(entity.type))
@@ -12,6 +14,24 @@ auto Entity::isNull() const -> bool {
 
 auto Entity::null() -> Entity {
 	return Entity{ .type = EntityType::Null };
+}
+
+auto EditorEntities::getDistanceJointEndpoints(const DistanceJointEntityEditor& joint) const -> std::pair<Vec2, Vec2> {
+	const auto& bodyA = body[joint.anchorA.body];
+	const auto posA = bodyA.pos + joint.anchorA.objectSpaceOffset * Mat2::rotate(bodyA.orientation);
+	const auto posB = std::visit(overloaded{
+		[](Vec2 staticAnchor) -> Vec2 { return staticAnchor; },
+		[this](const DistanceJointAnchorEditor& anchorB) -> Vec2 { 
+			const auto& bodyB = body[anchorB.body];
+			return bodyB.pos + anchorB.objectSpaceOffset * Mat2::rotate(bodyB.orientation);
+		}
+	}, joint.staticWorldSpaceAnchorOrBodyAnchorB);
+	return { posA, posB };
+}
+
+auto EditorEntities::getDistanceJointLineSegment(const DistanceJointEntityEditor& joint) const -> LineSegment {
+	const auto [a, b] = getDistanceJointEndpoints(joint);
+	return LineSegment{ a, b };
 }
 
 auto EditorEntities::getPosPointerOffset(const Entity& entity) -> std::optional<usize> {
@@ -32,8 +52,16 @@ auto EditorEntities::getFieldPointer(const Entity& entity, usize fieldOffset) ->
 	u8* ptr;
 
 	switch (entity.type) {
-	case EntityType::Body: ptr = reinterpret_cast<u8*>(&body[entity.index]);
+	case EntityType::Body: 
+		ptr = reinterpret_cast<u8*>(&body[entity.index]);
 		if (fieldOffset > sizeof(BodyEditor)) {
+			ASSERT_NOT_REACHED();
+			return nullptr;
+		}
+		break;
+	case EntityType::DistanceJoint:
+		ptr = reinterpret_cast<u8*>(&distanceJoint[entity.index]);
+		if (fieldOffset > sizeof(DistanceJointEntityEditor)) {
 			ASSERT_NOT_REACHED();
 			return nullptr;
 		}
@@ -49,7 +77,13 @@ auto EditorEntities::getFieldPointer(const Entity& entity, usize fieldOffset) ->
 auto EditorEntities::setPos(const Entity& entity, Vec2 pos) -> void {
 	switch (entity.type) {
 	case EntityType::Body: body[entity.index].pos = pos; break;
-	case EntityType::Null: break;
+	case EntityType::DistanceJoint:
+		if (const auto anchorB = std::get_if<Vec2>(&distanceJoint[entity.index].staticWorldSpaceAnchorOrBodyAnchorB); anchorB != nullptr) {
+			*anchorB = pos;
+		}
+		break;
+	case EntityType::Null: 
+		break;
 	}
 }
 
@@ -57,8 +91,14 @@ auto EditorEntities::getPosOrOrigin(const Entity& entity) -> Vec2& {
 	static Vec2 null{ 0.0f };
 	switch (entity.type) {
 	case EntityType::Body: return body[entity.index].pos;
-	default:
+	case EntityType::DistanceJoint:
+		if (const auto anchorB = std::get_if<Vec2>(&distanceJoint[entity.index].staticWorldSpaceAnchorOrBodyAnchorB); anchorB != nullptr) {
+			return *anchorB;
+		}
 		null = Vec2{ 0.0f };
+		return null;
+
+	default:
 		return null;
 	}
 }
@@ -66,15 +106,24 @@ auto EditorEntities::getPosOrOrigin(const Entity& entity) -> Vec2& {
 auto EditorEntities::getPos(const Entity& entity) -> std::optional<Vec2> {
 	switch (entity.type) {
 	case EntityType::Body: return body[entity.index].pos;
-	default:
-		return std::nullopt;
+	case EntityType::DistanceJoint:
+		if (const auto anchorB = std::get_if<Vec2>(&distanceJoint[entity.index].staticWorldSpaceAnchorOrBodyAnchorB); anchorB != nullptr) {
+			return *anchorB;
+		}
+		break;
+	case EntityType::Null:
+		break;
 	}
+	return std::nullopt;
+
 }
 
 auto EditorEntities::setOrientation(const Entity& entity, float orientation) -> void {
 	switch (entity.type) {
 	case EntityType::Body: body[entity.index].orientation = orientation; break;
-	case EntityType::Null: break;
+	case EntityType::DistanceJoint:
+	case EntityType::Null: 
+		break;
 	}
 }
 
@@ -102,13 +151,18 @@ auto EditorEntities::getAabb(const Entity& entity) -> std::optional<Aabb> {
 auto EditorEntities::isAlive(const Entity& entity) const -> bool {
 	switch (entity.type) {
 	case EntityType::Body: return body.isAlive[entity.index];
-	default: return false;
+	case EntityType::DistanceJoint: return distanceJoint.isAlive[entity.index];
+	case EntityType::Null: return false;
 	}
+	ASSERT_NOT_REACHED();
+	return false;
 }
 
 auto EditorEntities::setIsAlive(const Entity& entity, bool value) -> void {
 	switch (entity.type) {
 	case EntityType::Body: body.isAlive[entity.index] = value; return;
+	case EntityType::DistanceJoint: distanceJoint.isAlive[entity.index] = value; return;
+	case EntityType::Null: return;
 	}
 	ASSERT_NOT_REACHED();
 }

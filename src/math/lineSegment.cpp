@@ -13,10 +13,26 @@ LineSegment::LineSegment(Vec2 start, Vec2 end)
 	}
 }
 
-auto LineSegment::asBoxContains(float halfWidth, Vec2 p) -> bool {
+auto LineSegment::asBoxContains(float halfWidth, Vec2 p) const -> bool {
 	const auto along = line.distanceAlong(p);
 	if (along < minDistanceAlongLine || along > maxDistanceAlongLine)
 		return false;
 
 	return distance(line, p) < halfWidth;
+}
+
+auto LineSegment::asCapsuleContains(float thickness, Vec2 p) const -> bool {
+	const auto along = line.distanceAlong(p);
+	if (along < minDistanceAlongLine || along > maxDistanceAlongLine) {
+		const auto alongClamped = std::clamp(along, minDistanceAlongLine, maxDistanceAlongLine);
+		const auto lineEdge = line.n.rotBy90deg() * alongClamped;
+		return distance(lineEdge, p) < thickness;
+	}
+	return distance(line, p) < thickness;
+}
+
+auto LineSegment::aabb() const -> Aabb {
+	const auto alongLine = -line.n.rotBy90deg();
+	const auto offset = line.n * line.d;
+	return Aabb::fromCorners(alongLine * minDistanceAlongLine + offset, alongLine * maxDistanceAlongLine + offset);
 }

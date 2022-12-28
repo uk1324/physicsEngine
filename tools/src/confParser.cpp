@@ -37,6 +37,8 @@ auto Data::tokenTypeToString(TokenType type) -> std::string_view {
 	case TokenType::CARET: return "'^'";
 	case TokenType::LEFT_PAREN: return "'('";
 	case TokenType::RIGHT_PAREN: return "')'";
+	case TokenType::LESS_THAN: return "'<'";
+	case TokenType::MORE_THAN: return "'>'";
 	}
 	ASSERT_NOT_REACHED();
 	return "";
@@ -78,6 +80,8 @@ auto Scanner::nextToken() -> std::optional<Token> {
 	case '^': return makeToken(TokenType::CARET);
 	case '(': return makeToken(TokenType::LEFT_PAREN);
 	case ')': return makeToken(TokenType::RIGHT_PAREN);
+	case '<': return makeToken(TokenType::LESS_THAN);
+	case '>': return makeToken(TokenType::MORE_THAN);
 	case '~': {
 		while (isAtEnd() == false && !match('~'))
 			consume();
@@ -246,8 +250,10 @@ auto Parser::parse(std::string_view text) -> std::optional<DataFile> {
 					}
 				}
 
+				output.orderedCode.push_back(DataFile::Code{ .type = DataFile::CodeType::STRUCT, .index = output.structs.size() });
 				output.structs.push_back(std::move(structure));
 			} else if (match(TokenType::CPP)) {
+				output.orderedCode.push_back(DataFile::Code{ .type = DataFile::CodeType::CPP_CODE, .index = output.cppCode.size() });
 				output.cppCode.push_back(previousToken.cpp);
 			}
 		} catch (const Error&) {
@@ -269,6 +275,18 @@ auto Parser::fieldType() -> FieldType {
 	else if (matchIdentifier("angle")) return FieldType{ FieldTypeType::ANGLE };
 	else if (matchIdentifier("i32")) return FieldType{ FieldTypeType::I32 };
 	else if (matchIdentifier("Vec2")) return FieldType{ FieldTypeType::VEC2 };
+	else if (matchIdentifier("usize")) return FieldType{ FieldTypeType::USIZE };
+	else if (matchIdentifier("variant")) {
+		expect(TokenType::LESS_THAN);
+		FieldType type{ FieldTypeType::VARIANT };
+		new (&type.variant) std::vector<FieldType>{};
+
+		while (!isAtEnd && currentToken.type != TokenType::MORE_THAN) {
+			type.variant.push_back(fieldType());
+		}
+		expect(TokenType::MORE_THAN);
+		return type;
+	}
 	else {
 		std::cerr << "expected type\n";
 		throw Error{};

@@ -22,15 +22,22 @@ enum class FieldTypeType {
 	FLOAT,
 	I32,
 	VEC2,
+	USIZE,
 	CPP,
 	ANGLE,
+	VARIANT,
 };
 
 struct FieldType {
 	FieldTypeType type;
+	FieldType(FieldTypeType type);
+	FieldType(const FieldType& type);
+	auto operator=(const FieldType& type) -> FieldType&;
+	~FieldType();
 
 	union {
 		std::string_view cpp;
+		std::vector<FieldType> variant;
 	};
 };
 
@@ -55,6 +62,15 @@ struct Struct {
 struct DataFile {
 	std::vector<std::string_view> cppCode;
 	std::vector<Struct> structs;
+	enum struct CodeType {
+		CPP_CODE,
+		STRUCT,
+	};
+	struct Code {
+		CodeType type;
+		size_t index;
+	};
+	std::vector<Code> orderedCode;
 };
 
 }

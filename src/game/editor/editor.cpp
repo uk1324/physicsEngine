@@ -63,13 +63,11 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	ImGui::End();
-	
-	ImGui::ShowDemoWindow();
 
 	Begin("entites");
 	ImGui::Checkbox("testa", &Input::ignoreImGuiWantCapture);
 	if (Button("+")) {
-		entites.body.add(BodyEditor{
+		const auto entity = entites.body.add(BodyEditor{
 			.pos = Vec2{ camera.pos },
 			.orientation = 0.0f,
 			.vel = Vec2{ 0.0f },
@@ -78,7 +76,6 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			.rotationalInertia = 1.0f,
 			.collider = BoxColliderEditor{ Vec2{ 1.0f } }
 		});
-		const Entity entity{ .index = entites.body.size() - 1 };
 		commands.addCommand(CreateEntityCommand{ entity });
 	}
 	End();
@@ -88,14 +85,32 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		if (TreeNode(frameAllocator.format("entity%d", entity.index).data())) {
 			switch (entity.type) {
 			case EntityType::Null: ImGui::Text("no entity selected"); break;
-			case EntityType::Body: 
+			case EntityType::Body: {
 				auto& body = entites.body[entity.index];
 				guiState.updateBeforeOpeningGui();
 				body.editorGui(guiState, entites, entity, commands);
 				break;
 			}
+				
+			case EntityType::DistanceJoint: {
+				auto& distanceJoint = entites.distanceJoint[entity.index];
+				guiState.updateBeforeOpeningGui();
+				distanceJoint.editorGui(guiState, entites, entity, commands);
+				break;
+			}
+				
+			}
+
 			TreePop();
 		}
+	}
+	if (selectedEntities.size() == 1 && selectedEntities[0].type == EntityType::Body && Button("add distance joint")) {
+		const auto entity = entites.distanceJoint.add(DistanceJointEntityEditor{
+			.anchorA = { selectedEntities[0].index, Vec2{ 0.0f } },
+			.staticWorldSpaceAnchorOrBodyAnchorB = entites.getPosOrOrigin(selectedEntities[0]) + Vec2{ 0.0f, 2.0f },
+			.distance = 1.0f 
+		});
+		commands.addCommand(CreateEntityCommand{ entity });
 	}
 	End();
 
@@ -124,13 +139,23 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		}
 	}
 
+	const auto cursorPos = getCursorPos();
+
 	// For the camera not to lag behind it is updated first so all functions have the same information about the camera.
 	const auto aspectRatio = sceneWindowSize.x / sceneWindowSize.y;
 	updateCamera(aspectRatio);
 
-	const auto isGizmoSelected = selectedEntitiesGizmo.update(entites, commands, camera, selectedEntities, selectedEntitiesCenterPos, getCursorPos());
+	auto isGizmoSelected = false;
 
-	const auto cursorPos = getCursorPos();
+	isGizmoSelected = distanceJointGizmo.update(selectedEntities, entites, cursorPos, camera, commands);
+	const auto distanceJointSelected = isGizmoSelected;
+	
+	if (!isGizmoSelected) {
+		isGizmoSelected = selectedEntitiesGizmo.update(entites, commands, camera, selectedEntities, selectedEntitiesCenterPos, getCursorPos());
+	}
+	
+	const auto distanceJointColliderThickness = 0.03f / camera.zoom;
+
 	const auto oldSelectedEntites = selectedEntities;
 	if (!isGizmoSelected) {
 		if (Input::isMouseButtonDown(MouseButton::LEFT)) {
@@ -147,49 +172,76 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 				selectedEntities.clear();
 			}
 
-			if (selectedBox.area() > 0.1f) {
+			if (const auto doBoxSelect = selectedBox.area() > 0.1f) {
+
+				auto selectLogic = [this](const Entity& entity) -> void {
+					const auto it = std::find(selectedEntities.begin(), selectedEntities.end(), entity);
+					if (it == selectedEntities.end()) {
+						selectedEntities.push_back(entity);
+					} else if (Input::isKeyHeld(Keycode::CTRL)) {
+						selectedEntities.erase(it);
+					}
+				};
+
 				for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
 					if (aabbContains(selectedBox, body->collider, body->pos, body->orientation)) {
-						const auto entity = Entity{ EntityType::Body, body.index };
-						const auto it = std::find(selectedEntities.begin(), selectedEntities.end(), entity);
-						if (it == selectedEntities.end()) {
-							selectedEntities.push_back(entity);
-						} else if (Input::isKeyHeld(Keycode::CTRL)) {
-							selectedEntities.erase(it);
-						}
+						selectLogic(Entity{ EntityType::Body, body.index });
 					}
 				}
-			} else if (Input::isKeyHeld(Keycode::CTRL)) {
+
+				for (auto distanceJoint = entites.distanceJoint.alive().begin(); distanceJoint != entites.distanceJoint.alive().end(); ++distanceJoint) {
+					if (selectedBox.contains(entites.getDistanceJointLineSegment(*distanceJoint).aabb())) {
+						selectLogic(Entity{ EntityType::DistanceJoint, distanceJoint.index });
+					}
+				}
+
+			} else if (Input::isKeyHeld(Keycode::CTRL)) { // Point select remove
+
+				auto selectLogic = [this](const Entity& entity) -> void {
+					const auto it = std::find(selectedEntities.begin(), selectedEntities.end(), entity);
+					if (it == selectedEntities.end()) {
+						selectedEntities.push_back(entity);
+					} else {
+						selectedEntities.erase(it);
+					}
+				};
 
 				for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
 					if (contains(cursorPos, body->pos, body->orientation, body->collider)) {
-						const auto entity = Entity{ EntityType::Body, body.index };
-						const auto it = std::find(selectedEntities.begin(), selectedEntities.end(), entity);
-						if (it == selectedEntities.end()) {
-							selectedEntities.push_back(entity);
-						} else {
-							selectedEntities.erase(it);
-						}
+						selectLogic(Entity{ EntityType::Body, body.index });
 						break;
 					}
 				}
-			} else {
+
+				for (auto distanceJoint = entites.distanceJoint.alive().begin(); distanceJoint != entites.distanceJoint.alive().end(); ++distanceJoint) {
+					if (entites.getDistanceJointLineSegment(*distanceJoint).asCapsuleContains(distanceJointColliderThickness, cursorPos)) {
+						selectLogic(Entity{ EntityType::DistanceJoint, distanceJoint.index });
+						break;
+					}
+				}
+			} else { // Point select add
 				currentSelectedEntitesUnderCursor.clear();
 
-				for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
-					if (!contains(cursorPos, body->pos, body->orientation, body->collider)) {
-						continue;
-					}
-
-					const auto selectedEntity = Entity{ EntityType::Body, body.index };
-
+				auto selectLogic = [this](const Entity& entity) -> bool {
 					// With the current implementation the is no need for sorting because things are iterated in order, but with some acceleration structure in place it would be needed.
 					// @Performance: Could also try using a set instead. This would make indexing slower which shouldn't be an issue.
-					sortedInsert(currentSelectedEntitesUnderCursor, selectedEntity);
+					sortedInsert(currentSelectedEntitesUnderCursor, entity);
 
-					// No reason to continue if the cycling select isn't going to happen.
-					if (currentSelectedEntitesUnderCursor.size() > lastSelectedEntitesUnderCursor.size()) {
-						break;
+					// No reason to continue if the cycling select isn't going to happen. It only happens when the entites after a click are the same as for the previous click.
+					return currentSelectedEntitesUnderCursor.size() > lastSelectedEntitesUnderCursor.size();
+				};
+
+				for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
+					if (contains(cursorPos, body->pos, body->orientation, body->collider)) {
+						if (selectLogic(Entity{ EntityType::Body, body.index }))
+							break;
+					} 
+				}
+
+				for (auto distanceJoint = entites.distanceJoint.alive().begin(); distanceJoint != entites.distanceJoint.alive().end(); ++distanceJoint) {
+					if (entites.getDistanceJointLineSegment(*distanceJoint).asCapsuleContains(distanceJointColliderThickness, cursorPos)) {
+						if (selectLogic(Entity{ EntityType::DistanceJoint, distanceJoint.index }))
+							break;
 					}
 				}
 
@@ -247,7 +299,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		const Span<const Entity> empty{ nullptr, 0 };
 		commands.addSelectCommand(selectedEntities, empty);
 
-		for (auto& entity : selectedEntities) {
+		for (const auto& entity : selectedEntities) {
 			entites.setIsAlive(entity, false);
 			commands.addCommand(DeleteEntityCommand{ entity });
 		}
@@ -257,11 +309,49 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		selectedEntities.clear();
 	}
 
+	auto copyToClipboard = [this]() -> void {
+		clipboard.clear();
+		for (const auto& entity : selectedEntities) {
+			clipboard.push_back(entity);
+		}
+	};
+
+	auto pasteClipboard = [this]() -> void {
+		commands.beginMulticommand();
+		for (const auto& entity : clipboard) {
+			switch (entity.type) {
+			case EntityType::Body: {
+				const auto body = entites.body.add(entites.body[entity.index]);
+				commands.addCommand(CreateEntityCommand{ .entity = body });
+				break;
+			}
+				
+			default: ASSERT_NOT_REACHED();
+			}
+		}
+		commands.endMulticommand();
+	};
+
+	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::C)) copyToClipboard();
+	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::V)) pasteClipboard();
+	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::D)) {
+		copyToClipboard();
+		pasteClipboard();
+	}
+		
+
 	for (const auto& body : entites.body.alive()) {
 		Debug::drawCollider(body.collider, body.pos, body.orientation, Vec3::WHITE);
 	}
 
-	if (!selectedEntities.empty()) {
+	for (const auto& distanceJoint : entites.distanceJoint.alive()) {
+		const auto [posA, posB] = entites.getDistanceJointEndpoints(distanceJoint);
+		Debug::drawLine(posA, posB);
+	}
+
+	distanceJointGizmo.draw(selectedEntities, entites);
+
+	if (!selectedEntities.empty() && !DistanceJointGizmo::displayGizmo(selectedEntities)) {
 		selectedEntitiesGizmo.draw(selectedEntitiesCenterPos);
 	}
 
@@ -319,6 +409,28 @@ auto Editor::debugChecks() -> void {
 	for (auto& entity : selectedEntities) {
 		ASSERT(entites.isAlive(entity));
 	}
+}
+
+auto Editor::saveLevel() -> Json::Value {
+	auto level = Json::Value::emptyObject();
+	level["bodies"] = Json::Value::emptyArray();
+	auto& bodies = level["bodies"].array();
+	for (const auto& body : entites.body.alive()) {
+		bodies.push_back(body.toJson());
+	}
+	for (const auto& distanceJoint : entites.distanceJoint.alive()) {
+		if (!entites.body.isAlive[distanceJoint.anchorA.body]) {
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+		if (const auto& anchorB = std::get_if<DistanceJointAnchorEditor>(&distanceJoint.staticWorldSpaceAnchorOrBodyAnchorB); 
+			anchorB != nullptr && !entites.body.isAlive[anchorB->body]) {
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+		bodies.push_back(distanceJoint.toJson());
+	}
+	return level;
 }
 
 auto Editor::getCursorPos() -> Vec2 {

@@ -10,6 +10,7 @@ struct Entity;
 
 #include <game/collidersData.hpp>
 #include <variant>
+#include <optional>
 
 using Collider = std::variant<BoxCollider, CircleCollider>;
 auto colliderToJson(const Collider& collider) -> Json::Value;
@@ -52,5 +53,41 @@ struct Body : public BodyEditor {
 	float invMass;
 	float invRotationalInertia;
 	
+};
+
+struct DistanceJointAnchorEditor {
+	usize body;
+	Vec2 objectSpaceOffset;
+
+	auto editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void;
+	auto toJson() const -> Json::Value;
+	static auto fromJson(const Json::Value& json) -> DistanceJointAnchorEditor;
+};
+
+static constexpr auto DISTANCE_JOINT_ANCHOR_EDITOR_BODY_OFFSET = offsetof(DistanceJointAnchorEditor, body);
+static constexpr auto DISTANCE_JOINT_ANCHOR_EDITOR_OBJECT_SPACE_OFFSET_OFFSET = offsetof(DistanceJointAnchorEditor, objectSpaceOffset);
+
+struct DistanceJointAnchor : public DistanceJointAnchorEditor {
+};
+
+auto anchorToJson(const std::variant<Vec2, DistanceJointAnchorEditor>& anchor) -> Json::Value;
+auto jsonToAnchor(const Json::Value& json) -> std::variant<Vec2, DistanceJointAnchorEditor>;
+auto displayAnchorGui(const std::variant<Vec2, DistanceJointAnchorEditor>& anchor) -> void;
+
+struct DistanceJointEntityEditor {
+	DistanceJointAnchorEditor anchorA;
+	std::variant<Vec2, DistanceJointAnchorEditor> staticWorldSpaceAnchorOrBodyAnchorB;
+	float distance;
+
+	auto editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void;
+	auto toJson() const -> Json::Value;
+	static auto fromJson(const Json::Value& json) -> DistanceJointEntityEditor;
+};
+
+static constexpr auto DISTANCE_JOINT_ENTITY_EDITOR_ANCHOR_A_OFFSET = offsetof(DistanceJointEntityEditor, anchorA);
+static constexpr auto DISTANCE_JOINT_ENTITY_EDITOR_STATIC_WORLD_SPACE_ANCHOR_OR_BODY_ANCHOR_B_OFFSET = offsetof(DistanceJointEntityEditor, staticWorldSpaceAnchorOrBodyAnchorB);
+static constexpr auto DISTANCE_JOINT_ENTITY_EDITOR_DISTANCE_OFFSET = offsetof(DistanceJointEntityEditor, distance);
+
+struct DistanceJointEntity : public DistanceJointEntityEditor {
 };
 

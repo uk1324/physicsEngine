@@ -2,11 +2,16 @@
 
 #include <utils/int.hpp>
 #include <game/entitesData.hpp>
+#include <math/lineSegment.hpp>
 
 #include <optional>
 
 enum class EntityType : u8 {
 	Body,
+	// If there is only one body attached treat the other point as an anchor. If none are attached then remove the joint.
+	// When a body is removed from the joint create a new joint with the removed things if there are 2 bodies and one of the is removed otherwise just disable the joint.
+	// Just save the variant changes even if it is undefined behaviour.
+	DistanceJoint,
 	Null,
 };
 
@@ -21,7 +26,7 @@ struct Entity {
 	static auto null() -> Entity;
 };
 
-template<typename T>
+template<typename T, EntityType type>
 struct EditorEntityArray {
 	struct AliveIterator {
 		auto operator++() -> AliveIterator&;
@@ -39,7 +44,7 @@ struct EditorEntityArray {
 		EditorEntityArray& array;
 	};
 	auto alive() -> Alive;
-	auto add(const T& body) -> void;
+	auto add(const T& body) -> Entity;
 	auto size() const -> usize;
 
 	std::vector<bool> isAlive;
@@ -52,9 +57,10 @@ private:
 };
 
 struct EditorEntities {
-	// TODO: Iterator that iterates only the alive entites.
-	//std::vector<BodyEditor> entitesBody;
-	EditorEntityArray<BodyEditor> body;
+	EditorEntityArray<BodyEditor, EntityType::Body> body;
+	EditorEntityArray<DistanceJointEntityEditor, EntityType::DistanceJoint> distanceJoint;
+	auto getDistanceJointEndpoints(const DistanceJointEntityEditor& distanceJoint) const -> std::pair<Vec2, Vec2>;
+	auto getDistanceJointLineSegment(const DistanceJointEntityEditor& distanceJoint) const -> LineSegment;
 
 	// At some point a garbage collector like step should happen because there shouldn't be references to entites which don't exist. This would require also storing bitset for checking if an entity was already traversed.
 
@@ -76,7 +82,7 @@ struct EditorEntities {
 	// Relative pointers?
 	// Aren't entites just relative pointers?
 
-	// Levels should be check when loaded if the references are valid.
+	// Levels should check when loaded if the references are valid.
 
 	// https://gamedev.stackexchange.com/questions/101964/implementing-the-command-pattern-undo-and-entity-references
 
@@ -97,64 +103,64 @@ struct EditorEntities {
 	auto setIsAlive(const Entity& entity, bool value) -> void;
 };
 
-template<typename T>
-auto EditorEntityArray<T>::alive() -> Alive {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::alive() -> Alive {
 	return Alive{ .array = *this };
 }
 
-template<typename T>
-auto EditorEntityArray<T>::add(const T& body) -> void {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::add(const T& body) -> Entity {
 	data.push_back(body);
 	isAlive.push_back(true);
+	return Entity{ .type = type, .index = data.size() - 1 };
 }
 
-template<typename T>
-auto EditorEntityArray<T>::size() const -> usize {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::size() const -> usize {
 	ASSERT(data.size() == isAlive.size());
 	return data.size();
 }
 
-template<typename T>
-auto EditorEntityArray<T>::operator[](usize i) -> T& {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::operator[](usize i) -> T& {
 	return data[i];
 }
 
-template<typename T>
-auto EditorEntityArray<T>::operator[](usize i) const -> const T& {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::operator[](usize i) const -> const T& {
 	return data[i];
 }
 
-template<typename T>
-auto EditorEntityArray<T>::AliveIterator::operator++() -> AliveIterator& {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::AliveIterator::operator++() -> AliveIterator& {
 	if (*this != array.alive().end()) {
 		index++;
-	} else {
-		while (*this != array.alive().end() && !array.isAlive[index]) {
-			index++;
-		}
+	} 
+	while (*this != array.alive().end() && !array.isAlive[index]) {
+		index++;
 	}
 	
 	return *this;
 }
 
-template<typename T>
-auto EditorEntityArray<T>::AliveIterator::operator!=(const AliveIterator& other) const -> bool {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::AliveIterator::operator!=(const AliveIterator& other) const -> bool {
 	ASSERT(&array == &other.array);
 	return index != other.index;
 }
 
-template<typename T>
-auto EditorEntityArray<T>::AliveIterator::operator->() -> T* {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::AliveIterator::operator->() -> T* {
 	return &array.data[index];
 }
 
-template<typename T>
-auto EditorEntityArray<T>::AliveIterator::operator*() -> T& {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::AliveIterator::operator*() -> T& {
 	return array.data[index];
 }
 
-template<typename T>
-auto EditorEntityArray<T>::Alive::begin() -> AliveIterator {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::Alive::begin() -> AliveIterator {
 	usize index = 0;
 	while (index < array.isAlive.size() && !array.isAlive[index]) {
 		index++;
@@ -162,7 +168,7 @@ auto EditorEntityArray<T>::Alive::begin() -> AliveIterator {
 	return AliveIterator{ .index = index, .array = array };
 }
 
-template<typename T>
-auto EditorEntityArray<T>::Alive::end() -> AliveIterator {
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::Alive::end() -> AliveIterator {
 	return AliveIterator{ .index = array.data.size(), .array = array };
 }

@@ -23,6 +23,8 @@ enum class TokenType {
 	CARET,
 	LEFT_PAREN,
 	RIGHT_PAREN,
+	LESS_THAN,
+	MORE_THAN,
 };
 
 auto tokenTypeToString(TokenType type) -> std::string_view;
