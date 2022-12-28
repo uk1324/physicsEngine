@@ -9,6 +9,9 @@ struct Entity;
 #include <json/JsonValue.hpp>
 
 #include <math/aabb.hpp>
+#include <math/lineSegment.hpp>
+
+#include <array>
 
 struct MassInfo {
 	float mass;
@@ -48,6 +51,9 @@ struct BoxCollider : public BoxColliderEditor {
 	// @Performance: Maybe store halfSize and not size because it is used more often.
 	auto massInfo(float density) const -> MassInfo;
 	auto aabb(Vec2 pos, float orientation) const -> Aabb;
+
+	auto getCorners(Vec2 pos, float orientation) const -> std::array<Vec2, 4>;
+	auto getEdges(Vec2 pos, float orientation) const -> std::array<LineSegment, 4>;
 	
 };
 

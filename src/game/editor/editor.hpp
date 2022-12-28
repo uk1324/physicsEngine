@@ -3,6 +3,7 @@
 #include <game/renderer.hpp>
 #include <game/editor/selectedEntityGizmo.hpp>
 #include <game/editor/distanceJointGizmo.hpp>
+#include <game/editor/scalingGizmo.hpp>
 #include <game/editor/commands.hpp>
 #include <game/editor/editorGuiState.hpp>
 
@@ -55,6 +56,10 @@ private:
 	std::unordered_multimap<usize, Entity> bodyToJoints;
 	SelectedEntityGizmo selectedEntitiesGizmo;
 	DistanceJointGizmo distanceJointGizmo;
+	ScalingGizmo scalingGizmo;
+
+	static constexpr float DEFAULT_DENSITY = 20.0f;
+	float densityForRecalculation = DEFAULT_DENSITY;
 
 	auto undoCommand(const Command& command) -> void;
 	auto redoCommand(const Command& command) -> void;

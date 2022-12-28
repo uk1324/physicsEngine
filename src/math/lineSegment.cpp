@@ -1,6 +1,12 @@
 #include <math/lineSegment.hpp>
 
-LineSegment::LineSegment(Vec2 start, Vec2 end) 
+LineSegment::LineSegment(Line line, float minDistanceAlongLine, float maxDistanceAlongLine) 
+	: line{ line }
+	, minDistanceAlongLine{ minDistanceAlongLine }
+	, maxDistanceAlongLine{ maxDistanceAlongLine }
+{}
+
+LineSegment::LineSegment(Vec2 start, Vec2 end)
 	: line{ start, end } {
 	float a = line.distanceAlong(start);
 	float b = line.distanceAlong(end);
@@ -32,7 +38,12 @@ auto LineSegment::asCapsuleContains(float thickness, Vec2 p) const -> bool {
 }
 
 auto LineSegment::aabb() const -> Aabb {
+	const auto corners = getCorners();
+	return Aabb::fromCorners(corners[0], corners[1]);
+}
+
+auto LineSegment::getCorners() const->std::array<Vec2, 2> {
 	const auto alongLine = -line.n.rotBy90deg();
 	const auto offset = line.n * line.d;
-	return Aabb::fromCorners(alongLine * minDistanceAlongLine + offset, alongLine * maxDistanceAlongLine + offset);
+	return { alongLine * minDistanceAlongLine + offset, alongLine * maxDistanceAlongLine + offset };
 }

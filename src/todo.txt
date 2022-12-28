@@ -42,3 +42,5 @@ Make things like this not happen.
 		{ { "value", { { "x", staticWorldSpaceAnchorOrBodyAnchorB.x }, { "y", staticWorldSpaceAnchorOrBodyAnchorB.y } } }
 	 }
 ;
+
+Snap the passed cursor pos to important features like corners

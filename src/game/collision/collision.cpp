@@ -148,10 +148,27 @@ auto BoxCollider::massInfo(float density) const -> MassInfo {
 }
 
 auto BoxCollider::aabb(Vec2 pos, float orientation) const -> Aabb {
+	const auto corners = getCorners(pos, orientation);
+	return Aabb::fromPoints(Span{ corners.data(), corners.size() });
+}
+
+auto BoxCollider::getCorners(Vec2 pos, float orientation) const -> std::array<Vec2, 4> {
 	const auto normals = Mat2::rotate(orientation);
 	const auto cornerDir = normals.x() * (size.x / 2.0f) + normals.y() * (size.y / 2.0f);
-	const Vec2 corners[4] = { pos + cornerDir, pos - cornerDir, pos + cornerDir - normals.x() * size.x, pos - cornerDir + normals.x() * size.x };
-	return Aabb::fromPoints(corners);
+	return { pos + cornerDir, pos + cornerDir - normals.x() * size.x, pos - cornerDir, pos - cornerDir + normals.x() * size.x };
+}
+
+auto BoxCollider::getEdges(Vec2 pos, float orientation) const -> std::array<LineSegment, 4> {
+	// @Performance Could do this by translating line segments.
+	/*const auto normals = Mat2::rotate(orientation);
+	LineSegment{ Line{ normals.x(),  } }*/
+	const auto corners = getCorners(pos, orientation);
+	return {
+		LineSegment{ corners[0], corners[1] },
+		LineSegment{ corners[1], corners[2] },
+		LineSegment{ corners[2], corners[3] },
+		LineSegment{ corners[3], corners[0] }
+	};
 }
 
 CircleCollider::CircleCollider(const CircleColliderEditor& circle) : CircleColliderEditor{ circle } {}

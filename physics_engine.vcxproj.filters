@@ -158,6 +158,12 @@
     <ClCompile Include="src\game\camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\levelFormat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\editor\scalingGizmo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -335,6 +341,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\camera.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\levelFormat.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\editor\scalingGizmo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\refOptional.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

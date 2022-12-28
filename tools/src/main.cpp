@@ -215,7 +215,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 					cppOut << "\tPushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));\n"
 						"\tif (!BeginTable(\"properites\", 2, ImGuiTableFlags_SizingStretchProp)) {\n"
-						"\t\PopStyleVar();\n"
+						"\tPopStyleVar();\n"
 						"\t\treturn;\n"
 						"\t}\n";
 
@@ -283,9 +283,6 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 					for (const auto& field : structure.fields) {
 						const auto customProperty = findFieldProperty(field, FieldPropertyType::CUSTOM);
 
-						if (field.type.type == FieldTypeType::CPP && !customProperty.has_value())
-							continue;
-
 						cppOut << "\t\t." << field.name << " = ";
 
 						auto jsonGet = [](std::ostream& os, std::string_view fieldName) -> char {
@@ -304,7 +301,8 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 							case FieldTypeType::VEC2: cppOut << "Vec2{ " << jsonGet(cppOut, field.name) << ".at(\"x\").number(), " << jsonGet(cppOut, field.name) << ".at(\"y\").number() }"; break;
 
-							case FieldTypeType::USIZE: cppOut << "static_cast<usize>(" << jsonGet(cppOut, field.name) << ".intNumber())";
+							case FieldTypeType::USIZE: cppOut << "static_cast<usize>(" << jsonGet(cppOut, field.name) << ".intNumber())"; break;
+							case FieldTypeType::CPP: cppOut << field.type << "::fromJson(" << jsonGet(cppOut, field.name) << ")"; break;
 							}
 						}
 						cppOut << ",\n";

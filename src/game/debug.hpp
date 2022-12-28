@@ -13,6 +13,7 @@ namespace Debug {
 	static constexpr auto DEFAULT_COLOR = Vec3{ 1.0f, 1.0f, 1.0f };
 
 	auto drawLine(Vec2 start, Vec2 end, const Vec3& color = DEFAULT_COLOR) -> void;
+	auto drawLineSegment(const LineSegment& lineSegment, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawRay(Vec2 start, Vec2 ray, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawCircle(Vec2 pos, float radius = 0.01f, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawHollowCircle(Vec2 pos, float radius = 0.01f, const Vec3& color = DEFAULT_COLOR) -> void;

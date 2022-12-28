@@ -253,10 +253,10 @@ auto DistanceJointEntityEditor::editorGui(EditorGuiState& inputState, EditorEnti
 	TableNextRow();
 	TableSetColumnIndex(0);
 	AlignTextToFramePadding();
-	Text("staticWorldSpaceAnchorOrBodyAnchorB");
+	Text("anchorB");
 	TableSetColumnIndex(1);
 	SetNextItemWidth(-FLT_MIN);
-	displayAnchorGui(staticWorldSpaceAnchorOrBodyAnchorB);
+	anchorB.editorGui(inputState, entites, entity, commands);
 	NextColumn();
 	TableNextRow();
 	TableSetColumnIndex(0);
@@ -283,14 +283,15 @@ auto DistanceJointEntityEditor::editorGui(EditorGuiState& inputState, EditorEnti
 auto DistanceJointEntityEditor::toJson() const -> Json::Value {
 	auto result = Json::Value::emptyObject();
 	result["anchorA"] = anchorA.toJson();
-	result["staticWorldSpaceAnchorOrBodyAnchorB"] = anchorToJson(staticWorldSpaceAnchorOrBodyAnchorB);
+	result["anchorB"] = anchorB.toJson();
 	result["distance"] = Json::Value(distance);
 	return result;
 }
 
 auto DistanceJointEntityEditor::fromJson(const Json::Value& json) -> DistanceJointEntityEditor {
 	return DistanceJointEntityEditor{
-		.staticWorldSpaceAnchorOrBodyAnchorB = jsonToAnchor(json.at("staticWorldSpaceAnchorOrBodyAnchorB")),
+		.anchorA = DistanceJointAnchorEditor::fromJson(json.at("anchorA")),
+		.anchorB = DistanceJointAnchorEditor::fromJson(json.at("anchorB")),
 		.distance = json.at("distance").number(),
 	};
 }

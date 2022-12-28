@@ -14,6 +14,11 @@ auto Debug::drawLine(Vec2 start, Vec2 end, const Vec3& color) -> void {
 	lines.push_back({ start, end, color });
 }
 
+auto Debug::drawLineSegment(const LineSegment& lineSegment, const Vec3& color) -> void {
+	const auto corners = lineSegment.getCorners();
+	Debug::drawLine(corners[0], corners[1], color);
+}
+
 auto Debug::drawRay(Vec2 start, Vec2 ray, const Vec3& color) -> void {
 	lines.push_back({ start, start + ray, color });
 }
@@ -64,8 +69,8 @@ auto Debug::drawParabola(float a, Vec2 pos, const Vec3& color) -> void {
 auto Debug::drawBox(Vec2 pos, float orientation, Vec2 size, const Vec3& color) -> void {
 	const auto rotate = Mat2::rotate(orientation);
 	// @Performance: Could just use the basis from the rotate matrix. Or even better precompute the matrix because it is used in a lot of places.
-	const auto edgeX = Vec2{ size.x, 0.0f } *rotate;
-	const auto edgeY = Vec2{ 0.0f, size.y } *rotate;
+	const auto edgeX = Vec2{ size.x, 0.0f } * rotate;
+	const auto edgeY = Vec2{ 0.0f, size.y } * rotate;
 	const auto vertex1 = (size / 2.0f) * rotate + pos;
 	const auto vertex2 = vertex1 - edgeX;
 	const auto vertex3 = vertex2 - edgeY;

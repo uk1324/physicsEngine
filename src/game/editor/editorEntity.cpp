@@ -18,14 +18,9 @@ auto Entity::null() -> Entity {
 
 auto EditorEntities::getDistanceJointEndpoints(const DistanceJointEntityEditor& joint) const -> std::pair<Vec2, Vec2> {
 	const auto& bodyA = body[joint.anchorA.body];
+	const auto& bodyB = body[joint.anchorB.body];
 	const auto posA = bodyA.pos + joint.anchorA.objectSpaceOffset * Mat2::rotate(bodyA.orientation);
-	const auto posB = std::visit(overloaded{
-		[](Vec2 staticAnchor) -> Vec2 { return staticAnchor; },
-		[this](const DistanceJointAnchorEditor& anchorB) -> Vec2 { 
-			const auto& bodyB = body[anchorB.body];
-			return bodyB.pos + anchorB.objectSpaceOffset * Mat2::rotate(bodyB.orientation);
-		}
-	}, joint.staticWorldSpaceAnchorOrBodyAnchorB);
+	const auto posB = bodyB.pos + joint.anchorA.objectSpaceOffset * Mat2::rotate(bodyB.orientation);
 	return { posA, posB };
 }
 
@@ -77,11 +72,7 @@ auto EditorEntities::getFieldPointer(const Entity& entity, usize fieldOffset) ->
 auto EditorEntities::setPos(const Entity& entity, Vec2 pos) -> void {
 	switch (entity.type) {
 	case EntityType::Body: body[entity.index].pos = pos; break;
-	case EntityType::DistanceJoint:
-		if (const auto anchorB = std::get_if<Vec2>(&distanceJoint[entity.index].staticWorldSpaceAnchorOrBodyAnchorB); anchorB != nullptr) {
-			*anchorB = pos;
-		}
-		break;
+	case EntityType::DistanceJoint: // Distance joints get translated with the bodies they are attached to.
 	case EntityType::Null: 
 		break;
 	}
@@ -91,14 +82,9 @@ auto EditorEntities::getPosOrOrigin(const Entity& entity) -> Vec2& {
 	static Vec2 null{ 0.0f };
 	switch (entity.type) {
 	case EntityType::Body: return body[entity.index].pos;
-	case EntityType::DistanceJoint:
-		if (const auto anchorB = std::get_if<Vec2>(&distanceJoint[entity.index].staticWorldSpaceAnchorOrBodyAnchorB); anchorB != nullptr) {
-			return *anchorB;
-		}
-		null = Vec2{ 0.0f };
-		return null;
 
-	default:
+	case EntityType::DistanceJoint:
+	case EntityType::Null:
 		return null;
 	}
 }
@@ -107,10 +93,6 @@ auto EditorEntities::getPos(const Entity& entity) -> std::optional<Vec2> {
 	switch (entity.type) {
 	case EntityType::Body: return body[entity.index].pos;
 	case EntityType::DistanceJoint:
-		if (const auto anchorB = std::get_if<Vec2>(&distanceJoint[entity.index].staticWorldSpaceAnchorOrBodyAnchorB); anchorB != nullptr) {
-			return *anchorB;
-		}
-		break;
 	case EntityType::Null:
 		break;
 	}

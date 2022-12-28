@@ -46,6 +46,8 @@ struct Commands {
 
 	auto addCommand(Command&& command) noexcept -> void;
 	auto addSetFieldCommand(const Entity& entity, usize pointerOffset, const void* oldValue, const void* newValue, u8 size) -> void;
+	template<typename T>
+	auto addSetFieldCommand(const Entity& entity, usize pointerOffset, const T& oldValue, const T& newValue) -> void;
 	auto addSelectCommand(Span<const Entity> oldSelectedEntites, Span<const Entity> newSelectedEntites) -> void;
 
 	auto getPtr(usize ptr) -> u8*;
@@ -61,3 +63,8 @@ private:
 
 	std::vector<u8> data;
 };
+
+template<typename T>
+auto Commands::addSetFieldCommand(const Entity& entity, usize pointerOffset, const T& oldValue, const T& newValue) -> void {
+	addSetFieldCommand(entity, pointerOffset, &oldValue, &newValue, sizeof(T));
+}

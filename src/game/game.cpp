@@ -135,6 +135,18 @@ auto Game::loadLevel() -> void{
 
 		collisionSystem.update(vAdd, vDelete);
 
+		joints.clear();
+		const auto& distanceJoints = level.at("distanceJoints").array();
+		for (const auto& distanceJoint : distanceJoints) {
+			const auto joint = DistanceJointEntityEditor::fromJson(distanceJoint);
+			if (joint.anchorA.body >= ::bodies.size() || joint.anchorB.body >= ::bodies.size() || joint.anchorA.body == joint.anchorB.body) {
+				dbg("failed to load level");
+				return;
+			}
+			const auto key = BodyPair{ &::bodies[joint.anchorA.body], &::bodies[joint.anchorB.body] };
+			joints[key] = DistanceJoint{ .requiredDistance = joint.distance };
+		}
+
 	} catch (const Json::ParsingError&) {
 		dbg("failed to load level");
 	}

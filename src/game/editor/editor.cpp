@@ -3,6 +3,7 @@
 #include <imgui/imgui.h>
 #include <game/editor/input.hpp>
 #include <game/collision/collision.hpp>
+#include <game/levelFormat.hpp>
 #include <engine/time.hpp>
 #include <engine/frameAllocator.hpp>
 #include <math/lineSegment.hpp>
@@ -63,7 +64,7 @@ auto sortedInsert(std::vector<T>& vec, const T& item) -> void {
 auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	using namespace ImGui;
 
-	DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+	DockSpaceOverViewport(ImGui::GetMainViewport());
 
 	//if (ImGui::BeginMainMenuBar())
 	//{
@@ -84,7 +85,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	//	ImGui::EndMainMenuBar();
 	//}
 
-	bool openLevelsModal = false;
+	//bool openLevelsModal = false;
 
 	//ImGui::ShowDemoWindow();
 
@@ -207,15 +208,31 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	Begin("entites");
 	ImGui::Checkbox("testa", &Input::ignoreImGuiWantCapture);
-	if (Button("+")) {
+	if (Button("add rectangle")) {
+		const auto collider = BoxColliderEditor{ Vec2{ 1.0f } };
+		const auto info = massInfo(collider, DEFAULT_DENSITY);
 		const auto entity = entites.body.add(BodyEditor{
 			.pos = Vec2{ camera.pos },
 			.orientation = 0.0f,
 			.vel = Vec2{ 0.0f },
 			.angularVel = 0.0f,
-			.mass = 20.0f,
-			.rotationalInertia = 1.0f,
-			.collider = BoxColliderEditor{ Vec2{ 1.0f } }
+			.mass = info.mass,
+			.rotationalInertia = info.rotationalInertia,
+			.collider = collider
+		});
+		commands.addCommand(CreateEntityCommand{ entity });
+	}
+	if (Button("add circle")) {
+		const auto collider = CircleColliderEditor{ 0.5f };
+		const auto info = massInfo(collider, DEFAULT_DENSITY);
+		const auto entity = entites.body.add(BodyEditor{
+			.pos = Vec2{ camera.pos },
+			.orientation = 0.0f,
+			.vel = Vec2{ 0.0f },
+			.angularVel = 0.0f,
+			.mass = info.mass,
+			.rotationalInertia = info.rotationalInertia,
+			.collider = collider
 		});
 		commands.addCommand(CreateEntityCommand{ entity });
 	}
@@ -245,30 +262,56 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			TreePop();
 		}
 	}
-	if (selectedEntities.size() == 1) {
-		if (selectedEntities[0].type == EntityType::Body) {
-			if (Button("add distance joint")) {
-				const auto entity = entites.distanceJoint.add(DistanceJointEntityEditor{
-					.anchorA = { selectedEntities[0].index, Vec2{ 0.0f } },
-					.staticWorldSpaceAnchorOrBodyAnchorB = entites.getPosOrOrigin(selectedEntities[0]) + Vec2{ 0.0f, 2.0f },
-					.distance = 1.0f
-				});
-				commands.addCommand(CreateEntityCommand{ entity });
-			}
-			
-			if (Button("make static")) {
-				auto& body = entites.body[selectedEntities[0].index];
-				const auto entity = Entity{ .type = EntityType::Body, .index = selectedEntities[0].index };
-				constexpr auto newMassAndInertia = std::numeric_limits<float>::infinity();
-				commands.beginMulticommand();
-				commands.addSetFieldCommand(entity, BODY_EDITOR_MASS_OFFSET, &body.mass, &newMassAndInertia, sizeof(newMassAndInertia));
-				commands.addSetFieldCommand(entity, BODY_EDITOR_ROTATIONAL_INERTIA_OFFSET, &body.rotationalInertia, &newMassAndInertia, sizeof(newMassAndInertia));
-				body.mass = newMassAndInertia;
-				body.rotationalInertia = newMassAndInertia;
-				commands.endMulticommand();
-			}
-		} 
+
+	if (selectedEntities.size() > 0 && Button("make static")) {
+		commands.beginMulticommand();
+		for (const auto& entity : selectedEntities) {
+			if (entity.type != EntityType::Body)
+				continue;
+
+			auto& body = entites.body[entity.index];
+			constexpr auto newMassAndInertia = std::numeric_limits<float>::infinity();
+			commands.addSetFieldCommand(entity, BODY_EDITOR_MASS_OFFSET, body.mass, newMassAndInertia);
+			commands.addSetFieldCommand(entity, BODY_EDITOR_ROTATIONAL_INERTIA_OFFSET, body.rotationalInertia, newMassAndInertia);
+			body.mass = newMassAndInertia;
+			body.rotationalInertia = newMassAndInertia;
+		}
+		commands.endMulticommand();
 	}
+	if (selectedEntities.size() > 0) {
+		if (Button("recalculate mass")) {
+			for (const auto& entity : selectedEntities) {
+				if (entity.type != EntityType::Body) {
+					continue;
+				}
+				auto& body = entites.body[entity.index];
+				const auto info = massInfo(body.collider, densityForRecalculation);
+				body.mass = info.mass;
+				body.rotationalInertia = info.rotationalInertia;
+			}
+		}
+		if (IsItemHovered())
+			SetTooltip("recalculate mass and rotational inertia with uniform density");
+
+		InputFloat("density", &densityForRecalculation);
+	}
+
+	if (selectedEntities.size() == 2 && selectedEntities[0].type == EntityType::Body && selectedEntities[1].type == EntityType::Body 
+		&& Button("join with a distance joint")) {
+		const auto entity = entites.distanceJoint.add(DistanceJointEntityEditor{
+			.anchorA = { selectedEntities[0].index, Vec2{ 0.0f } },
+			.anchorB = { selectedEntities[1].index, Vec2{ 0.0f } },
+			.distance = 0.0f
+		});
+		commands.addCommand(CreateEntityCommand{ entity });
+	}
+
+	for (auto& distanceJoint : entites.distanceJoint.alive()) {
+		const auto& bodyA = entites.body[distanceJoint.anchorA.body];
+		const auto& bodyB = entites.body[distanceJoint.anchorB.body];
+		distanceJoint.distance = distance(bodyA.pos, bodyB.pos);
+	}
+
 	End();
 
 	Begin("gizmo settings");
@@ -310,9 +353,13 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	isGizmoSelected = distanceJointGizmo.update(selectedEntities, entites, cursorPos, camera, commands);
 	const auto distanceJointSelected = isGizmoSelected;
-	
+
 	if (!isGizmoSelected) {
 		isGizmoSelected = selectedEntitiesGizmo.update(entites, commands, camera, selectedEntities, selectedEntitiesCenterPos, getCursorPos());
+	}
+
+	if (!isGizmoSelected) {
+		isGizmoSelected = scalingGizmo.update(selectedEntities, commands, cursorPos, entites, 0.05f / camera.zoom);
 	}
 	
 	const auto distanceJointColliderThickness = 0.03f / camera.zoom;
@@ -502,7 +549,8 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		
 
 	for (const auto& body : entites.body.alive()) {
-		Debug::drawCollider(body.collider, body.pos, body.orientation, Vec3::WHITE);
+		const auto color = (body.mass == std::numeric_limits<float>::infinity()) ? Vec3::WHITE : Vec3::GREEN;
+		Debug::drawCollider(body.collider, body.pos, body.orientation, color);
 	}
 
 	for (const auto& distanceJoint : entites.distanceJoint.alive()) {
@@ -512,8 +560,9 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	distanceJointGizmo.draw(selectedEntities, entites);
 
-	if (!selectedEntities.empty() && !DistanceJointGizmo::displayGizmo(selectedEntities)) {
+	if (selectedEntities.size() != 0 && !DistanceJointGizmo::displayGizmo(selectedEntities)) {
 		selectedEntitiesGizmo.draw(selectedEntitiesCenterPos);
+		scalingGizmo.draw(selectedEntities, entites);
 	}
 
 	renderer.update(gfx, camera, sceneWindowSize, true);
@@ -592,20 +641,17 @@ auto Editor::saveLevel() -> Json::Value {
 
 	auto& distanceJoints = (level["distanceJoints"] = Json::Value::emptyArray()).array();
 	for (const auto& distanceJoint : entites.distanceJoint.alive()) {
-		if (!entites.body.isAlive[distanceJoint.anchorA.body]) {
-			ASSERT_NOT_REACHED();
-			continue;
-		}
-		if (const auto& anchorB = std::get_if<DistanceJointAnchorEditor>(&distanceJoint.staticWorldSpaceAnchorOrBodyAnchorB); 
-			anchorB != nullptr && !entites.body.isAlive[anchorB->body]) {
-			ASSERT_NOT_REACHED();
-			continue;
-		}
+		const auto& bodyA = bodyMap.find(distanceJoint.anchorA.body);
+		const auto& bodyB = bodyMap.find(distanceJoint.anchorB.body);
 
-		/*auto joint = distanceJoint;
-		joint.anchorA.body*/
-
-		distanceJoints.push_back(distanceJoint.toJson());
+		if (bodyA == bodyMap.end() || bodyB == bodyMap.end()) {
+			ASSERT_NOT_REACHED();
+			return Json::Value::null();
+		}
+		auto joint = distanceJoint;
+		joint.anchorA.body = bodyA->second;
+		joint.anchorB.body = bodyB->second;
+		distanceJoints.push_back(joint.toJson());
 	}
 	return level;
 }
@@ -627,7 +673,10 @@ auto Editor::loadLevel(const Json::Value& level) -> void {
 		const auto& distanceJoints = level.at("distanceJoints").array();
 		for (const auto& distanceJoint : distanceJoints) {
 			const auto joint = DistanceJointEntityEditor::fromJson(distanceJoint);
-			/*joint.anchorA.body*/
+			if (!isDistanceJointEntityValid(entites, joint)) {
+				/*ASSERT_NOT_REACHED();
+				return;*/
+			}
 			entites.distanceJoint.add(joint);
 		}
 

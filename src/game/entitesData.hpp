@@ -70,13 +70,9 @@ static constexpr auto DISTANCE_JOINT_ANCHOR_EDITOR_OBJECT_SPACE_OFFSET_OFFSET = 
 struct DistanceJointAnchor : public DistanceJointAnchorEditor {
 };
 
-auto anchorToJson(const std::variant<Vec2, DistanceJointAnchorEditor>& anchor) -> Json::Value;
-auto jsonToAnchor(const Json::Value& json) -> std::variant<Vec2, DistanceJointAnchorEditor>;
-auto displayAnchorGui(const std::variant<Vec2, DistanceJointAnchorEditor>& anchor) -> void;
-
 struct DistanceJointEntityEditor {
 	DistanceJointAnchorEditor anchorA;
-	std::variant<Vec2, DistanceJointAnchorEditor> staticWorldSpaceAnchorOrBodyAnchorB;
+	DistanceJointAnchorEditor anchorB;
 	float distance;
 
 	auto editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void;
@@ -85,7 +81,7 @@ struct DistanceJointEntityEditor {
 };
 
 static constexpr auto DISTANCE_JOINT_ENTITY_EDITOR_ANCHOR_A_OFFSET = offsetof(DistanceJointEntityEditor, anchorA);
-static constexpr auto DISTANCE_JOINT_ENTITY_EDITOR_STATIC_WORLD_SPACE_ANCHOR_OR_BODY_ANCHOR_B_OFFSET = offsetof(DistanceJointEntityEditor, staticWorldSpaceAnchorOrBodyAnchorB);
+static constexpr auto DISTANCE_JOINT_ENTITY_EDITOR_ANCHOR_B_OFFSET = offsetof(DistanceJointEntityEditor, anchorB);
 static constexpr auto DISTANCE_JOINT_ENTITY_EDITOR_DISTANCE_OFFSET = offsetof(DistanceJointEntityEditor, distance);
 
 struct DistanceJointEntity : public DistanceJointEntityEditor {

@@ -224,6 +224,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\game\editor\scalingGizmo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\game\editor\selectedEntityGizmo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -245,6 +249,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\game\gameMain.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\levelFormat.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -343,12 +351,14 @@
     <ClInclude Include="src\game\editor\editorEntity.hpp" />
     <ClInclude Include="src\game\editor\editorGuiState.hpp" />
     <ClInclude Include="src\game\editor\input.hpp" />
+    <ClInclude Include="src\game\editor\scalingGizmo.hpp" />
     <ClInclude Include="src\game\editor\selectedEntityGizmo.hpp" />
     <ClInclude Include="src\game\entitesData.hpp" />
     <ClInclude Include="src\game\game.hpp" />
     <ClInclude Include="src\game\gameMain.hpp" />
     <ClInclude Include="src\game\input.hpp" />
     <ClInclude Include="src\game\distanceJoint.hpp" />
+    <ClInclude Include="src\game\levelFormat.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
     <ClInclude Include="src\math\collision.hpp" />
     <ClInclude Include="src\math\line.hpp" />
@@ -371,6 +381,7 @@
     <ClInclude Include="src\utils\io.hpp" />
     <ClInclude Include="src\utils\overloaded.hpp" />
     <ClInclude Include="src\utils\random.hpp" />
+    <ClInclude Include="src\utils\refOptional.hpp" />
     <ClInclude Include="src\utils\span.hpp" />
     <ClInclude Include="src\utils\staticVec.hpp" />
     <ClInclude Include="src\utils\typeInfo.hpp" />
