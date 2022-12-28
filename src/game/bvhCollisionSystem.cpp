@@ -38,6 +38,15 @@ auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vect
 	}
 }
 
+auto BvhCollisionSystem::reset() -> void {
+	leafNodes.clear();
+	freeNodes.clear();
+	for (usize i = 0; i < nodes.size(); i++) {
+		freeNodes.push_back(static_cast<i32>(i));
+	}
+	rootNode = NULL_NODE;
+}
+
 #include <chrono>
 
 // @Performance: Don't check collision between sleeping objects.

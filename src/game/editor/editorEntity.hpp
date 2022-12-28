@@ -46,6 +46,7 @@ struct EditorEntityArray {
 	auto alive() -> Alive;
 	auto add(const T& body) -> Entity;
 	auto size() const -> usize;
+	auto clear() -> void;
 
 	std::vector<bool> isAlive;
 
@@ -119,6 +120,12 @@ template<typename T, EntityType type>
 auto EditorEntityArray<T, type>::size() const -> usize {
 	ASSERT(data.size() == isAlive.size());
 	return data.size();
+}
+
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::clear() -> void {
+	data.clear();
+	isAlive.clear();
 }
 
 template<typename T, EntityType type>

@@ -16,6 +16,7 @@ public:
 	BvhCollisionSystem();
 
 	auto update(const std::vector<Body*>& toAdd, const std::vector<Body*>& toRemove) -> void;
+	auto reset() -> void;
 	auto detectCollisions(CollisionMap& collisions) -> void;
 
 	auto raycast(Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;

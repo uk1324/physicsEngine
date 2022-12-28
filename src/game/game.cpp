@@ -27,23 +27,22 @@ std::vector<Body> bodies;
 
 
 Game::Game() {
+	//int height = 14;
+	//float boxSize = 1.0f;
+	//float gapSize = 0.1f;
+	//for (int i = 1; i < height + 1; i++) {
+	//	for (int j = 0; j < i; j++) {
+	//		float y = (height + 1 - i) * (boxSize + gapSize);
+	//		float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
-	int height = 14;
-	float boxSize = 1.0f;
-	float gapSize = 0.1f;
-	for (int i = 1; i < height + 1; i++) {
-		for (int j = 0; j < i; j++) {
-			float y = (height + 1 - i) * (boxSize + gapSize);
-			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
-
-			bodies.push_back(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });
-		}
-	}
-	bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxColliderEditor{ Vec2{ 5.0f, 2.5f } }, false });
+	//		bodies.push_back(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });
+	//	}
+	//}
+	//bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxColliderEditor{ Vec2{ 5.0f, 2.5f } }, false });
 
 
-	/*bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });*/
-	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
+	///*bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });*/
+	//bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
 
 	//int count = 4;
 	//for (int i = 0; i < count; i++) {
@@ -54,8 +53,10 @@ Game::Game() {
 	//	joints[BodyPair{ &bodies[bodies.size() - i], &bodies[bodies.size() - i - 1] }] = DistanceJoint{ .requiredDistance = 2.0f };
 	//	//bodies.push_back(Body{ Vec2{ -1.0, 4.0 }, BoxColliderEditor{ Vec2{ 1.0f, 1.0f } }, false });
 	//}
+	loadLevel();
+
 	camera.zoom = 0.125f / 2.0f;
-	camera.pos = Vec2{ 0.0f, 6.0f };;
+	camera.pos = Vec2{ 0.0f, 6.0f };
 
 	static std::vector<Body*> vAdd;
 	for (auto& body : bodies) {
@@ -100,6 +101,43 @@ auto Game::detectCollisions() -> void {
 	static const std::vector<Body*> v;
 	collisionSystem.update(v, v);
 	collisionSystem.detectCollisions(contacts);
+}
+
+auto Game::loadLevel() -> void{
+	std::stringstream buffer;
+	{
+		std::ifstream level("./levels/test");
+		buffer << level.rdbuf();
+	}
+	try {
+		const auto level = Json::parse(buffer.str());
+		
+		const auto& bodies = level.at("bodies").array();
+		std::vector<Body*> vAdd;
+		std::vector<Body*> vDelete;
+
+		for (auto& body : ::bodies) {
+			vDelete.push_back(&body);
+		}
+		collisionSystem.update(vAdd, vDelete);
+		::bodies.clear();
+		collisionSystem.reset();
+
+		vDelete.clear();
+
+		for (const auto& body : bodies) {
+			::bodies.push_back(BodyEditor::fromJson(body));
+		}
+
+		for (auto& body : ::bodies) {
+			vAdd.push_back(&body);
+		}
+
+		collisionSystem.update(vAdd, vDelete);
+
+	} catch (const Json::ParsingError&) {
+		dbg("failed to load level");
+	}
 }
 
 auto Game::drawUi() -> void {

@@ -12,11 +12,14 @@ public:
 	auto registerInputButtons() -> void;
 	auto update(Gfx& gfx, Renderer& renderer) -> void;
 
+	auto saveCurrentLevel() -> void;
+
 private:
 	auto updateCamera(float aspectRatio) -> void;
 	auto debugChecks() -> void;
 
 	auto saveLevel() -> Json::Value;
+	auto loadLevel(const Json::Value& level) -> void;
 
 	Aabb sceneWindowWindowSpace{ Vec2{ 0.0f }, Vec2{ 0.0f } };
 	auto getCursorPos() -> Vec2;

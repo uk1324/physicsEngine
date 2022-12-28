@@ -12,4 +12,10 @@ struct GameMain {
 
 	Game game;
 	Editor editor;
+
+	enum class Scene {
+		GAME,
+		EDITOR,
+	};
+	Scene currentScene = Scene::EDITOR;
 };

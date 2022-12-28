@@ -1,0 +1,269 @@
+{
+    "bodies": [
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": 2.5,
+                "y": 0
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": 0,
+                "y": 0
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": 1.25,
+                "y": 0
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -1.25,
+                "y": 0
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -2.5,
+                "y": 0
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": 20,
+            "orientation": -0.868983,
+            "pos": {
+                "x": -1.0598,
+                "y": 3.19221
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": 20,
+            "orientation": -0.868983,
+            "pos": {
+                "x": -1.8668,
+                "y": 4.1468
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": 20,
+            "orientation": -0.868983,
+            "pos": {
+                "x": -2.67381,
+                "y": 5.10139
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": 20,
+            "orientation": -0.868983,
+            "pos": {
+                "x": -1.23502,
+                "y": 5.33564
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": 20,
+            "orientation": -0.868983,
+            "pos": {
+                "x": -0.428011,
+                "y": 4.38105
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        },
+        {
+            "mass": 20,
+            "orientation": -0.868983,
+            "pos": {
+                "x": 0.0423767,
+                "y": 5.76081
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "BoxCollider",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0
+        }
+    ],
+    "distanceJoints": []
+}

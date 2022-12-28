@@ -338,6 +338,7 @@ namespace
 			MATCH_KEYWORD("true",  Json::Value(true))
 			MATCH_KEYWORD("false", Json::Value(false))
 			MATCH_KEYWORD("null",  Json::Value(nullptr))				
+			MATCH_KEYWORD("inf",  Json::Value(std::numeric_limits<Json::Value::FloatType>::infinity()))				
 		}
 
 		return std::nullopt;

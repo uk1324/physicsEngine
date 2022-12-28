@@ -4,18 +4,33 @@
 #include <game/editor/input.hpp>
 #include <game/collision/collision.hpp>
 #include <engine/time.hpp>
+#include <engine/frameAllocator.hpp>
 #include <math/lineSegment.hpp>
 #include <math/mat2.hpp>
 #include <math/utils.hpp>
 #include <engine/window.hpp>
 #include <utils/io.hpp>
 #include <utils/overloaded.hpp>
+#include <../thirdParty/json/Json.hpp>
 
-#include <engine/frameAllocator.hpp>
+#include <fstream>
+
 Editor::Editor() {
 	camera.zoom = 0.125f / 2.0f;
 	camera.pos = Vec2{ 0.0f, 0.0f };
 	registerInputButtons();
+
+	{
+		std::ifstream level("./levels/test");
+		std::stringstream buffer;
+		buffer << level.rdbuf();
+		try {
+			const auto value = Json::parse(buffer.str());
+			loadLevel(value);
+		} catch (const Json::ParsingError&) {
+			dbg("failed to load level");
+		}
+	}
 }
 
 auto Editor::registerInputButtons() -> void {
@@ -43,12 +58,95 @@ auto sortedInsert(std::vector<T>& vec, const T& item) -> void {
 	}
 }
 
+#include <filesystem>
+
 auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	using namespace ImGui;
 
 	DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
-	ImGui::Begin("testabc");
+	//if (ImGui::BeginMainMenuBar())
+	//{
+	//	if (ImGui::BeginMenu("File"))
+	//	{
+	//		ImGui::EndMenu();
+	//	}
+	//	if (ImGui::BeginMenu("Edit"))
+	//	{
+	//		if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+	//		if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+	//		ImGui::Separator();
+	//		if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+	//		if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+	//		if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+	//		ImGui::EndMenu();
+	//	}
+	//	ImGui::EndMainMenuBar();
+	//}
+
+	bool openLevelsModal = false;
+
+	ImGui::ShowDemoWindow();
+
+	if (ImGui::BeginMainMenuBar()) {
+		if (ImGui::BeginMenu("Editor")) {
+			if (ImGui::MenuItem("Level")) {
+				openLevelsModal = true;
+			}
+			ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+			ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+
+	if (openLevelsModal) {
+		ImGui::OpenPopup("Levels");
+	}
+
+	//ImGui::ViewportS
+	//ImGui::SetNextWindowSize()
+	//if (ImGui::BeginPopupModal("Levels", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+	//	//ImGui::BeginChild("left pane", ImVec2(150, 0), true);
+	//	for (int i = 0; i < 100; i++)
+	//	{
+	//		// FIXME: Good candidate to use ImGuiSelectableFlags_SelectOnNav
+	//		char label[128];
+	//		snprintf(label, 128, "MyObject %d", i);
+	//		if (ImGui::Selectable(label))
+	//			;
+	//	}
+	//	//ImGui::EndChild();
+
+	//	ImGui::EndPopup();
+	//}
+
+	//ImGui::ShowDemoWindow();
+
+	//ImGui::OpenPopup("Delete?");
+	//if (ImGui::BeginPopupModal("Delete?", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	//{
+	//	ImGui::Text("All those beautiful files will be deleted.\nThis operation cannot be undone!\n\n");
+	//	ImGui::Separator();
+
+	//	//static int unused_i = 0;
+	//	//ImGui::Combo("Combo", &unused_i, "Delete\0Delete harder\0");
+
+	//	static bool dont_ask_me_next_time = false;
+	//	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+	//	ImGui::Checkbox("Don't ask me next time", &dont_ask_me_next_time);
+	//	ImGui::PopStyleVar();
+
+	//	if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+	//	ImGui::SetItemDefaultFocus();
+	//	ImGui::SameLine();
+	//	if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+	//	ImGui::EndPopup();
+	//}
+
+
+
+	ImGui::Begin("editor");
 	sceneWindowWindowSpace = Aabb::fromCorners(
 		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMin(),
 		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMax()
@@ -104,13 +202,29 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			TreePop();
 		}
 	}
-	if (selectedEntities.size() == 1 && selectedEntities[0].type == EntityType::Body && Button("add distance joint")) {
-		const auto entity = entites.distanceJoint.add(DistanceJointEntityEditor{
-			.anchorA = { selectedEntities[0].index, Vec2{ 0.0f } },
-			.staticWorldSpaceAnchorOrBodyAnchorB = entites.getPosOrOrigin(selectedEntities[0]) + Vec2{ 0.0f, 2.0f },
-			.distance = 1.0f 
-		});
-		commands.addCommand(CreateEntityCommand{ entity });
+	if (selectedEntities.size() == 1) {
+		if (selectedEntities[0].type == EntityType::Body) {
+			if (Button("add distance joint")) {
+				const auto entity = entites.distanceJoint.add(DistanceJointEntityEditor{
+					.anchorA = { selectedEntities[0].index, Vec2{ 0.0f } },
+					.staticWorldSpaceAnchorOrBodyAnchorB = entites.getPosOrOrigin(selectedEntities[0]) + Vec2{ 0.0f, 2.0f },
+					.distance = 1.0f
+				});
+				commands.addCommand(CreateEntityCommand{ entity });
+			}
+			
+			if (Button("make static")) {
+				auto& body = entites.body[selectedEntities[0].index];
+				const auto entity = Entity{ .type = EntityType::Body, .index = selectedEntities[0].index };
+				constexpr auto newMassAndInertia = std::numeric_limits<float>::infinity();
+				commands.beginMulticommand();
+				commands.addSetFieldCommand(entity, BODY_EDITOR_MASS_OFFSET, &body.mass, &newMassAndInertia, sizeof(newMassAndInertia));
+				commands.addSetFieldCommand(entity, BODY_EDITOR_ROTATIONAL_INERTIA_OFFSET, &body.rotationalInertia, &newMassAndInertia, sizeof(newMassAndInertia));
+				body.mass = newMassAndInertia;
+				body.rotationalInertia = newMassAndInertia;
+				commands.endMulticommand();
+			}
+		} 
 	}
 	End();
 
@@ -137,6 +251,10 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			}
 			commands.commandsSizesTop++;
 		}
+	}
+
+	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::S)) {
+		saveCurrentLevel();
 	}
 
 	const auto cursorPos = getCursorPos();
@@ -360,6 +478,12 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	debugChecks();
 }
 
+auto Editor::saveCurrentLevel() -> void {
+	const auto level = saveLevel();
+	std::ofstream file("levels/test");
+	Json::prettyPrint(file, level);
+}
+
 auto Editor::updateCamera(float aspectRatio) -> void {
 	camera.aspectRatio = aspectRatio;
 	const auto cursorPos = getCursorPos();
@@ -413,11 +537,17 @@ auto Editor::debugChecks() -> void {
 
 auto Editor::saveLevel() -> Json::Value {
 	auto level = Json::Value::emptyObject();
-	level["bodies"] = Json::Value::emptyArray();
-	auto& bodies = level["bodies"].array();
-	for (const auto& body : entites.body.alive()) {
-		bodies.push_back(body.toJson());
+
+	auto& bodies = (level["bodies"] = Json::Value::emptyArray()).array();
+	std::unordered_map<usize, usize> bodyMap;
+	for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
+		const auto newIndex = bodies.size();
+		const auto oldIndex = body.index;
+		bodyMap[oldIndex] = newIndex;
+		bodies.push_back(body->toJson());
 	}
+
+	auto& distanceJoints = (level["distanceJoints"] = Json::Value::emptyArray()).array();
 	for (const auto& distanceJoint : entites.distanceJoint.alive()) {
 		if (!entites.body.isAlive[distanceJoint.anchorA.body]) {
 			ASSERT_NOT_REACHED();
@@ -428,9 +558,39 @@ auto Editor::saveLevel() -> Json::Value {
 			ASSERT_NOT_REACHED();
 			continue;
 		}
-		bodies.push_back(distanceJoint.toJson());
+
+		/*auto joint = distanceJoint;
+		joint.anchorA.body*/
+
+		distanceJoints.push_back(distanceJoint.toJson());
 	}
 	return level;
+}
+
+auto Editor::loadLevel(const Json::Value& level) -> void {
+	selectedEntities.clear();
+	clipboard.clear();
+	lastSelectedEntitesUnderCursor.clear();
+	currentSelectedEntitesUnderCursor.clear();
+	entites.body.clear();
+	entites.distanceJoint.clear();
+
+	try {
+		const auto& bodies = level.at("bodies").array();
+		for (const auto& body : bodies) {
+			entites.body.add(BodyEditor::fromJson(body));
+		}
+
+		const auto& distanceJoints = level.at("distanceJoints").array();
+		for (const auto& distanceJoint : distanceJoints) {
+			const auto joint = DistanceJointEntityEditor::fromJson(distanceJoint);
+			/*joint.anchorA.body*/
+			entites.distanceJoint.add(joint);
+		}
+
+	} catch (const Json::Value::InvalidTypeAccess&) {
+
+	}
 }
 
 auto Editor::getCursorPos() -> Vec2 {

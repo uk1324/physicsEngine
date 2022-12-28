@@ -62,6 +62,7 @@ public:
 	Game();
 
 	auto detectCollisions() -> void;
+	auto loadLevel() -> void;
 	auto drawUi() -> void;
 	auto update(Gfx& gfx, Renderer& renderer) -> void;
 
