@@ -15,8 +15,8 @@ auto Aabb::fromCorners(Vec2 a, Vec2 b) -> Aabb {
 	}
 
 	if (a.y < b.y) {
-		min.y= a.y;
-		max.y= b.y;
+		min.y = a.y;
+		max.y = b.y;
 	} else {
 		min.y = b.y;
 		max.y = a.y;
@@ -70,18 +70,18 @@ auto Aabb::collides(const Aabb& other) const -> bool {
 }
 
 auto Aabb::rayHits(Vec2 start, Vec2 end) const -> bool {
-    const auto dir = end - start;
-    float t1 = (min.x - start.x) / dir.x;
-    float t2 = (max.x - start.x) / dir.x;
-    float t3 = (min.y - start.y) / dir.y;
-    float t4 = (max.y - start.y) / dir.y;
+	const auto dir = end - start;
+	float t1 = (min.x - start.x) / dir.x;
+	float t2 = (max.x - start.x) / dir.x;
+	float t3 = (min.y - start.y) / dir.y;
+	float t4 = (max.y - start.y) / dir.y;
 
-    float tMin = std::max(std::min(t1, t2), std::min(t3, t4));
-    float tMax = std::min(std::max(t1, t2), std::max(t3, t4));
+	float tMin = std::max(std::min(t1, t2), std::min(t3, t4));
+	float tMax = std::min(std::max(t1, t2), std::max(t3, t4));
 
-    // Intersection behind.
-    if (tMax < 0)
-        return false;
+	// Intersection behind.
+	if (tMax < 0)
+		return false;
 
 	// No hit.
 	if (tMin > tMax)
@@ -92,4 +92,13 @@ auto Aabb::rayHits(Vec2 start, Vec2 end) const -> bool {
 
 auto Aabb::center() const -> Vec2 {
 	return min + (max - min) / 2.0f;
+}
+
+auto Aabb::getCorners() const -> std::array<Vec2, 4> {
+	return {
+		min,
+		Vec2{ max.x, min.y },
+		max,
+		Vec2{ min.x, max.y },
+	};
 }

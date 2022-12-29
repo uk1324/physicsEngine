@@ -359,7 +359,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	if (!isGizmoSelected) {
-		isGizmoSelected = scalingGizmo.update(selectedEntities, commands, cursorPos, entites, 0.05f / camera.zoom);
+		isGizmoSelected = scalingGizmo.update(selectedEntities, selectedEntitesAabb, commands, cursorPos, entites, 0.05f / camera.zoom);
 	}
 	
 	const auto distanceJointColliderThickness = 0.03f / camera.zoom;
@@ -562,7 +562,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	if (selectedEntities.size() != 0 && !DistanceJointGizmo::displayGizmo(selectedEntities)) {
 		selectedEntitiesGizmo.draw(selectedEntitiesCenterPos);
-		scalingGizmo.draw(selectedEntities, entites);
+		scalingGizmo.draw(selectedEntities, selectedEntitesAabb, entites);
 	}
 
 	renderer.update(gfx, camera, sceneWindowSize, true);

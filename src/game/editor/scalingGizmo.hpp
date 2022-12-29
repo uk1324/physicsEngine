@@ -4,23 +4,27 @@
 //#include <utils/refOptional.hpp>
 
 struct ScalingGizmo {
-	auto update(const std::vector<Entity> selectedEntities, Commands& commands, Vec2 cursorPos, EditorEntities& entites, float pointRadius) -> bool;
-	auto draw(const std::vector<Entity> selectedEntities, EditorEntities& entities) const -> void;
+	auto update(const std::vector<Entity> selectedEntities, const Aabb& selectedEntitiesAabb, Commands& commands, Vec2 cursorPos, EditorEntities& entites, float pointRadius) -> bool;
+	auto draw(const std::vector<Entity> selectedEntities, const Aabb& selectedEntitiesAabb, EditorEntities& entities) const -> void;
 
 private:
 	struct Result {
 		bool grabStarted;
 		bool isGrabbing;
+		bool relestedGrab;
+		Vec2 scaleSigns;
+		Vec2 signedScale;
+		Vec2 offset;
 	};
 
-	auto boxScaling(BoxCollider& scaledBox, bool uniformScaling, Vec2 cursorPos, float pointRadius) -> Result;
+	auto boxScaling(BoxCollider& box, Vec2& boxPos, float boxOrientation, bool uniformScaling, Vec2 cursorPos, float pointRadius)->Result;
 
 	struct Box {
 		BodyEditor& body;
 		BoxCollider& box;
 		usize bodyIndex;
 	};
-	static auto isOnlyBoxSelected(const std::vector<Entity> selectedEntities, EditorEntities& entites) -> std::optional<Box>;
+	static auto isOnlyBoxSelected(const std::vector<Entity> selectedEntities, EditorEntities& entites)->std::optional<Box>;
 	static auto isEdge(usize feature) -> bool;
 
 	enum BoxFeature {
@@ -37,5 +41,7 @@ private:
 	Vec2 boxGrabStartBodyPos{ 0.0f };
 	Vec2 boxGrabStartPos{ 0.0f };
 	BoxColliderEditor boxGrabStartCollider{ Vec2{ 0.0f } };
-	
+
+	std::vector<Vec2> selectedEntitesBoxGrabStartPositions;
+	std::vector<Collider> selectedEntitesBoxGrabStartColliders;
 };
