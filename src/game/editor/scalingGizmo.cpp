@@ -11,74 +11,75 @@
 auto ScalingGizmo::update(const std::vector<Entity> selectedEntities, const Aabb& selectedEntitiesAabb, Commands& commands, Vec2 cursorPos, EditorEntities& entites, float pointRadius) -> bool {
 	auto isGrabbing = false;
 
-	if (auto value = isOnlyBoxSelected(selectedEntities, entites)) {
-		const auto& [body, box, bodyIndex] = *value;
+	if (selectedEntities.size() == 0)
+		return isGrabbing;
 
-		const auto result = boxScaling(box, body.pos, body.orientation, false, cursorPos, pointRadius);
-		isGrabbing = result.isGrabbing;
+	auto box = BoxCollider{ BoxColliderEditor{.size = selectedEntitiesAabb.size() } };
+	auto pos = selectedEntitiesAabb.center();
+	float orientation = 0.0f;
+	auto doUniformScaling = true;
 
-		if (result.relestedGrab) {
-			commands.beginMulticommand();
-			const Entity entity{ .type = EntityType::Body, .index = bodyIndex };
-			commands.addSetFieldCommand(entity, BODY_EDITOR_POS_OFFSET, boxGrabStartBodyPos, body.pos);
-			const Collider oldCollider{ boxGrabStartCollider };
-			commands.addSetFieldCommand(entity, BODY_EDITOR_COLLIDER_OFFSET, oldCollider, body.collider);
-			commands.endMulticommand();
-		}
-	} else if (selectedEntities.size() > 0) {
-		auto box = BoxCollider{ BoxColliderEditor{.size = selectedEntitiesAabb.size() } };
-		auto pos = selectedEntitiesAabb.center();
-		const auto result = boxScaling(box, pos, 0.0f, true, cursorPos, pointRadius);
-		isGrabbing = result.isGrabbing;
+	if (const auto& optionalBox = isOnlyBoxSelected(selectedEntities, entites)) {
+		const auto& [body, boxCollider] = *optionalBox;
+		doUniformScaling = false;
+		orientation = body.orientation;
+		pos = body.pos;
+		box = boxCollider;
+	}
 
-		if (result.grabStarted) {
-			selectedEntitesBoxGrabStartPositions.clear();
-			selectedEntitesBoxGrabStartColliders.clear();
-			for (const auto& entity : selectedEntities) {
-				if (entity.type == EntityType::Body) {
-					const auto& body = entites.body[entity.index];
-					selectedEntitesBoxGrabStartPositions.push_back(body.pos);
-					selectedEntitesBoxGrabStartColliders.push_back(body.collider);
-				} else {
-					selectedEntitesBoxGrabStartPositions.push_back(Vec2{ 0.0f });
-					selectedEntitesBoxGrabStartColliders.push_back(CircleColliderEditor{ 0.0f });
-				}
+	const auto selectedEntitiesChanged = selectedEntities != grabStartSelectedEntites;
+
+	const auto result = boxScaling(box, pos, orientation, doUniformScaling, cursorPos, pointRadius, selectedEntitiesChanged);
+	isGrabbing = result.isGrabbing;
+
+	if (result.releasedGrab || selectedEntitiesChanged) {
+		ASSERT(selectedEntitesBoxGrabStartPositions.size() == grabStartSelectedEntites.size());
+		ASSERT(selectedEntitesBoxGrabStartColliders.size() == grabStartSelectedEntites.size());
+		commands.beginMulticommand();
+		for (usize i = 0; i < grabStartSelectedEntites.size(); i++) {
+			const auto& entity = grabStartSelectedEntites[i];
+			if (entity.type == EntityType::Body) {
+				auto& body = entites.body[entity.index];
+				commands.addSetFieldCommand(entity, BODY_EDITOR_POS_OFFSET, selectedEntitesBoxGrabStartPositions[i], body.pos);
+				commands.addSetFieldCommand(entity, BODY_EDITOR_COLLIDER_OFFSET, selectedEntitesBoxGrabStartColliders[i], body.collider);
 			}
 		}
+		commands.endMulticommand();
+	}
 
-		if (isGrabbing && selectedEntitesBoxGrabStartPositions.size() == selectedEntities.size()) {
-			ASSERT(selectedEntitesBoxGrabStartColliders.size() == selectedEntities.size());
-			for (usize i = 0; i < selectedEntities.size(); i++) {
-				const auto& entity = selectedEntities[i];
-				if (entity.type == EntityType::Body) {
-					auto& body = entites.body[entity.index];
-					body.pos = selectedEntitesBoxGrabStartPositions[i].scaledAround(boxGrabStartBodyPos, result.signedScale) + result.offset;
-					body.collider = std::visit(overloaded{
-						[&](BoxCollider box) -> Collider {
-							box.size *= result.signedScale.applied(abs);
-							return box;
-						},
-						[&](CircleCollider circle) -> Collider {
-							circle.radius *= abs(result.signedScale.x);
-							return circle;
-						}
+	if (result.grabStarted) {
+		grabStartSelectedEntites = selectedEntities;
+		selectedEntitesBoxGrabStartPositions.clear();
+		selectedEntitesBoxGrabStartColliders.clear();
+		for (const auto& entity : grabStartSelectedEntites) {
+			if (entity.type == EntityType::Body) {
+				const auto& body = entites.body[entity.index];
+				selectedEntitesBoxGrabStartPositions.push_back(body.pos);
+				selectedEntitesBoxGrabStartColliders.push_back(body.collider);
+			} else {
+				selectedEntitesBoxGrabStartPositions.push_back(Vec2{ 0.0f });
+				selectedEntitesBoxGrabStartColliders.push_back(CircleColliderEditor{ 0.0f });
+			}
+		}
+	}
+
+	if (isGrabbing && selectedEntitesBoxGrabStartPositions.size() == grabStartSelectedEntites.size()) {
+		ASSERT(selectedEntitesBoxGrabStartColliders.size() == grabStartSelectedEntites.size());
+		for (usize i = 0; i < grabStartSelectedEntites.size(); i++) {
+			const auto& entity = grabStartSelectedEntites[i];
+			if (entity.type == EntityType::Body) {
+				auto& body = entites.body[entity.index];
+				body.pos = selectedEntitesBoxGrabStartPositions[i].scaledAround(boxGrabStartBodyPos, result.signedScale) + result.offset;
+				body.collider = std::visit(overloaded{
+					[&](BoxCollider box) -> Collider {
+						box.size *= result.signedScale.applied(abs);
+						return box;
+					},
+					[&](CircleCollider circle) -> Collider {
+						circle.radius *= abs(result.signedScale.x);
+						return circle;
+					}
 					}, selectedEntitesBoxGrabStartColliders[i]);
-				}
-			}
-		}
-
-		if (result.relestedGrab) {
-			ASSERT(selectedEntitesBoxGrabStartPositions.size() == selectedEntities.size());
-			ASSERT(selectedEntitesBoxGrabStartColliders.size() == selectedEntities.size());
-			for (usize i = 0; i < selectedEntities.size(); i++) {
-				const auto& entity = selectedEntities[i];
-				if (entity.type == EntityType::Body) {
-					auto& body = entites.body[entity.index];
-					commands.beginMulticommand();
-					commands.addSetFieldCommand(entity, BODY_EDITOR_POS_OFFSET, selectedEntitesBoxGrabStartPositions[i], body.pos);
-					commands.addSetFieldCommand(entity, BODY_EDITOR_COLLIDER_OFFSET, selectedEntitesBoxGrabStartColliders[i], body.collider);
-					commands.endMulticommand();
-				}
 			}
 		}
 	}
@@ -89,7 +90,7 @@ auto ScalingGizmo::update(const std::vector<Entity> selectedEntities, const Aabb
 auto ScalingGizmo::draw(const std::vector<Entity> selectedEntities, const Aabb& selectedEntitiesAabb, EditorEntities& entities) const -> void {
 	std::array<Vec2, 4> corners;
 	if (auto value = isOnlyBoxSelected(selectedEntities, entities)) {
-		const auto& [body, box, _] = *value;
+		const auto& [body, box] = *value;
 		corners = box.getCorners(body.pos, body.orientation);
 	} else {
 		corners = selectedEntitiesAabb.getCorners();
@@ -102,19 +103,16 @@ auto ScalingGizmo::draw(const std::vector<Entity> selectedEntities, const Aabb& 
 	}
 }
 
-auto ScalingGizmo::boxScaling(BoxCollider& box, Vec2& boxPos, float boxOrientation, bool uniformScaling, Vec2 cursorPos, float pointRadius) -> Result {
+auto ScalingGizmo::boxScaling(BoxCollider& box, Vec2& boxPos, float boxOrientation, bool uniformScaling, Vec2 cursorPos, float pointRadius, bool selectedEntitiesChanged) -> Result {
 	auto grabbingStarted = false;
-	auto isGrabbing = false;
-	auto releasedGrab = false;
-	Vec2 scale{ 1.0f };
-	Vec2 translation{ 0.0f };
 
 	// TODO: Uniform scaling and centered scaling.
-	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
+	if (Input::isMouseButtonDown(MouseButton::LEFT) || (selectedEntitiesChanged && grabbedFeature.has_value())) {
 		const auto edges = box.getEdges(boxPos, boxOrientation);
 		for (usize i = 0; i < edges.size(); i++) {
 			if (edges[i].asCapsuleContains(pointRadius, cursorPos)) {
 				grabbedFeature = EDGE_0 + i;
+				boxGrabStartPos = edges[i].line.projectPointOntoLine(cursorPos);
 			}
 		}
 
@@ -122,6 +120,7 @@ auto ScalingGizmo::boxScaling(BoxCollider& box, Vec2& boxPos, float boxOrientati
 		for (usize i = 0; i < corners.size(); i++) {
 			if (distance(corners[i], cursorPos) < pointRadius) {
 				grabbedFeature = CORNER_0 + i;
+				boxGrabStartPos = corners[i];
 			}
 		}
 
@@ -129,11 +128,12 @@ auto ScalingGizmo::boxScaling(BoxCollider& box, Vec2& boxPos, float boxOrientati
 			grabbingStarted = true;
 			boxGrabStartBodyPos = boxPos;
 			boxGrabStartCollider = box;
-			boxGrabStartPos = cursorPos;
 		}
 	}
 
-	Vec2 scaleSigns;
+	auto isGrabbing = false;
+	Vec2 scale{ 1.0f };
+	Vec2 translation{ 0.0f };
 	if (grabbedFeature.has_value()) {
 		isGrabbing = true;
 
@@ -161,7 +161,6 @@ auto ScalingGizmo::boxScaling(BoxCollider& box, Vec2& boxPos, float boxOrientati
 		if (uniformScaling) {
 			box.size.x = abs(box.size.y) * ratio * sign(box.size.x);
 		}
-		scaleSigns = box.size.applied(sign);
 
 		scale = box.size / boxGrabStartCollider.size;
 
@@ -173,19 +172,20 @@ auto ScalingGizmo::boxScaling(BoxCollider& box, Vec2& boxPos, float boxOrientati
 		box.size = box.size.applied(abs);
 	}
 
+	auto releasedGrab = false;
 	if (grabbedFeature.has_value() && Input::isMouseButtonUp(MouseButton::LEFT)) {
 		grabbedFeature = std::nullopt;
 		releasedGrab = true;
 	}
 
-	return Result{ grabbingStarted, isGrabbing, releasedGrab, scaleSigns, scale, translation };
+	return Result{ grabbingStarted, isGrabbing, releasedGrab, scale, translation };
 }
 
 auto ScalingGizmo::isOnlyBoxSelected(const std::vector<Entity> selectedEntities, EditorEntities& entites) -> std::optional<Box> {
 	if (selectedEntities.size() == 1 && selectedEntities[0].type == EntityType::Body) {
 		auto& body = entites.body[selectedEntities[0].index];
 		if (auto box = std::get_if<BoxCollider>(&body.collider)) {
-			return Box{ body, *box, selectedEntities[0].index };
+			return Box{ body, *box };
 		}
 	}
 	return std::nullopt;

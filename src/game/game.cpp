@@ -127,6 +127,7 @@ auto Game::loadLevel() -> void{
 
 		for (const auto& body : bodies) {
 			::bodies.push_back(BodyEditor::fromJson(body));
+			::bodies.back().coefficientOfFriction = 0.5f;
 		}
 
 		for (auto& body : ::bodies) {

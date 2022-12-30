@@ -44,3 +44,7 @@ Make things like this not happen.
 ;
 
 Snap the passed cursor pos to important features like corners
+
+Have a menu that allows saving sublevels something similar to prefabs in unity. And maybe make creating things like shapes only be a tab in the menu for those things.
+
+Maybe make a menu appear when two entities are selected that shows that they can be connected with a joint. Maybe show the menu only after something is held down for some amount of time.

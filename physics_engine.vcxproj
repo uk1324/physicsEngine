@@ -460,6 +460,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="src\game\editor\editorNotes.txt" />
     <Text Include="src\game\editor\editorGuis.txt" />
     <Text Include="src\todo.txt" />
     <Text Include="src\txt.txt" />

@@ -11,6 +11,8 @@
 
 static const auto ROTATION_GIZMO_COLOR = Vec3::WHITE / 2.0f;
 
+#include <utils/io.hpp>
+
 auto SelectedEntityGizmo::update(
 	EditorEntities& entites,
 	Commands& commands,
@@ -34,6 +36,7 @@ auto SelectedEntityGizmo::update(
 		xAxisLineSegment{ selectedEntitiesCenterPos, selectedEntitiesCenterPos + xAxis * xyAxisGizmosLength },
 		yAxisLineSegment{ selectedEntitiesCenterPos, selectedEntitiesCenterPos + yAxis * xyAxisGizmosLength };
 
+	auto selectedEntitesChanged = selectedEntities != grabStartSelectedEntities;
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 		// TODO: This and radius is dependent on zoom.
 		const auto axisGizmoWidth = 0.15f * undoZoomScale;
@@ -54,6 +57,46 @@ auto SelectedEntityGizmo::update(
 
 		if (selectedGizmo != GizmoType::NONE) {
 			axisGrabStartPos = cursorPos;
+			selectedEntitesChanged = true;
+		}
+	}
+
+	if (Input::isMouseButtonUp(MouseButton::LEFT) || (selectedEntities != grabStartSelectedEntities && selectedGizmo != GizmoType::NONE)) {
+		commands.beginMulticommand();
+		for (usize i = 0; i < selectedEntitesGrabStartPositions.size(); i++) {
+			const auto& entity = grabStartSelectedEntities[i];
+			const auto posOffset = entites.getPosPointerOffset(entity);
+			if (posOffset.has_value()) {
+				const auto newPos = entites.getPosOrOrigin(entity);
+				const auto oldPos = selectedEntitesGrabStartPositions[i];
+				if (newPos != oldPos) {
+					commands.addSetFieldCommand(entity, *posOffset, &oldPos, &newPos, sizeof(newPos));
+				}
+			}
+		}
+
+		// These have to be 2 separate loops because not all transformations require orientations.
+		if (grabStartSelectedEntities.size() == selectedEntitesGrabStartOrientations.size()) {
+			for (usize i = 0; i < selectedEntitesGrabStartOrientations.size(); i++) {
+				const auto& entity = grabStartSelectedEntities[i];
+				const auto orientationOffset = entites.getOrientationPointerOffset(entity);
+				if (orientationOffset.has_value()) {
+					const auto newOrientation = entites.getOrientationOrZero(entity);
+					const auto oldOrientation = selectedEntitesGrabStartOrientations[i];
+					if (newOrientation != oldOrientation) {
+						commands.addSetFieldCommand(entity, *orientationOffset, &oldOrientation, &newOrientation, sizeof(newOrientation));
+					}
+				}
+			}
+		}
+		commands.endMulticommand();
+	}
+
+	if (selectedEntitesChanged) {
+		grabStartSelectedEntities = selectedEntities;
+		axisGrabStartPos = cursorPos;
+
+		if (selectedGizmo != GizmoType::NONE) {
 			selectedEntitesGrabStartPositions.clear();
 			for (const auto& entity : selectedEntities) {
 				selectedEntitesGrabStartPositions.push_back(entites.getPosOrOrigin(entity));
@@ -96,15 +139,15 @@ auto SelectedEntityGizmo::update(
 			Debug::drawRay(center, centerToOldPos * rotationGizmoRadius, ROTATION_GIZMO_COLOR);
 			Debug::drawRay(center, Vec2::oriented(startAngle + angleDifference) * rotationGizmoRadius, ROTATION_GIZMO_COLOR);
 
-			ASSERT(selectedEntities.size() == selectedEntitesGrabStartPositions.size());
+			ASSERT(grabStartSelectedEntities.size() == selectedEntitesGrabStartPositions.size());
 			for (usize i = 0; i < selectedEntities.size(); i++) {
 				Vec2 p = selectedEntitesGrabStartPositions[i];
 				p -= center;
 				p *= Mat2::rotate(angleDifference);
 				p += center;
-				entites.setPos(selectedEntities[i], p);
+				entites.setPos(grabStartSelectedEntities[i], p);
 
-				entites.setOrientation(selectedEntities[i], selectedEntitesGrabStartOrientations[i] + angleDifference);
+				entites.setOrientation(grabStartSelectedEntities[i], selectedEntitesGrabStartOrientations[i] + angleDifference);
 			}
 
 		} else if (selectedGizmo != GizmoType::NONE) {
@@ -122,9 +165,9 @@ auto SelectedEntityGizmo::update(
 				translation = xAxis * distSnapped.x + yAxis * distSnapped.y;
 			}
 
-			ASSERT(selectedEntities.size() == selectedEntitesGrabStartPositions.size());
-			for (usize i = 0; i < selectedEntities.size(); i++) {
-				entites.setPos(selectedEntities[i], selectedEntitesGrabStartPositions[i] + translation);
+			ASSERT(grabStartSelectedEntities.size() == selectedEntitesGrabStartPositions.size());
+			for (usize i = 0; i < grabStartSelectedEntities.size(); i++) {
+				entites.setPos(grabStartSelectedEntities[i], selectedEntitesGrabStartPositions[i] + translation);
 			}
 		}
 	}
@@ -137,36 +180,6 @@ auto SelectedEntityGizmo::update(
 		// Don't need to save a command if the LEFT up is caused by selecting different entites. Alternatively could store a flag if the gizmo is being draged and check it.
 		if (selectedEntitesChanged)
 			return wasSelected;
-
-		commands.beginMulticommand();
-		for (usize i = 0; i < selectedEntitesGrabStartPositions.size(); i++) {
-			const auto& entity = selectedEntities[i];
-			const auto posOffset = entites.getPosPointerOffset(entity);
-			if (posOffset.has_value()) {
-				const auto newPos = entites.getPosOrOrigin(entity);
-				const auto oldPos = selectedEntitesGrabStartPositions[i];
-				if (newPos != oldPos) {
-					commands.addSetFieldCommand(entity, *posOffset, &oldPos, &newPos, sizeof(newPos));
-				}
-			}
-		}
-
-		// These have to be 2 separate loops because not all transformations require orientations.
-		if (selectedEntities.size() == selectedEntitesGrabStartOrientations.size()) {
-			for (usize i = 0; i < selectedEntitesGrabStartOrientations.size(); i++) {
-				const auto& entity = selectedEntities[i];
-				const auto orientationOffset = entites.getOrientationPointerOffset(entity);
-				if (orientationOffset.has_value()) {
-					const auto newOrientation = entites.getOrientationOrZero(entity);
-					const auto oldOrientation = selectedEntitesGrabStartOrientations[i];
-					if (newOrientation != oldOrientation) {
-						commands.addSetFieldCommand(entity, *orientationOffset, &oldOrientation, &newOrientation, sizeof(newOrientation));
-					}
-				}
-			}
-		}
-		
-		commands.endMulticommand();
 
 		return wasSelected;
 	}

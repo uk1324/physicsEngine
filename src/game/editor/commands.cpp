@@ -1,5 +1,8 @@
 #include <game/editor/commands.hpp>
 #include <utils/overloaded.hpp>
+#include <utils/io.hpp>
+
+#define DEBUG_LOG_COMMANDS
 
 static auto alignUpTo(usize v, usize alignment) -> usize {
     const auto unalignment = (v % alignment);
@@ -11,12 +14,19 @@ static auto alignUpTo(usize v, usize alignment) -> usize {
 using Header = u64;
 
 auto Commands::beginMulticommand() -> void {
+#ifdef DEBUG_LOG_COMMANDS
+    put("begin multicommand\n");
+#endif
     ASSERT(!recordingMulticommand);
     recordingMulticommand = true;
     currentMulticommandSize = 0;
 }
 
 auto Commands::endMulticommand() -> void {
+#ifdef DEBUG_LOG_COMMANDS
+    put("end multicommand\n");
+#endif
+
     ASSERT(recordingMulticommand);
     // Not asserting that the multicommand isn't empty because it allows writing easier code when adding commands in a loop over a range which can be empty.
     recordingMulticommand = false;
@@ -27,6 +37,35 @@ auto Commands::endMulticommand() -> void {
 }
 
 auto Commands::addCommand(Command&& command) noexcept -> void {
+#define LOG(type) [](const type&) -> void { put("added command %s", #type); },
+    
+#ifdef DEBUG_LOG_COMMANDS
+    std::visit(overloaded{
+        LOG(SetFieldCommand)
+        LOG(SelectCommand)
+        LOG(CreateEntityCommand)
+        LOG(DeleteEntityCommand)
+    }, command);
+#undef LOG
+
+    if (const auto& select = std::get_if<SelectCommand>(&command)) {
+        put(" new{ ");
+        for (const auto& newEntity : select->newSelectedEntites) {
+            put("%d ", newEntity.index);
+        }
+        put("}");
+
+        put(" old{ ");
+        for (const auto& oldEntity : select->oldSelectedEntites) {
+            put("%d ", oldEntity.index);
+        }
+        put("}");
+    }
+
+#endif 
+    put("\n");
+
+
     ASSERT(commandsSizesTop <= commandSizes.size());
     if (commandsSizesTop != commandSizes.size()) {
         const auto toFree = commandSizes.size() - commandsSizesTop;

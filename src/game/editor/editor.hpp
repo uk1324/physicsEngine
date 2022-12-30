@@ -7,6 +7,8 @@
 #include <game/editor/commands.hpp>
 #include <game/editor/editorGuiState.hpp>
 
+#include <unordered_set>
+
 class Editor {
 public:
 	Editor();
@@ -30,6 +32,7 @@ private:
 	auto addToSelectedEntities(const Entity& entity) -> void;
 	auto updateSelectedEntitesData() -> void;
 	// Not sure what the centerPos should be. For rotation the center of mass makes sense, but focusing the center of the aabb makes more sense, because some objects might get outside the view when focusing on the center of mass. Unity uses the center of the aabb, but this makes it so the center of rotation changes with each rotation. Another issue with the center of mass is that if there are multiple objects in one position it counts them.
+	std::unordered_set<Entity> selectedEntitesSet;
 	Vec2 selectedEntitiesCenterPos;
 	Vec2 lastFrameSelectedEntitiesCenterPos;
 	bool selectedEntitesMoved = false;
@@ -60,6 +63,7 @@ private:
 
 	static constexpr float DEFAULT_DENSITY = 20.0f;
 	float densityForRecalculation = DEFAULT_DENSITY;
+	bool automaticallyRecalculateMass = true;
 
 	auto undoCommand(const Command& command) -> void;
 	auto redoCommand(const Command& command) -> void;

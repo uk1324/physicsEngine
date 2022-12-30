@@ -51,4 +51,5 @@ private:
 
 	// ROTATION
 	std::vector<float> selectedEntitesGrabStartOrientations;
+	std::vector<Entity> grabStartSelectedEntities;
 };

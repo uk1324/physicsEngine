@@ -9,6 +9,7 @@
 enum class Keycode : u8 {
 	// Windows virtual key codes. Not using the defines in windows.h so it doesn't need to be included in every file using Input.
 	TAB = 0x09,
+	SHIFT = 0x10,
 	CTRL = 0x11,
 	LEFT = 0x25,
 	UP = 0x26,

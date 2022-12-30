@@ -37,6 +37,7 @@ Editor::Editor() {
 auto Editor::registerInputButtons() -> void {
 	Input::registerKeyButton(Keycode::F, EditorButton::FOCUS);
 	Input::registerKeyButton(Keycode::CTRL, EditorButton::GIZMO_GRID_SNAP);
+	Input::registerKeyButton(Keycode::SHIFT, EditorButton::SNAP_CURSOR_TO_SHAPE_FEATURES);
 }
 
 template<typename T>
@@ -145,51 +146,6 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	//	ImGui::EndPopup();
 	//}
 
-	//ImGui::Begin("Example: Property editor");
-
-
-	//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 2));
-	//if (ImGui::BeginTable("split", 2, ImGuiTableFlags_SizingStretchProp))
-	//{
-	//	
-	//	// Use object uid as identifier. Most commonly you could also use the object pointer as a base ID.
-
-	//	// Text and Tree nodes are less high than framed widgets, using AlignTextToFramePadding() we add vertical spacing to make the tree lines equal high.
-	//	/*ImGui::TableNextRow();
-	//	ImGui::TableSetColumnIndex(0);
-	//	ImGui::AlignTextToFramePadding();
-	//	ImGui::TableSetColumnIndex(1);
-	//	ImGui::Text("my sailor is rich");*/
-
-	//	{
-	//		static float placeholder_members[8] = { 0.0f, 0.0f, 1.0f, 3.1416f, 100.0f, 999.0f };
-	//		for (int i = 0; i < 8; i++)
-	//		{
-	//			ImGui::PushID(i); // Use field index as identifier.
-	//			{
-	//				// Here we use a TreeNode to highlight on hover (we could use e.g. Selectable as well)
-	//				ImGui::TableNextRow();
-	//				ImGui::TableSetColumnIndex(0);
-	//				ImGui::AlignTextToFramePadding();
-	//				ImGui::Text("Field");
-
-	//				ImGui::TableSetColumnIndex(1);
-	//				ImGui::SetNextItemWidth(-FLT_MIN);
-	//				ImGui::InputFloat("##value", &placeholder_members[i], 1.0f);
-	//				ImGui::NextColumn();
-	//			}
-	//			ImGui::PopID();
-	//		}
-	//		//ImGui::TreePop();
-	//	}
-
-	//	ImGui::EndTable();
-	//}
-	//ImGui::PopStyleVar();
-	//ImGui::End();
-
-
-
 	ImGui::Begin("editor");
 	sceneWindowWindowSpace = Aabb::fromCorners(
 		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMin(),
@@ -207,12 +163,10 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	ImGui::End();
 
 	Begin("entites");
-	ImGui::Checkbox("testa", &Input::ignoreImGuiWantCapture);
-	if (Button("add rectangle")) {
-		const auto collider = BoxColliderEditor{ Vec2{ 1.0f } };
+	auto addBody = [this](Vec2 pos, const Collider& collider) -> void {
 		const auto info = massInfo(collider, DEFAULT_DENSITY);
 		const auto entity = entites.body.add(BodyEditor{
-			.pos = Vec2{ camera.pos },
+			.pos = pos,
 			.orientation = 0.0f,
 			.vel = Vec2{ 0.0f },
 			.angularVel = 0.0f,
@@ -221,20 +175,13 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			.collider = collider
 		});
 		commands.addCommand(CreateEntityCommand{ entity });
+	};
+
+	if (Button("add rectangle")) {
+		addBody(camera.pos, BoxColliderEditor{ Vec2{ 1.0f } });
 	}
 	if (Button("add circle")) {
-		const auto collider = CircleColliderEditor{ 0.5f };
-		const auto info = massInfo(collider, DEFAULT_DENSITY);
-		const auto entity = entites.body.add(BodyEditor{
-			.pos = Vec2{ camera.pos },
-			.orientation = 0.0f,
-			.vel = Vec2{ 0.0f },
-			.angularVel = 0.0f,
-			.mass = info.mass,
-			.rotationalInertia = info.rotationalInertia,
-			.collider = collider
-		});
-		commands.addCommand(CreateEntityCommand{ entity });
+		addBody(camera.pos, CircleColliderEditor{ 0.5f });
 	}
 	End();
 
@@ -278,21 +225,34 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		}
 		commands.endMulticommand();
 	}
-	if (selectedEntities.size() > 0) {
-		if (Button("recalculate mass")) {
-			for (const auto& entity : selectedEntities) {
-				if (entity.type != EntityType::Body) {
-					continue;
-				}
-				auto& body = entites.body[entity.index];
-				const auto info = massInfo(body.collider, densityForRecalculation);
-				body.mass = info.mass;
-				body.rotationalInertia = info.rotationalInertia;
-			}
-		}
-		if (IsItemHovered())
-			SetTooltip("recalculate mass and rotational inertia with uniform density");
 
+	if (selectedEntities.size() > 0) {
+		auto recalculateMass = [this](const Entity& entity, float density) -> void {
+			if (entity.type != EntityType::Body)
+				return;
+			auto& body = entites.body[entity.index];
+
+			const auto info = massInfo(body.collider, density);
+			body.mass = info.mass;
+			body.rotationalInertia = info.rotationalInertia;
+		};
+
+		Checkbox("automatically recalculate mass", &automaticallyRecalculateMass);
+		if (automaticallyRecalculateMass) {
+			for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
+				if (body->mass != std::numeric_limits<float>::infinity()) {
+					recalculateMass(Entity{ EntityType::Body, body.index }, densityForRecalculation);
+				}
+			}
+		} else {
+			if (Button("recalculate mass")) {
+				for (const auto& entity : selectedEntities) {
+					recalculateMass(entity, densityForRecalculation);
+				}
+			}
+			if (IsItemHovered())
+				SetTooltip("recalculate mass and rotational inertia with uniform density");
+		}
 		InputFloat("density", &densityForRecalculation);
 	}
 
@@ -306,10 +266,16 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		commands.addCommand(CreateEntityCommand{ entity });
 	}
 
-	for (auto& distanceJoint : entites.distanceJoint.alive()) {
-		const auto& bodyA = entites.body[distanceJoint.anchorA.body];
-		const auto& bodyB = entites.body[distanceJoint.anchorB.body];
-		distanceJoint.distance = distance(bodyA.pos, bodyB.pos);
+	for (auto i = 0; i < entites.distanceJoint.size(); i++) {
+		auto& distanceJoint = entites.distanceJoint[i];
+		if (entites.distanceJoint.isAlive[i]) {
+			const auto& bodyA = entites.body[distanceJoint.anchorA.body];
+			const auto& bodyB = entites.body[distanceJoint.anchorB.body];
+			distanceJoint.distance = distance(bodyA.pos, bodyB.pos);
+		}
+
+		const auto bothBodiesAlive = entites.body.isAlive[distanceJoint.anchorA.body] && entites.body.isAlive[distanceJoint.anchorB.body];
+		entites.distanceJoint.isAlive[i] = bothBodiesAlive;
 	}
 
 	End();
@@ -343,7 +309,33 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		saveCurrentLevel();
 	}
 
-	const auto cursorPos = getCursorPos();
+	auto cursorPos = getCursorPos();
+
+	if (Input::isButtonHeld(EditorButton::SNAP_CURSOR_TO_SHAPE_FEATURES)) {
+		for (auto body = entites.body.alive().begin(); body != entites.body.alive().end(); ++body) {
+			if (selectedEntitesSet.find(body.toEntity()) != selectedEntitesSet.end()) {
+				continue;
+			}
+
+			const auto SNAP_DISTANCE = 0.025f / camera.zoom;
+			const auto point = std::visit(overloaded{
+				[&](const BoxCollider& box) -> std::optional<Vec2> {
+					for(const auto& corner : box.getCorners(body->pos, body->orientation)) {
+						if (distance(cursorPos, corner) < SNAP_DISTANCE) {
+							return corner;
+						}
+					}
+					return std::nullopt;
+				},
+				[](const CircleCollider&) -> std::optional<Vec2> { return std::nullopt; }
+			}, body->collider);
+
+			if (point.has_value()) {
+				cursorPos = *point;
+				break;
+			}
+		}
+	}
 
 	// For the camera not to lag behind it is updated first so all functions have the same information about the camera.
 	const auto aspectRatio = sceneWindowSize.x / sceneWindowSize.y;
@@ -487,6 +479,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		}
 	}
 
+	// This only tracks changes that happen between the declaration of oldSelectedEntites and here.
 	selectedEntitesChanged = false;
 	if (selectedEntities != oldSelectedEntites) {
 		commands.addSelectCommand(oldSelectedEntites, selectedEntities);
@@ -518,25 +511,49 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	auto copyToClipboard = [this]() -> void {
-		clipboard.clear();
-		for (const auto& entity : selectedEntities) {
-			clipboard.push_back(entity);
-		}
+		clipboard = selectedEntities;
 	};
 
 	auto pasteClipboard = [this]() -> void {
 		commands.beginMulticommand();
+
+		std::vector<Entity> pastedEntites;
+		std::unordered_map<usize, usize> originalBodyToCopy;
 		for (const auto& entity : clipboard) {
 			switch (entity.type) {
 			case EntityType::Body: {
 				const auto body = entites.body.add(entites.body[entity.index]);
+				pastedEntites.push_back(body);
+				originalBodyToCopy[entity.index] = body.index;
 				commands.addCommand(CreateEntityCommand{ .entity = body });
+				break;
+			}
+			
+			case EntityType::DistanceJoint: {
+				const auto& original = entites.distanceJoint[entity.index];
+				const auto copyA = originalBodyToCopy.find(original.anchorA.body);
+				const auto copyB = originalBodyToCopy.find(original.anchorB.body);
+				if (const auto notConnectedToOtherPastedBodies = copyA == originalBodyToCopy.end() || copyB == originalBodyToCopy.end()) {
+					break;
+				}
+
+				const auto& distanceJointEntity = entites.distanceJoint.add(entites.distanceJoint[entity.index]);
+				pastedEntites.push_back(distanceJointEntity);
+				commands.addCommand(CreateEntityCommand{ .entity = distanceJointEntity });
+				auto& distanceJoint = entites.distanceJoint[distanceJointEntity.index];
+
+				distanceJoint.anchorA.body = copyA->second;
+				distanceJoint.anchorB.body = copyB->second;
+				
 				break;
 			}
 				
 			default: ASSERT_NOT_REACHED();
 			}
 		}
+		commands.addSelectCommand(selectedEntities, pastedEntites);
+		selectedEntities = pastedEntites;
+
 		commands.endMulticommand();
 	};
 
@@ -547,7 +564,6 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		pasteClipboard();
 	}
 		
-
 	for (const auto& body : entites.body.alive()) {
 		const auto color = (body.mass == std::numeric_limits<float>::infinity()) ? Vec3::WHITE : Vec3::GREEN;
 		Debug::drawCollider(body.collider, body.pos, body.orientation, color);
@@ -639,6 +655,8 @@ auto Editor::saveLevel() -> Json::Value {
 		bodies.push_back(body->toJson());
 	}
 
+	// Remove duplicates.
+
 	auto& distanceJoints = (level["distanceJoints"] = Json::Value::emptyArray()).array();
 	for (const auto& distanceJoint : entites.distanceJoint.alive()) {
 		const auto& bodyA = bodyMap.find(distanceJoint.anchorA.body);
@@ -700,6 +718,11 @@ auto Editor::addToSelectedEntities(const Entity& entity) -> void {
 auto Editor::updateSelectedEntitesData() -> void {
 	if (selectedEntities.empty())
 		return;
+
+	selectedEntitesSet.clear();
+	for (const auto& entity : selectedEntities) {
+		selectedEntitesSet.insert(entity);
+	}
 
 	selectedEntitiesCenterPos = Vec2{ 0.0f };
 	usize positions = 0;

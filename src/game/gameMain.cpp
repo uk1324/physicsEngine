@@ -12,6 +12,7 @@ auto GameMain::update() -> void {
 			game.loadLevel();
 			currentScene = Scene::GAME;
 		} else if (currentScene == Scene::GAME) {
+			//editor.registerInputButtons();
 			currentScene = Scene::EDITOR;
 		}
 	}

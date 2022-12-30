@@ -18,6 +18,10 @@ auto Line::distanceAlong(Vec2 v) const -> float {
 	return det(n, v);
 }
 
+auto Line::projectPointOntoLine(Vec2 p) const -> Vec2 {
+	return p - n * distance(*this, p);
+}
+
 auto signedDistance(const Line& l, Vec2 p) -> float {
 	return l.d - dot(l.n, p);
 }

@@ -368,5 +368,6 @@
     <Text Include="src\txt.txt" />
     <Text Include="src\todo.txt" />
     <Text Include="src\game\editor\editorGuis.txt" />
+    <Text Include="src\game\editor\editorNotes.txt" />
   </ItemGroup>
 </Project>

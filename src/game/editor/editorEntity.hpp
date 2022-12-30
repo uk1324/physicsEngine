@@ -26,6 +26,17 @@ struct Entity {
 	static auto null() -> Entity;
 };
 
+namespace std {
+
+template <>
+struct hash<Entity> {
+	auto operator()(const Entity& entity) const -> size_t {
+		return std::hash<decltype(entity.index)>()(entity.index) ^ static_cast<u8>(entity.type);
+	}
+};
+
+}
+
 template<typename T, EntityType type>
 struct EditorEntityArray {
 	struct AliveIterator {
@@ -34,6 +45,7 @@ struct EditorEntityArray {
 		auto operator->() -> T*;
 		auto operator*() -> T&;
 
+		auto toEntity() const -> Entity;
 		usize index;
 		EditorEntityArray& array;
 	};
@@ -164,6 +176,11 @@ auto EditorEntityArray<T, type>::AliveIterator::operator->() -> T* {
 template<typename T, EntityType type>
 auto EditorEntityArray<T, type>::AliveIterator::operator*() -> T& {
 	return array.data[index];
+}
+
+template<typename T, EntityType type>
+auto EditorEntityArray<T, type>::AliveIterator::toEntity() const -> Entity {
+	return Entity{ type, index };
 }
 
 template<typename T, EntityType type>
