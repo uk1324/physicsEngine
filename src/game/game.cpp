@@ -158,6 +158,9 @@ auto Game::drawUi() -> void {
 
 	Begin("physics engine");
 	Checkbox("update physics", &updatePhysics);
+	if (!updatePhysics && Button("single step")) {
+		doASingleStep = true;
+	}
 	if (followedPos == nullptr) {
 		cameraFollow = false;
 	} else {
@@ -169,6 +172,14 @@ auto Game::drawUi() -> void {
 		SliderFloat2("initial velocity", initialVelocity.data(), -10.0f, 10.0f);
 	}
 	Checkbox("draw contacts", &drawContacts);
+
+	auto disableGravity = gravity == Vec2{ 0.0f };
+	Checkbox("disableGravity", &disableGravity);
+	if (disableGravity) {
+		gravity = Vec2{ 0.0f };
+	} else {
+		gravity = Vec2{ 0.0f, -10.0f };
+	}
 	End();
 }
 
@@ -280,10 +291,13 @@ auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	static Body* selected;
+	static Vec2 selectedGrabPointObjectSpace;
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 		for (auto& body : bodies) {
-			if (contains(mousePos, body.pos, body.orientation, body.collider))
+			if (contains(mousePos, body.pos, body.orientation, body.collider)) {
 				selected = &body;
+				selectedGrabPointObjectSpace = (mousePos - body.pos) * Mat2::rotate(-body.orientation);
+			}
 		}
 	}
 	if (Input::isMouseButtonUp(MouseButton::LEFT)) {
@@ -291,51 +305,18 @@ auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	if (selected != nullptr) {
-		const auto fromMouseToObject = mousePos - selected->pos;
-		selected->force = fromMouseToObject * 400.0f * fromMouseToObject.length() * 3.0f;
+		const auto offsetUprightSpace = selectedGrabPointObjectSpace * Mat2::rotate(selected->orientation);
+		const auto fromMouseToObject = mousePos - (selected->pos + offsetUprightSpace);
+		selected->force = -selected->vel / (Time::deltaTime() * 5.0f) * selected->mass;
+		selected->force += fromMouseToObject / pow(Time::deltaTime(), 2.0f) * selected->mass / 10.0f;
+		selected->torque = det(offsetUprightSpace, selected->force);
 	}
 
-	if (updatePhysics) {
-		for (auto& body : bodies) {
-			if (body.isStatic())
-				continue;
-
-			// It might be better to use impulses instead of forces so they are independent of the time step.
-			body.vel += (body.force * body.invMass + gravity) * Time::deltaTime();
-			body.force = Vec2{ 0.0f };
-
-			body.angularVel += body.torque * body.invRotationalInertia * Time::deltaTime();
-			body.angularVel *= pow(angularDamping, Time::deltaTime());
-			body.torque = 0.0f;
-		}
-
-		detectCollisions();
-
-		const auto invDeltaTime = 1.0f / Time::deltaTime();
-
-		for (auto& [key, contact] : contacts) {
-			contact.preStep(key.a, key.b, invDeltaTime);
-		}
-
-		for (auto& [key, joint] : joints) {
-			joint.preStep(*key.a, *key.b, invDeltaTime);
-		}
-
-		for (int i = 0; i < 10; i++) {
-			for (auto& [key, contact] : contacts) {
-				contact.applyImpulse(*key.a, *key.b);
-			}
-			for (auto& [key, joint] : joints) {
-				joint.applyImpluse(*key.a, *key.b);
-			}
-		}
-
-		for (auto& body : bodies) {
-			if (body.isStatic())
-				continue;
-			body.pos += body.vel * Time::deltaTime();
-			body.orientation += body.angularVel * Time::deltaTime();
-		}
+	if (doASingleStep) {
+		physicsStep();
+		doASingleStep = false;
+	} else if (updatePhysics) {
+		physicsStep();
 	}
 
 	for (const auto& body : bodies) {
@@ -346,7 +327,7 @@ auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
 		for (const auto& [_, collision] : contacts) {
 			for (i32 i = 0; i < collision.contactCount; i++) {
 				const auto& contact = collision.contacts[i];
-				Debug::drawRay(contact.position, contact.normal * 0.1f, Vec3::RED);
+				Debug::drawRay(contact.position, -contact.normal * contact.penetrationDepth, Vec3::RED);
 			}
 		}
 	}
@@ -356,7 +337,50 @@ auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	renderer.update(gfx, camera, Window::size(), false);
-}	
+}
+auto Game::physicsStep() -> void {
+	for (auto& body : bodies) {
+		if (body.isStatic())
+			continue;
+
+		// It might be better to use impulses instead of forces so they are independent of the time step.
+		body.vel += (body.force * body.invMass + gravity) * Time::deltaTime();
+		body.force = Vec2{ 0.0f };
+
+		body.angularVel += body.torque * body.invRotationalInertia * Time::deltaTime();
+		body.angularVel *= pow(angularDamping, Time::deltaTime());
+		body.torque = 0.0f;
+	}
+
+	detectCollisions();
+
+	const auto invDeltaTime = 1.0f / Time::deltaTime();
+
+	for (auto& [key, contact] : contacts) {
+		contact.preStep(key.a, key.b, invDeltaTime);
+	}
+
+	for (auto& [key, joint] : joints) {
+		joint.preStep(*key.a, *key.b, invDeltaTime);
+	}
+
+	for (int i = 0; i < 10; i++) {
+		for (auto& [key, contact] : contacts) {
+			contact.applyImpulse(*key.a, *key.b);
+		}
+		for (auto& [key, joint] : joints) {
+			joint.applyImpluse(*key.a, *key.b);
+		}
+	}
+
+	for (auto& body : bodies) {
+		if (body.isStatic())
+			continue;
+		body.pos += body.vel * Time::deltaTime();
+		body.orientation += body.angularVel * Time::deltaTime();
+	}
+}
+
 
 bool Game::warmStarting = true;
 bool Game::positionCorrection = true;

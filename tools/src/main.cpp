@@ -65,6 +65,9 @@ auto findFieldProperty(const Field& field, FieldPropertyType type) -> std::optio
 };
 
 auto outFieldEditor(std::ostream& os, const Field& field, const FieldType& type, std::string_view name) -> void {
+	if (type.type == FieldTypeType::USIZE)
+		return;
+
 	os << "\tTableNextRow();\n"
 		"\tTableSetColumnIndex(0);\n"
 		"\tAlignTextToFramePadding();\n"
@@ -213,12 +216,6 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 					cppOut << "auto " << structure.name << "Editor::" << editorGuiSignature << " {\n";
 
-					cppOut << "\tPushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));\n"
-						"\tif (!BeginTable(\"properites\", 2, ImGuiTableFlags_SizingStretchProp)) {\n"
-						"\tPopStyleVar();\n"
-						"\t\treturn;\n"
-						"\t}\n";
-
 					for (const auto& field : structure.fields) {
 						
 						outFieldEditor(cppOut, field, field.type, field.name);
@@ -245,9 +242,6 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 						}
 					}
-
-					cppOut << "\tEndTable();\n"
-						"\tPopStyleVar();\n";
 
 					cppOut << "}\n\n";
 					break;

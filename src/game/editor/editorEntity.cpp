@@ -20,7 +20,7 @@ auto EditorEntities::getDistanceJointEndpoints(const DistanceJointEntityEditor& 
 	const auto& bodyA = body[joint.anchorA.body];
 	const auto& bodyB = body[joint.anchorB.body];
 	const auto posA = bodyA.pos + joint.anchorA.objectSpaceOffset * Mat2::rotate(bodyA.orientation);
-	const auto posB = bodyB.pos + joint.anchorA.objectSpaceOffset * Mat2::rotate(bodyB.orientation);
+	const auto posB = bodyB.pos + joint.anchorB.objectSpaceOffset * Mat2::rotate(bodyB.orientation);
 	return { posA, posB };
 }
 

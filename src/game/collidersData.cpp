@@ -7,11 +7,6 @@ using namespace ImGui;
 using namespace Json;
 
 auto CircleColliderEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
-	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
-	PopStyleVar();
-		return;
-	}
 	TableNextRow();
 	TableSetColumnIndex(0);
 	AlignTextToFramePadding();
@@ -30,8 +25,6 @@ auto CircleColliderEditor::editorGui(EditorGuiState& inputState, EditorEntities&
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	EndTable();
-	PopStyleVar();
 }
 
 auto CircleColliderEditor::toJson() const -> Json::Value {
@@ -47,11 +40,6 @@ auto CircleColliderEditor::fromJson(const Json::Value& json) -> CircleColliderEd
 }
 
 auto BoxColliderEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
-	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
-	PopStyleVar();
-		return;
-	}
 	TableNextRow();
 	TableSetColumnIndex(0);
 	AlignTextToFramePadding();
@@ -70,8 +58,6 @@ auto BoxColliderEditor::editorGui(EditorGuiState& inputState, EditorEntities& en
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	EndTable();
-	PopStyleVar();
 }
 
 auto BoxColliderEditor::toJson() const -> Json::Value {

@@ -72,10 +72,16 @@ auto DistanceJointGizmo::draw(const std::vector<Entity> selectedEntites, const E
 		return;
 	const auto& distanceJoint = entites.distanceJoint[*distanceJointEntity];
 
-	const auto [a, b] = entites.getDistanceJointEndpoints(distanceJoint);
+	const auto& bodyA = entites.body[distanceJoint.anchorA.body];
+	const auto& bodyB = entites.body[distanceJoint.anchorB.body];
+	const auto posA = bodyA.pos + distanceJoint.anchorA.objectSpaceOffset * Mat2::rotate(bodyA.orientation);
+	const auto posB = bodyB.pos + distanceJoint.anchorB.objectSpaceOffset * Mat2::rotate(bodyB.orientation);
+
 	const auto UNSELECTED_RED = Vec3::RED * 2.0f / 3.0f;
-	Debug::drawPoint(a, grabbedAnchor == Anchor::A ? Vec3::RED : UNSELECTED_RED);
-	Debug::drawPoint(b, grabbedAnchor == Anchor::B ? Vec3::RED : UNSELECTED_RED);
+	Debug::drawPoint(posA, grabbedAnchor == Anchor::A ? Vec3::RED : UNSELECTED_RED);
+	Debug::drawPoint(posB, grabbedAnchor == Anchor::B ? Vec3::RED : UNSELECTED_RED);
+	Debug::drawLine(bodyA.pos, posA, Vec3::GREEN);
+	Debug::drawLine(bodyA.pos, posA, Vec3::GREEN);
 }
 
 auto DistanceJointGizmo::displayGizmo(const std::vector<Entity>& selectedEntities) -> std::optional<usize> {

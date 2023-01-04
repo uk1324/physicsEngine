@@ -4,6 +4,8 @@ template<typename T>
 struct Vec3T {
 	constexpr Vec3T(const T& v);
 	constexpr Vec3T(const T& x, const T& y, const T& z);
+	template<typename U>
+	constexpr Vec3T(const Vec3T<U>& v);
 
 	auto operator*(const Vec3T& v) const -> Vec3T;
 	auto operator*=(const Vec3T& v) -> Vec3T&;
@@ -66,3 +68,10 @@ template<typename T> const Vec3T<T> Vec3T<T>::GREEN{ 0, 1, 0 };
 template<typename T> const Vec3T<T> Vec3T<T>::BLUE{ 0, 0, 1 };
 template<typename T> const Vec3T<T> Vec3T<T>::WHITE{ 1, 1, 1 };
 template<typename T> const Vec3T<T> Vec3T<T>::BLACK{ 0, 0, 0 };
+
+template<typename T>
+template<typename U>
+constexpr Vec3T<T>::Vec3T(const Vec3T<U>& v)
+	: x{ static_cast<T>(v.x) }
+	, y{ static_cast<T>(v.y) }
+	, z{ static_cast<T>(v.z) } {}

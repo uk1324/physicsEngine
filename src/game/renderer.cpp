@@ -26,6 +26,10 @@ Renderer::Renderer(Gfx& gfx) {
 	psParabola = gfx.psFromFile(BUILD_DIR L"psParabola.cso");
 	parabolaShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(parabolaShaderConstantBuffer));
 
+	vsTexturedQuad = gfx.vsFromFile(BUILD_DIR L"vsTexturedQuad.cso");
+	psTexturedQuad = gfx.psFromFile(BUILD_DIR L"psTexturedQuad.cso");
+	texturedQuadConstantBufferResource = gfx.createConstantBuffer(sizeof(texturedQuadConstantBuffer));
+
 	debugShapesFragmentShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(debugShapesFragmentShaderConstantBuffer));
 	sizeof(parabolaShaderConstantBuffer);
 	{
@@ -113,7 +117,7 @@ Renderer::Renderer(Gfx& gfx) {
 			.CPUAccessFlags = 0,
 			.MiscFlags = 0,
 		};
-		CHECK_WIN_HRESULT(gfx.device->CreateTexture2D(&textureDesc, nullptr, texture.GetAddressOf()));
+		CHECK_WIN_HRESULT(gfx.device->CreateTexture2D(&textureDesc, nullptr, windowTexture.GetAddressOf()));
 
 		const D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc{
 			.Format = textureDesc.Format,
@@ -122,7 +126,7 @@ Renderer::Renderer(Gfx& gfx) {
 				.MipSlice = 0
 			}
 		};
-		CHECK_WIN_HRESULT(gfx.device->CreateRenderTargetView(texture.Get(), &renderTargetViewDesc, textureRenderTargetView.GetAddressOf()));
+		CHECK_WIN_HRESULT(gfx.device->CreateRenderTargetView(windowTexture.Get(), &renderTargetViewDesc, windowTextureRenderTargetView.GetAddressOf()));
 
 		const D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc{
 			.Format = textureDesc.Format,
@@ -132,7 +136,20 @@ Renderer::Renderer(Gfx& gfx) {
 				.MipLevels = 1,
 			}
 		};
-		CHECK_WIN_HRESULT(gfx.device->CreateShaderResourceView(texture.Get(), &shaderResourceViewDesc, textureShaderResourceView.GetAddressOf()));
+		CHECK_WIN_HRESULT(gfx.device->CreateShaderResourceView(windowTexture.Get(), &shaderResourceViewDesc, windowTextureShaderResourceView.GetAddressOf()));
+	}
+
+	{
+		const D3D11_SAMPLER_DESC samplerDesc{
+			.Filter = D3D11_FILTER_MAXIMUM_MIN_MAG_MIP_POINT,
+			.AddressU = D3D11_TEXTURE_ADDRESS_WRAP,
+			.AddressV = D3D11_TEXTURE_ADDRESS_WRAP,
+			.AddressW = D3D11_TEXTURE_ADDRESS_WRAP,
+			.ComparisonFunc = D3D11_COMPARISON_NEVER,
+			.MinLOD = 0,
+			.MaxLOD = D3D11_FLOAT32_MAX,
+		};
+		CHECK_WIN_HRESULT(gfx.device->CreateSamplerState(&samplerDesc, pixelTextureSamplerState.GetAddressOf()));
 	}
 }
 
@@ -151,8 +168,8 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 
 	if (renderToTexture) {
 		float color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		gfx.ctx->ClearRenderTargetView(textureRenderTargetView.Get(), color);
-		gfx.ctx->OMSetRenderTargets(1, textureRenderTargetView.GetAddressOf(), nullptr);
+		gfx.ctx->ClearRenderTargetView(windowTextureRenderTargetView.Get(), color);
+		gfx.ctx->OMSetRenderTargets(1, windowTextureRenderTargetView.GetAddressOf(), nullptr);
 	} else {
 		gfx.ctx->OMSetRenderTargets(1, gfx.backBufferRenderTargetView.GetAddressOf(), nullptr);
 	}
@@ -180,13 +197,42 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
 	};
 
+	{
+		gfx.updateConstantBuffer(texturedQuadConstantBufferResource, &texturedQuadConstantBuffer, sizeof(texturedQuadConstantBuffer));
+		gfx.ctx->VSSetShader(vsTexturedQuad.shader.Get(), nullptr, 0);
+
+		gfx.ctx->PSSetShader(psTexturedQuad.Get(), nullptr, 0);
+		gfx.ctx->PSSetSamplers(0, 1, pixelTextureSamplerState.GetAddressOf());
+
+		for (auto& [texture, pos, size] : dynamicTexturesToDraw) {
+			gfx.ctx->PSSetShaderResources(0, 1, texture->resourceView.GetAddressOf());
+			texturedQuadConstantBuffer.transform = makeTransform(pos, 0.0f, size);
+			gfx.ctx->VSSetConstantBuffers(0, 1, texturedQuadConstantBufferResource.GetAddressOf());
+
+			D3D11_MAPPED_SUBRESOURCE resource{ 0 };
+			CHECK_WIN_HRESULT(gfx.ctx->Map(texture->texture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource));
+
+			for (usize y = 0; y < texture->size().y; y++) {
+				auto rowDst = reinterpret_cast<u8*>(resource.pData) + y * resource.RowPitch;
+				const auto rowByteWidth = texture->size().x * sizeof(u32);
+				auto rowSrc = reinterpret_cast<u8*>(texture->data()) + rowByteWidth * y;
+				memcpy(rowDst, rowSrc, rowByteWidth);
+			}
+
+			gfx.ctx->Unmap(texture->texture.Get(), 0);
+
+			// Assumes the fullscreen quad index buffer is set.
+			gfx.ctx->DrawIndexed(static_cast<UINT>(std::size(fullscreenQuadIndices)), 0, 0);
+		}
+
+	}
+
 	debugShapesFragmentShaderConstantBuffer.lineWidth = 0.003f * 1920.0f / windowSize.x;
 	debugShapesFragmentShaderConstantBuffer.smoothingWidth = debugShapesFragmentShaderConstantBuffer.lineWidth * (2.0f / 3.0f);
 	gfx.updateConstantBuffer(debugShapesFragmentShaderConstantBufferResource, &debugShapesFragmentShaderConstantBuffer, sizeof(debugShapesFragmentShaderConstantBuffer));
 
 	// checkDraw can be called last in loops because zero sized arrays are not allowed.
 	// remember to put a draw or checkDraw after a loop.
-
 		// Circle
 	// !!!!!!!!!!!!! TODO: Make a templated class or a macro for dealing with drawing debug shapes. Later specifying the width might be needed.
 	{
@@ -341,4 +387,69 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 	if (renderToTexture) {
 		gfx.ctx->OMSetRenderTargets(1, gfx.backBufferRenderTargetView.GetAddressOf(), nullptr);
 	}
+}
+
+auto Renderer::drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicTexture) -> void {
+	dynamicTexturesToDraw.push_back(DynamicTextureToDraw{
+		.texture = &dynamicTexture,
+		.pos = pos,
+		.size = size,
+	});
+}
+
+DynamicTexture::DynamicTexture(Gfx& gfx, Vec2T<i32> size)
+	: size_{ size }
+	, data_{ new u32[static_cast<usize>(size.x) * static_cast<usize>(size.y)] } {
+
+	const D3D11_TEXTURE2D_DESC textureDesc{
+		.Width = static_cast<UINT>(size_.x),
+		.Height = static_cast<UINT>(size_.y),
+		.MipLevels = 1,
+		.ArraySize = 1,
+		.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+		.SampleDesc = {
+			.Count = 1,
+			.Quality = 0,
+		},
+		.Usage = D3D11_USAGE_DYNAMIC,
+		.BindFlags = D3D11_BIND_SHADER_RESOURCE,
+		.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+		.MiscFlags = 0,
+	};
+	CHECK_WIN_HRESULT(gfx.device->CreateTexture2D(&textureDesc, nullptr, texture.GetAddressOf()));
+
+	const D3D11_SHADER_RESOURCE_VIEW_DESC shaderResourceViewDesc{
+		.Format = textureDesc.Format,
+		.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D,
+		.Texture2D = {
+			.MostDetailedMip = 0,
+			.MipLevels = 1,
+		}
+	};
+	CHECK_WIN_HRESULT(gfx.device->CreateShaderResourceView(texture.Get(), &shaderResourceViewDesc, resourceView.GetAddressOf()));
+
+	for (usize i = 0; i < static_cast<usize>(size.x) * static_cast<usize>(size.y); i++) {
+		data()[i] = 0xFFFFFFFF;
+	}
+}
+
+DynamicTexture::~DynamicTexture() {
+	delete[] data_;
+}
+
+auto DynamicTexture::set(Vec2T<i32> pos, const Vec3T<u8>& color) -> void {
+	data_[pos.y * size_.x + pos.x] = color.x | (color.y << 8) | (color.z << 16);
+}
+
+auto DynamicTexture::get(Vec2T<i32> pos) const -> Vec3T<u8> {
+	const auto value = data_[pos.y * size_.x + pos.y];
+	return { static_cast<u8>(value), static_cast<u8>(value >> 8), static_cast<u8>(value >> 16) };
+}
+
+auto DynamicTexture::size() const -> const Vec2T<i32>& {
+	return size_;
+}
+
+auto DynamicTexture::data() -> u32* {
+	return data_;
 }

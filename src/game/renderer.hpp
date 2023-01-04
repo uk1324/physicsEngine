@@ -4,8 +4,26 @@
 #include <gfx/hlslTypes.hpp>
 #include <game/camera.hpp>
 
+#include <vector>
+
 // TODO: Maybe use order independent transparency. It shouldn't be expensive because it is just quads.
 // TODO: Shader preprocesor that when it find DEBUG_OUT(<variable>) it replaces it with if (<variable_flag>) return <variable> and creates a variable <variable_flag>. It also creates maybe a json struct describing the flags. It uses the struct to display a select menu using ImGui. One limitation that it can only be used in the main function.
+
+struct DynamicTexture {
+	ComPtr<ID3D11Texture2D> texture;
+	ComPtr<ID3D11ShaderResourceView> resourceView;
+
+	DynamicTexture(Gfx& gfx, Vec2T<i32> size);
+	~DynamicTexture();
+	auto set(Vec2T<i32> pos, const Vec3T<u8>& color) -> void;
+	auto get(Vec2T<i32> pos) const -> Vec3T<u8>;
+	auto size() const -> const Vec2T<i32>&;
+	auto data() -> u32*;
+
+private:
+	u32* data_;
+	Vec2T<i32> size_;
+};
 
 #pragma warning(push)
 #pragma warning(disable : 4324) // Padding added.
@@ -13,12 +31,21 @@ class Renderer {
 public:
 	Renderer(Gfx& gfx);
 	auto update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool renderToTexture) -> void;
+	auto drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicTexture) -> void;
 
 	static constexpr Vec2 textureSize{ 1920.0f, 1080.0f };
-	ComPtr<ID3D11Texture2D> texture;
-	ComPtr<ID3D11RenderTargetView> textureRenderTargetView;
-	ComPtr<ID3D11ShaderResourceView> textureShaderResourceView;
+	ComPtr<ID3D11Texture2D> windowTexture;
+	ComPtr<ID3D11RenderTargetView> windowTextureRenderTargetView;
+	ComPtr<ID3D11ShaderResourceView> windowTextureShaderResourceView;
+
+	ComPtr<ID3D11SamplerState> pixelTextureSamplerState;
 private:
+	struct DynamicTextureToDraw {
+		DynamicTexture* texture;
+		Vec2 pos;
+		float size;
+	};
+	std::vector<DynamicTextureToDraw> dynamicTexturesToDraw;
 
 	struct PtVert {
 		Vec2 pos;
@@ -37,6 +64,14 @@ private:
 	};
 	ComPtr<ID3D11Buffer> fullscreenQuadPtVb;
 	ComPtr<ID3D11Buffer> fullscreenQuadIb;
+
+	VertexShader vsTexturedQuad;
+	ComPtr<ID3D11PixelShader> psTexturedQuad;
+	ComPtr<ID3D11Buffer> texturedQuadConstantBufferResource;
+	struct TexturedQuadConstantBuffer {
+		float3x2 transform;
+	};
+	TexturedQuadConstantBuffer texturedQuadConstantBuffer;
 
 	// TODO: Screen space derivatives of the quads (ddx and ddy) could be used to allow non uniform scaling easily.
 	VertexShader vsCircle;

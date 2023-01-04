@@ -12,6 +12,8 @@ struct Vec2T {
 	constexpr Vec2T();
 	constexpr explicit Vec2T(T all);
 	constexpr Vec2T(T x, T y);
+	template<typename U> 
+	constexpr Vec2T(Vec2T<U> other);
 	static auto oriented(T angle) -> Vec2T;
 
 	auto lengthSq() const -> T;
@@ -268,3 +270,9 @@ template<typename T>
 auto Vec2T<T>::data() -> T* {
 	return &x;
 }
+
+template<typename T>
+template<typename U>
+constexpr Vec2T<T>::Vec2T(Vec2T<U> other)
+	: x{ static_cast<T>(other.x) }
+	, y{ static_cast<T>(other.y) } {}

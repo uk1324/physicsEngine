@@ -7,11 +7,6 @@ using namespace ImGui;
 using namespace Json;
 
 auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
-	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
-	PopStyleVar();
-		return;
-	}
 	TableNextRow();
 	TableSetColumnIndex(0);
 	AlignTextToFramePadding();
@@ -146,8 +141,6 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	SetNextItemWidth(-FLT_MIN);
 	displayColliderGui(collider);
 	NextColumn();
-	EndTable();
-	PopStyleVar();
 }
 
 auto BodyEditor::toJson() const -> Json::Value {
@@ -177,19 +170,6 @@ auto BodyEditor::fromJson(const Json::Value& json) -> BodyEditor {
 }
 
 auto DistanceJointAnchorEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
-	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
-	PopStyleVar();
-		return;
-	}
-	TableNextRow();
-	TableSetColumnIndex(0);
-	AlignTextToFramePadding();
-	Text("body");
-	TableSetColumnIndex(1);
-	SetNextItemWidth(-FLT_MIN);
-	;
-	NextColumn();
 	if (IsItemActivated()) {
  		inputState.inputing = true;
 		*reinterpret_cast<decltype(body)*>(inputState.placeToSaveDataAfterNewChange()) = body;
@@ -218,8 +198,6 @@ auto DistanceJointAnchorEditor::editorGui(EditorGuiState& inputState, EditorEnti
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	EndTable();
-	PopStyleVar();
 }
 
 auto DistanceJointAnchorEditor::toJson() const -> Json::Value {
@@ -237,11 +215,6 @@ auto DistanceJointAnchorEditor::fromJson(const Json::Value& json) -> DistanceJoi
 }
 
 auto DistanceJointEntityEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
-	PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
-	if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
-	PopStyleVar();
-		return;
-	}
 	TableNextRow();
 	TableSetColumnIndex(0);
 	AlignTextToFramePadding();
@@ -276,8 +249,6 @@ auto DistanceJointEntityEditor::editorGui(EditorGuiState& inputState, EditorEnti
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
-	EndTable();
-	PopStyleVar();
 }
 
 auto DistanceJointEntityEditor::toJson() const -> Json::Value {

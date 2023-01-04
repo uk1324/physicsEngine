@@ -152,7 +152,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMax()
 	);
 	const auto sceneWindowSize = sceneWindowWindowSpace.size();
-	ImGui::Image(reinterpret_cast<void*>(renderer.textureShaderResourceView.Get()), sceneWindowSize, Vec2{ 0.0f }, sceneWindowSize / renderer.textureSize);
+	ImGui::Image(reinterpret_cast<void*>(renderer.windowTextureShaderResourceView.Get()), sceneWindowSize, Vec2{ 0.0f }, sceneWindowSize / renderer.textureSize);
 
 	if (IsWindowHovered()) {
 		Input::ignoreImGuiWantCapture = true;
@@ -188,6 +188,13 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	Begin("selected");
 	for (const auto& entity : selectedEntities) {
 		if (TreeNode(frameAllocator.format("entity%d", entity.index).data())) {
+
+			PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+			if (!BeginTable("properites", 2, ImGuiTableFlags_SizingStretchProp)) {
+				PopStyleVar();
+				continue;
+			}
+
 			switch (entity.type) {
 			case EntityType::Null: ImGui::Text("no entity selected"); break;
 			case EntityType::Body: {
@@ -205,6 +212,9 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			}
 				
 			}
+
+			EndTable();
+			PopStyleVar();
 
 			TreePop();
 		}
@@ -273,9 +283,6 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			const auto& bodyB = entites.body[distanceJoint.anchorB.body];
 			distanceJoint.distance = distance(bodyA.pos, bodyB.pos);
 		}
-
-		const auto bothBodiesAlive = entites.body.isAlive[distanceJoint.anchorA.body] && entites.body.isAlive[distanceJoint.anchorB.body];
-		entites.distanceJoint.isAlive[i] = bothBodiesAlive;
 	}
 
 	End();
@@ -504,6 +511,15 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 			entites.setIsAlive(entity, false);
 			commands.addCommand(DeleteEntityCommand{ entity });
 		}
+
+		
+		for (auto distanceJoint = entites.distanceJoint.alive().begin(); distanceJoint != entites.distanceJoint.alive().end(); ++distanceJoint) {
+			const auto bothBodiesAlive = entites.body.isAlive[distanceJoint->anchorA.body] && entites.body.isAlive[distanceJoint->anchorB.body];
+			if (!bothBodiesAlive) {
+				entites.distanceJoint.isAlive[distanceJoint.index] = false;
+				commands.addCommand(DeleteEntityCommand{ distanceJoint.toEntity() });
+			}
+		}
 		
 		commands.endMulticommand();
 
@@ -655,7 +671,7 @@ auto Editor::saveLevel() -> Json::Value {
 		bodies.push_back(body->toJson());
 	}
 
-	// Remove duplicates.
+	// TODO: Remove duplicates.
 
 	auto& distanceJoints = (level["distanceJoints"] = Json::Value::emptyArray()).array();
 	for (const auto& distanceJoint : entites.distanceJoint.alive()) {

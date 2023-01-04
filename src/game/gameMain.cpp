@@ -3,9 +3,13 @@
 
 GameMain::GameMain(Gfx& gfx) 
 	: renderer{ gfx }
-	, gfx{ gfx } {}
+	, gfx{ gfx }
+	, pixelGames{ gfx } {}
 
 auto GameMain::update() -> void {
+	pixelGames.update(gfx, renderer);
+	return;
+
 	if (Input::isKeyDown(Keycode::TAB)) {
 		if (currentScene == Scene::EDITOR) {
 			editor.saveCurrentLevel();

@@ -164,6 +164,9 @@
     <ClCompile Include="src\game\editor\scalingGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\pixelGames\pixelGames.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -352,6 +355,9 @@
     <ClInclude Include="src\utils\refOptional.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\pixelGames\pixelGames.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\game\shaders\vsLine.hlsl" />
@@ -363,6 +369,8 @@
     <FxCompile Include="src\game\shaders\psParabola.hlsl" />
     <FxCompile Include="src\game\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />
     <FxCompile Include="src\game\shaders\psHollowCircle.hlsl" />
+    <FxCompile Include="src\game\shaders\vsTexturedQuad.hlsl" />
+    <FxCompile Include="src\game\shaders\psTexturedQuad.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\txt.txt" />

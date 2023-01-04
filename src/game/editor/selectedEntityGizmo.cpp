@@ -61,7 +61,9 @@ auto SelectedEntityGizmo::update(
 		}
 	}
 
-	if (Input::isMouseButtonUp(MouseButton::LEFT) || (selectedEntities != grabStartSelectedEntities && selectedGizmo != GizmoType::NONE)) {
+	if (selectedGizmo != GizmoType::NONE && 
+		(Input::isMouseButtonUp(MouseButton::LEFT) 
+		|| (selectedEntitesGrabStartPositions.size() == grabStartSelectedEntities.size() && selectedEntities != grabStartSelectedEntities))) {
 		commands.beginMulticommand();
 		for (usize i = 0; i < selectedEntitesGrabStartPositions.size(); i++) {
 			const auto& entity = grabStartSelectedEntities[i];

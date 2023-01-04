@@ -646,6 +646,7 @@ auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 cir
 	if (isCenterInsideBox) p.penetrationDepth = -(p.normal.length() + circle.radius);
 	p.normal = p.normal.normalized();
 	p.position = closestPosOnBox;
+	p.feature.value = 0;
 
 	return collision;
 }
@@ -662,9 +663,10 @@ auto collide(Vec2 aPos, float, const CircleCollider& a, Vec2 bPos, float, const 
 	collision.contactCount = 1;
 	const auto distance = sqrt(distanceSquared);
 	p.normal = normal / distance;
-	p.penetrationDepth = a.radius + b.radius - distance;
+	p.penetrationDepth = -(a.radius + b.radius - distance);
 	p.normal = (distanceSquared == 0.0f) ? Vec2{ 1.0f, 0.0f } : p.normal.normalized();
 	p.position = aPos + p.normal * a.radius;
+	p.feature.value = 0;
 	return collision;
 }
 

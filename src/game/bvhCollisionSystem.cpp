@@ -36,6 +36,7 @@ auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vect
 	for (const auto body : toAdd) {
 		insert(*body);
 	}
+
 }
 
 auto BvhCollisionSystem::reset() -> void {

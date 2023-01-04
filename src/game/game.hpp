@@ -65,6 +65,7 @@ public:
 	auto loadLevel() -> void;
 	auto drawUi() -> void;
 	auto update(Gfx& gfx, Renderer& renderer) -> void;
+	auto physicsStep() -> void;
 
 	Vec2* controlledValue = nullptr;
 	Vec2* followedPos = nullptr;
@@ -77,6 +78,7 @@ public:
 	bool updatePhysics = true;
 	bool cameraFollow = true;
 	bool drawContacts = false;
+	bool doASingleStep = false;
 
 	bool drawTrajectory = false;
 	Vec2 initialVelocity{ 1.0f };

@@ -32,7 +32,7 @@ auto ScalingGizmo::update(const std::vector<Entity> selectedEntities, const Aabb
 	const auto result = boxScaling(box, pos, orientation, doUniformScaling, cursorPos, pointRadius, selectedEntitiesChanged);
 	isGrabbing = result.isGrabbing;
 
-	if (result.releasedGrab || selectedEntitiesChanged) {
+	if (result.releasedGrab || (isGrabbing && selectedEntitiesChanged)) {
 		ASSERT(selectedEntitesBoxGrabStartPositions.size() == grabStartSelectedEntites.size());
 		ASSERT(selectedEntitesBoxGrabStartColliders.size() == grabStartSelectedEntites.size());
 		commands.beginMulticommand();

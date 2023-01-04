@@ -20,15 +20,6 @@ These ides wouldn't work, but are cool. Generating a point on a sphere. Angles o
 .data
 Store an array of structs with enum + index that specifes the order in which thing code should be generated.
 
-custom editor
-scaling
-saving
-
-Custom editor for inputing offests of the anchor points of a joint
-
-Scaling the bodies. If the are multiple entites selected use uniform scaling.
-If there is one box allow for non uniform scaling.
-
 Maybe make a immediate mode style interface for the editor.
 if (Circle(&pos)) {
 
@@ -48,3 +39,27 @@ Snap the passed cursor pos to important features like corners
 Have a menu that allows saving sublevels something similar to prefabs in unity. And maybe make creating things like shapes only be a tab in the menu for those things.
 
 Maybe make a menu appear when two entities are selected that shows that they can be connected with a joint. Maybe show the menu only after something is held down for some amount of time.
+
+For modifiers store a map of entiy to modifier. Maybe also store the entity in the modifier so the it knows it should and or remove itself from the list.
+
+Distance joint modifier that changes the distance.
+
+Collision groups. Group zero means collide with everything. When loading a level could check what groups are already used. Could have an option to color things in different groups differently. Could make making things static by making the group they are in static. Or maybe just something like static groups idk. Groups could either be represented by numbers or colors.
+
+Maybe make a controallble camera that can be used in different parts of the engine. Maybe make some features disabable like grabbing.
+
+Maybe make adding things like joints separate tools. If they are selected then when a body is clicked a joint is started when another one is the joint ends.
+
+Read about more generic seraizliation systems. Versioning. When adding a new field assign which version it belongs to. This would allow binary loading of data.
+
+When drawing colliders could save the velocitites and use hermite interpolation.
+
+Select brush
+
+Make the entity system immediate mode. Callbacks seem more error prone. 
+Control the entity access with optional types (this could also be done in a callback system, but then you are doing twice the work). Having to always check that the entity is alive seems like a good idea. Deleting entites can also be done in an immediate way. The acceleration structures could just check if the entites it stores are alive. There is no need to store a list of removed entites because the indexes can't get invalidated.
+Adding entites can invalidate references. So to avoid mistakes it is probably better to buffer it.
+In my previous entity systems the order of the entites could change when deleting so the deletion had to be delayed to the end of the frame.
+
+Read particle dynamics again
+https://www.cs.cmu.edu/~baraff/sigcourse/
