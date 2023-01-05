@@ -16,6 +16,7 @@ struct DynamicTexture {
 	DynamicTexture(Gfx& gfx, Vec2T<i32> size);
 	~DynamicTexture();
 	auto set(Vec2T<i32> pos, const Vec3T<u8>& color) -> void;
+	auto set(Vec2T<i32> pos, const Vec3& color) -> void;
 	auto get(Vec2T<i32> pos) const -> Vec3T<u8>;
 	auto size() const -> const Vec2T<i32>&;
 	auto data() -> u32*;

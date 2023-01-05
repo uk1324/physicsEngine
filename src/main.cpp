@@ -54,6 +54,8 @@ static auto setCustomImGuiStyle() -> void {
 
 #include <utils/io.hpp>
 
+#include <complex>
+
 auto WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR , _In_ int) -> int {
 	Window::init("game", Vec2(640, 480));
 	Gfx gfx{ Window::hWnd() };

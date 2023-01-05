@@ -441,8 +441,17 @@ auto DynamicTexture::set(Vec2T<i32> pos, const Vec3T<u8>& color) -> void {
 	data_[pos.y * size_.x + pos.x] = color.x | (color.y << 8) | (color.z << 16);
 }
 
+auto DynamicTexture::set(Vec2T<i32> pos, const Vec3& color) -> void {
+	const Vec3T<u8> colU8{
+		static_cast<u8>(std::clamp(color.x * 255.0f, 0.0f, 255.0f)),
+		static_cast<u8>(std::clamp(color.y * 255.0f, 0.0f, 255.0f)),
+		static_cast<u8>(std::clamp(color.z * 255.0f, 0.0f, 255.0f))
+	};
+	set(pos, colU8);
+}
+
 auto DynamicTexture::get(Vec2T<i32> pos) const -> Vec3T<u8> {
-	const auto value = data_[pos.y * size_.x + pos.y];
+	const auto value = data_[pos.y * size_.x + pos.x];
 	return { static_cast<u8>(value), static_cast<u8>(value >> 8), static_cast<u8>(value >> 16) };
 }
 
