@@ -338,6 +338,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="thirdParty\stb_image\stb_image.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\engine\audio.hpp" />
@@ -403,6 +407,7 @@
     <ClInclude Include="thirdParty\json\JsonParser.hpp" />
     <ClInclude Include="thirdParty\json\JsonPrinter.hpp" />
     <ClInclude Include="thirdParty\json\JsonValue.hpp" />
+    <ClInclude Include="thirdParty\stb_image\stb_image.hpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\game\shaders\debugShapesPixelShaderConstantBuffer.hlsl">

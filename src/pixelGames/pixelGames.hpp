@@ -14,4 +14,6 @@ struct PixelGames {
 	bool doFourierTransform = false;
 	DynamicTexture texture;
 	std::vector<std::complex<float>> result;
+
+	u8* image;
 };

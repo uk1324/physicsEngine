@@ -156,6 +156,7 @@ Renderer::Renderer(Gfx& gfx) {
 #include <utils/io.hpp>
 
 auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool renderToTexture) -> void {
+
 	const D3D11_VIEWPORT viewport{
 		.TopLeftX = 0.0f,
 		.TopLeftY = 0.0f,
@@ -224,6 +225,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 			// Assumes the fullscreen quad index buffer is set.
 			gfx.ctx->DrawIndexed(static_cast<UINT>(std::size(fullscreenQuadIndices)), 0, 0);
 		}
+		dynamicTexturesToDraw.clear();
 
 	}
 

@@ -167,6 +167,9 @@
     <ClCompile Include="src\pixelGames\pixelGames.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="thirdParty\stb_image\stb_image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -356,6 +359,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\pixelGames\pixelGames.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdParty\stb_image\stb_image.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
