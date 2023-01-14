@@ -4,6 +4,11 @@ Aabb::Aabb(Vec2 min, Vec2 max)
 	: min{ min }
 	, max{ max } {}
 
+auto Aabb::fromPosSize(Vec2 pos, Vec2 size) -> Aabb {
+	const auto halfSize = size / 2.0f;
+	return Aabb{ pos - halfSize, pos + halfSize };
+}
+
 auto Aabb::fromCorners(Vec2 a, Vec2 b) -> Aabb {
 	Vec2 min, max;
 	if (a.x < b.x) {

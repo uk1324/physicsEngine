@@ -162,6 +162,10 @@
     <None Include="src\game\entites.data" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\customImGuiWidgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\engine\audio.cpp" />
     <ClCompile Include="src\engine\frameAllocator.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -267,6 +271,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\math\fourier.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\math\line.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -287,11 +295,19 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeaderFile>
     </ClCompile>
+    <ClCompile Include="src\pixelGames\fourierTransformDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\pixelGames\pixelGames.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\utils\areaAllocator.cpp" />
+    <ClCompile Include="src\utils\imageRgba.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\utils\io.cpp" />
     <ClCompile Include="src\utils\random.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -342,8 +358,17 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="thirdParty\stb_image\stb_image_resize.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="thirdParty\stb_image\stb_image_write.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\customImguiWidgets.hpp" />
     <ClInclude Include="src\engine\audio.hpp" />
     <ClInclude Include="src\engine\frameAllocator.hpp" />
     <ClInclude Include="src\game\bvhCollisionSystem.hpp" />
@@ -368,7 +393,9 @@
     <ClInclude Include="src\game\distanceJoint.hpp" />
     <ClInclude Include="src\game\levelFormat.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
+    <ClInclude Include="src\math\bits.hpp" />
     <ClInclude Include="src\math\collision.hpp" />
+    <ClInclude Include="src\math\fourier.hpp" />
     <ClInclude Include="src\math\line.hpp" />
     <ClInclude Include="src\math\lineSegment.hpp" />
     <ClInclude Include="src\math\mat2.hpp" />
@@ -382,10 +409,13 @@
     <ClInclude Include="src\math\mat3x2.hpp" />
     <ClInclude Include="src\math\vec2.hpp" />
     <ClInclude Include="src\math\vec3.hpp" />
+    <ClInclude Include="src\pixelGames\fourierTransformDemo.hpp" />
     <ClInclude Include="src\pixelGames\pixelGames.hpp" />
+    <ClInclude Include="src\utils\iter2d.hpp" />
     <ClInclude Include="src\utils\areaAllocator.hpp" />
     <ClInclude Include="src\utils\asserts.hpp" />
     <ClInclude Include="src\gfx\gfx.hpp" />
+    <ClInclude Include="src\utils\imageRgba.hpp" />
     <ClInclude Include="src\utils\int.hpp" />
     <ClInclude Include="src\utils\io.hpp" />
     <ClInclude Include="src\utils\overloaded.hpp" />
@@ -408,6 +438,8 @@
     <ClInclude Include="thirdParty\json\JsonPrinter.hpp" />
     <ClInclude Include="thirdParty\json\JsonValue.hpp" />
     <ClInclude Include="thirdParty\stb_image\stb_image.hpp" />
+    <ClInclude Include="thirdParty\stb_image\stb_image_resize.hpp" />
+    <ClInclude Include="thirdParty\stb_image\stb_image_write.hpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\game\shaders\debugShapesPixelShaderConstantBuffer.hlsl">

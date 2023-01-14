@@ -44,7 +44,11 @@ For modifiers store a map of entiy to modifier. Maybe also store the entity in t
 
 Distance joint modifier that changes the distance.
 
+// https://developer.valvesoftware.com/wiki/Physics_Entities_on_Server_%26_Client
 Collision groups. Group zero means collide with everything. When loading a level could check what groups are already used. Could have an option to color things in different groups differently. Could make making things static by making the group they are in static. Or maybe just something like static groups idk. Groups could either be represented by numbers or colors.
+A better way to implement this would be to have collision layers. Collision groups would define which layers can collide with eachother. Relational database. Custom gui for selecting the collision layer of body. Could allow naming layers and the gui could display the names. It would probably be better to call it after calling the gui method of the object because it needs to access the names of the collision layers and passing that into a function would require some modifications.
+Either store pairs or for each layer store an list. Creating a kind of matrix.
+NoCollisionConstraint 
 
 Maybe make a controallble camera that can be used in different parts of the engine. Maybe make some features disabable like grabbing.
 
@@ -63,3 +67,6 @@ In my previous entity systems the order of the entites could change when deletin
 
 Read particle dynamics again
 https://www.cs.cmu.edu/~baraff/sigcourse/
+
+When interpolating between 2 signed distance fields the colors should also be interpolated. Interpolating between colors might look better when interpolating between the curves.
+

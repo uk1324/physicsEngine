@@ -8,8 +8,9 @@
 struct Aabb {
 	Aabb(Vec2 min, Vec2 max);
 
-	static auto fromCorners(Vec2 a, Vec2 b)->Aabb;
-	static auto fromPoints(Span<const Vec2> points)->Aabb;
+	static auto fromPosSize(Vec2 pos, Vec2 size) -> Aabb;
+	static auto fromCorners(Vec2 a, Vec2 b) -> Aabb;
+	static auto fromPoints(Span<const Vec2> points) -> Aabb;
 
 	auto size() const->Vec2;
 	auto contains(Vec2 p) const -> bool;

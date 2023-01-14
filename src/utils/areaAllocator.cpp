@@ -31,6 +31,10 @@ AreaAllocator::AreaAllocator(usize maxSizeBytes)
 	current = memory;
 }
 
+AreaAllocator::~AreaAllocator() {
+	CHECK_WIN_BOOL(VirtualFree(memory, 0, MEM_RELEASE));
+}
+
 // Could fall back on malloc if the allocation fails.
 auto AreaAllocator::allocAlligned(usize alignment, usize sizeBytes) -> void* {
 	usize bytesLeft = (memory + maxSizeBytes) - current;
@@ -60,6 +64,10 @@ auto AreaAllocator::allocAlligned(usize alignment, usize sizeBytes) -> void* {
 
 	current = aligned + sizeBytes;
 	return aligned;
+}
+
+auto AreaAllocator::alloc(usize sizeBytes) -> void* {
+	return allocAlligned(16, sizeBytes);
 }
 
 auto AreaAllocator::format(const char* format, ...) -> std::string_view {

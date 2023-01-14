@@ -142,9 +142,9 @@ Renderer::Renderer(Gfx& gfx) {
 	{
 		const D3D11_SAMPLER_DESC samplerDesc{
 			.Filter = D3D11_FILTER_MAXIMUM_MIN_MAG_MIP_POINT,
-			.AddressU = D3D11_TEXTURE_ADDRESS_WRAP,
-			.AddressV = D3D11_TEXTURE_ADDRESS_WRAP,
-			.AddressW = D3D11_TEXTURE_ADDRESS_WRAP,
+			.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP,
+			.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP,
+			.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP,
 			.ComparisonFunc = D3D11_COMPARISON_NEVER,
 			.MinLOD = 0,
 			.MaxLOD = D3D11_FLOAT32_MAX,
@@ -207,7 +207,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 
 		for (auto& [texture, pos, size] : dynamicTexturesToDraw) {
 			gfx.ctx->PSSetShaderResources(0, 1, texture->resourceView.GetAddressOf());
-			texturedQuadConstantBuffer.transform = makeTransform(pos, 0.0f, size);
+			texturedQuadConstantBuffer.transform = makeTransform(pos, 0.0f, size / 2.0f);
 			gfx.ctx->VSSetConstantBuffers(0, 1, texturedQuadConstantBufferResource.GetAddressOf());
 
 			D3D11_MAPPED_SUBRESOURCE resource{ 0 };
@@ -399,10 +399,8 @@ auto Renderer::drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicT
 	});
 }
 
-DynamicTexture::DynamicTexture(Gfx& gfx, Vec2T<i32> size)
-	: size_{ size }
-	, data_{ new u32[static_cast<usize>(size.x) * static_cast<usize>(size.y)] } {
-
+DynamicTexture::DynamicTexture(Gfx& gfx, Vec2T<usize> size)
+	: ImageRgba{ size } {
 	const D3D11_TEXTURE2D_DESC textureDesc{
 		.Width = static_cast<UINT>(size_.x),
 		.Height = static_cast<UINT>(size_.y),
@@ -429,38 +427,4 @@ DynamicTexture::DynamicTexture(Gfx& gfx, Vec2T<i32> size)
 		}
 	};
 	CHECK_WIN_HRESULT(gfx.device->CreateShaderResourceView(texture.Get(), &shaderResourceViewDesc, resourceView.GetAddressOf()));
-
-	for (usize i = 0; i < static_cast<usize>(size.x) * static_cast<usize>(size.y); i++) {
-		data()[i] = 0xFFFFFFFF;
-	}
-}
-
-DynamicTexture::~DynamicTexture() {
-	delete[] data_;
-}
-
-auto DynamicTexture::set(Vec2T<i32> pos, const Vec3T<u8>& color) -> void {
-	data_[pos.y * size_.x + pos.x] = color.x | (color.y << 8) | (color.z << 16);
-}
-
-auto DynamicTexture::set(Vec2T<i32> pos, const Vec3& color) -> void {
-	const Vec3T<u8> colU8{
-		static_cast<u8>(std::clamp(color.x * 255.0f, 0.0f, 255.0f)),
-		static_cast<u8>(std::clamp(color.y * 255.0f, 0.0f, 255.0f)),
-		static_cast<u8>(std::clamp(color.z * 255.0f, 0.0f, 255.0f))
-	};
-	set(pos, colU8);
-}
-
-auto DynamicTexture::get(Vec2T<i32> pos) const -> Vec3T<u8> {
-	const auto value = data_[pos.y * size_.x + pos.x];
-	return { static_cast<u8>(value), static_cast<u8>(value >> 8), static_cast<u8>(value >> 16) };
-}
-
-auto DynamicTexture::size() const -> const Vec2T<i32>& {
-	return size_;
-}
-
-auto DynamicTexture::data() -> u32* {
-	return data_;
 }

@@ -2,6 +2,7 @@
 
 #include <gfx/gfx.hpp>
 #include <gfx/hlslTypes.hpp>
+#include <utils/imageRgba.hpp>
 #include <game/camera.hpp>
 
 #include <vector>
@@ -9,21 +10,11 @@
 // TODO: Maybe use order independent transparency. It shouldn't be expensive because it is just quads.
 // TODO: Shader preprocesor that when it find DEBUG_OUT(<variable>) it replaces it with if (<variable_flag>) return <variable> and creates a variable <variable_flag>. It also creates maybe a json struct describing the flags. It uses the struct to display a select menu using ImGui. One limitation that it can only be used in the main function.
 
-struct DynamicTexture {
+struct DynamicTexture : ImageRgba {
 	ComPtr<ID3D11Texture2D> texture;
 	ComPtr<ID3D11ShaderResourceView> resourceView;
 
-	DynamicTexture(Gfx& gfx, Vec2T<i32> size);
-	~DynamicTexture();
-	auto set(Vec2T<i32> pos, const Vec3T<u8>& color) -> void;
-	auto set(Vec2T<i32> pos, const Vec3& color) -> void;
-	auto get(Vec2T<i32> pos) const -> Vec3T<u8>;
-	auto size() const -> const Vec2T<i32>&;
-	auto data() -> u32*;
-
-private:
-	u32* data_;
-	Vec2T<i32> size_;
+	DynamicTexture(Gfx& gfx, Vec2T<usize> size);
 };
 
 #pragma warning(push)

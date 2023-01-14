@@ -2,15 +2,20 @@
 
 #include <math/mat3x2.hpp>
 
+// When zoom is 1 the width goes from -1 to 1.
 struct Camera {
 	Camera(Vec2 pos = Vec2{ 0.0f }, float zoom = 1.0f);
 
+	auto posInGrid(Vec2 pos, Vec2 gridCenter, float gridSize, Vec2T<i64> gridCellSize) -> Vec2T<i64>;
 	auto interpolateTo(Vec2 desiredPos, float speed) -> void;
 	auto cameraTransform() const-> Mat3x2;
-	auto screenSpaceToCameraSpace(Vec2 screenSpacePos)->Vec2;
-	auto heightIfWidthIs(float width) -> float;
+	auto screenSpaceToCameraSpace(Vec2 screenSpacePos) const -> Vec2;
+	auto heightIfWidthIs(float width) const -> float;
+	auto height() const -> float;
+	auto width() const -> float;
 
 	Vec2 pos;
 	float zoom;
+	// Aspect ratio should be width / height.
 	float aspectRatio = 1.0f;
 };
