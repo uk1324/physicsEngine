@@ -30,7 +30,7 @@ ImageRgba::ImageRgba(const ImageRgba& other)
 	, data_{ reinterpret_cast<PixelRgba*>(malloc(other.dataSizeBytes())) }{
 	if (data_ == nullptr) {
 		ASSERT_NOT_REACHED();
-		size_ = Vec2{ 0 };
+		size_ = Vec2T<i64>{ 0 };
 		return;
 	}
 	memcpy(data_, other.data_, other.dataSizeBytes());
@@ -47,7 +47,7 @@ auto ImageRgba::operator=(const ImageRgba& other) -> ImageRgba& {
 		free(data_);
 		data_ = reinterpret_cast<PixelRgba*>(malloc(other.dataSizeBytes()));
 		if (data_ == nullptr) {
-			size_ = Vec2T{ 0 };
+			size_ = Vec2T<i64>{ 0 };
 			ASSERT_NOT_REACHED();
 			return *this;
 		}

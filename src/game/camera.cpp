@@ -7,11 +7,12 @@ Camera::Camera(Vec2 pos, float zoom)
 	, zoom{ zoom } {}
 
 auto Camera::posInGrid(Vec2 pos, Vec2 gridCenter, float gridSize, Vec2T<i64> gridCellSize) -> Vec2T<i64> {
-	const auto textureBox = Aabb::fromPosSize(gridCenter, Vec2{ gridSize });
+	const Vec2 size{ gridSize * gridCellSize.xOverY(), gridSize };
+	const auto textureBox = Aabb::fromPosSize(gridCenter, size);
 	auto gridPos = pos - Vec2{ textureBox.min.x, textureBox.max.y };
-	gridPos /= gridSize;
+	gridPos /= size;
 	gridPos.y = -gridPos.y;
-	return gridPos * gridCellSize;
+	return Vec2T<i64>{ (gridPos * Vec2{ gridCellSize }).applied(floor) };
 }
 
 auto Camera::interpolateTo(Vec2 desiredPos, float speed) -> void {

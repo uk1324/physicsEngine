@@ -194,8 +194,8 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 
 	const auto cameraTransform = camera.cameraTransform();
 
-	auto makeTransform = [&screenScale, aspectRatio, &cameraTransform](Vec2 translation, float orientation, float scale) -> Mat3x2 {
-		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(Vec2{ scale }) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
+	auto makeTransform = [&screenScale, aspectRatio, &cameraTransform](Vec2 translation, float orientation, Vec2 scale) -> Mat3x2 {
+		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(scale) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
 	};
 
 	{
@@ -207,7 +207,9 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 
 		for (auto& [texture, pos, size] : dynamicTexturesToDraw) {
 			gfx.ctx->PSSetShaderResources(0, 1, texture->resourceView.GetAddressOf());
-			texturedQuadConstantBuffer.transform = makeTransform(pos, 0.0f, size / 2.0f);
+			/*const auto scale = Vec2{ size / 2.0f,  };*/
+			const auto scale = Vec2{ (static_cast<float>(texture->size().x) / static_cast<float>(texture->size().y)) * (size / 2.0f), size / 2.0f };
+			texturedQuadConstantBuffer.transform = makeTransform(pos, 0.0f, scale);
 			gfx.ctx->VSSetConstantBuffers(0, 1, texturedQuadConstantBufferResource.GetAddressOf());
 
 			D3D11_MAPPED_SUBRESOURCE resource{ 0 };
@@ -259,7 +261,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 		for (const auto& [circle, orientation] : Debug::circleColliders) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
 				.invRadius = 1.0f / circle.radius / camera.zoom,
-				.transform = makeTransform(circle.pos, orientation, circle.radius),
+				.transform = makeTransform(circle.pos, orientation, Vec2{ circle.radius }),
 				.color = circle.color
 			};
 			toDraw++;
@@ -271,7 +273,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 		for (const auto& circle : Debug::circles) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
 				.invRadius = 1.0f / circle.radius / camera.zoom,
-				.transform = makeTransform(circle.pos, 0.0f, circle.radius),
+				.transform = makeTransform(circle.pos, 0.0f, Vec2{ circle.radius }),
 				.color = circle.color
 			};
 			toDraw++;
@@ -283,7 +285,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 		for (const auto& point : Debug::points) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
 				.invRadius = 1.0f / point.radius,
-				.transform = makeTransform(point.pos, 0.0f, point.radius / camera.zoom),
+				.transform = makeTransform(point.pos, 0.0f, Vec2{ point.radius / camera.zoom }),
 				.color = point.color
 			};
 			toDraw++;
@@ -295,7 +297,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 		for (const auto& hollowCircle : Debug::hollowCircles) {
 			circleShaderConstantBuffer.instanceData[toDraw] = {
 				.invRadius = 1.0f / hollowCircle.radius / camera.zoom,
-				.transform = makeTransform(hollowCircle.pos, 0.0f, hollowCircle.radius),
+				.transform = makeTransform(hollowCircle.pos, 0.0f, Vec2{ hollowCircle.radius }),
 				.color = hollowCircle.color
 			};
 			toDraw++;
@@ -332,7 +334,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 			const auto orientation = atan2(lineVector.y, lineVector.x);
 			return {
 				.invScale = 1.0f / length / camera.zoom,
-				.transform = makeTransform(start, orientation, length + extraLength),
+				.transform = makeTransform(start, orientation, Vec2{ length + extraLength }),
 				.color = color,
 			};
 		};
@@ -399,7 +401,7 @@ auto Renderer::drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicT
 	});
 }
 
-DynamicTexture::DynamicTexture(Gfx& gfx, Vec2T<usize> size)
+DynamicTexture::DynamicTexture(Gfx& gfx, Vec2T<i64> size)
 	: ImageRgba{ size } {
 	const D3D11_TEXTURE2D_DESC textureDesc{
 		.Width = static_cast<UINT>(size_.x),

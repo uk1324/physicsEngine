@@ -10,7 +10,7 @@
 #include <imgui/imgui.h>
 
 FourierTransformDemo::FourierTransformDemo(Gfx& gfx)
-	: texture{ gfx, Vec2T<usize>{ IMAGE_SIZE } } {
+	: texture{ gfx, Vec2T<i64>{ IMAGE_SIZE } } {
 	for (auto pixel : texture.indexed()) {
 		pixel = PixelRgba{ (pixel.pos.x > texture.size().x / 2) ? u8(0) : u8(255) };
 	}

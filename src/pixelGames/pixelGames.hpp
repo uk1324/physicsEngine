@@ -3,6 +3,7 @@
 #include <gfx/gfx.hpp>
 #include <game/renderer.hpp>
 #include <pixelGames/fourierTransformDemo.hpp>
+#include <pixelGames/eulerianFluid.hpp>
 
 #include <complex>
 
@@ -11,4 +12,5 @@ struct PixelGames {
 	auto update(Gfx& gfx, Renderer& renderer) -> void;
 
 	FourierTransformDemo fourierTransformDemo;
+	EulerianFluid eulerianFluid;
 };

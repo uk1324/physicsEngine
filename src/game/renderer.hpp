@@ -14,7 +14,7 @@ struct DynamicTexture : ImageRgba {
 	ComPtr<ID3D11Texture2D> texture;
 	ComPtr<ID3D11ShaderResourceView> resourceView;
 
-	DynamicTexture(Gfx& gfx, Vec2T<usize> size);
+	DynamicTexture(Gfx& gfx, Vec2T<i64> size);
 };
 
 #pragma warning(push)

@@ -13,9 +13,11 @@ struct Vec2T {
 	constexpr explicit Vec2T(T all);
 	constexpr Vec2T(T x, T y);
 	template<typename U> 
-	constexpr Vec2T(Vec2T<U> other);
+	explicit constexpr Vec2T(Vec2T<U> other);
 	static auto oriented(T angle) -> Vec2T;
 
+	auto clamped(T min, T max) const -> Vec2T;
+	auto clamped(Vec2T min, Vec2T max) const -> Vec2T;
 	auto lengthSq() const -> T;
 	auto length() const -> T;
 	auto normalized() const -> Vec2T;
@@ -24,6 +26,7 @@ struct Vec2T {
 	auto min(const Vec2T& other) const -> Vec2T;
 	auto max(const Vec2T& other) const -> Vec2T;
 	auto scaledAround(const Vec2T& point, const Vec2T& scale) const -> Vec2T;
+	auto xOverY() const -> float; // This should return a float not T.
 
 	auto operator+(const Vec2T& v) const -> Vec2T;
 	auto operator+=(const Vec2T& v) -> Vec2T&;
@@ -121,6 +124,16 @@ auto Vec2T<T>::oriented(T angle) -> Vec2T {
 }
 
 template<typename T>
+auto Vec2T<T>::clamped(T min, T max) const -> Vec2T {
+	return Vec2T{ std::clamp(x, min, max), std::clamp(y, min, max) };
+}
+
+template<typename T>
+auto Vec2T<T>::clamped(Vec2T min, Vec2T max) const -> Vec2T {
+	return Vec2T{ std::clamp(x, min.x, max.x), std::clamp(y, min.y, max.y) };
+}
+
+template<typename T>
 auto Vec2T<T>::lengthSq() const -> T {
 	return x * x + y * y;
 }
@@ -166,6 +179,11 @@ auto Vec2T<T>::scaledAround(const Vec2T& point, const Vec2T& scale) const -> Vec
 	result *= scale;
 	result += point;
 	return result;
+}
+
+template<typename T>
+auto Vec2T<T>::xOverY() const -> float {
+	return static_cast<float>(x) / static_cast<float>(y);
 }
 
 template<typename T>

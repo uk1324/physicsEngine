@@ -65,7 +65,7 @@ auto sortedInsert(std::vector<T>& vec, const T& item) -> void {
 auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 	using namespace ImGui;
 
-	DockSpaceOverViewport(ImGui::GetMainViewport());
+	DockSpaceOverViewport(GetMainViewport());
 
 	//if (ImGui::BeginMainMenuBar())
 	//{

@@ -188,6 +188,9 @@
     <ClCompile Include="src\pixelGames\fourierTransformDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\pixelGames\eulerianFluid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -404,6 +407,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\pixelGames\fourierTransformDemo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pixelGames\eulerianFluid.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

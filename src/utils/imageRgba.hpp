@@ -55,5 +55,5 @@ private:
 
 protected:
 	PixelRgba* data_;
-	Vec2T<usize> size_;
+	Vec2T<i64> size_;
 };
