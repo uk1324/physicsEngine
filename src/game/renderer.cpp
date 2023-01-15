@@ -140,7 +140,7 @@ Renderer::Renderer(Gfx& gfx) {
 	}
 
 	{
-		const D3D11_SAMPLER_DESC samplerDesc{
+		D3D11_SAMPLER_DESC samplerDesc{
 			.Filter = D3D11_FILTER_MAXIMUM_MIN_MAG_MIP_POINT,
 			.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP,
 			.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP,
@@ -149,7 +149,10 @@ Renderer::Renderer(Gfx& gfx) {
 			.MinLOD = 0,
 			.MaxLOD = D3D11_FLOAT32_MAX,
 		};
-		CHECK_WIN_HRESULT(gfx.device->CreateSamplerState(&samplerDesc, pixelTextureSamplerState.GetAddressOf()));
+		CHECK_WIN_HRESULT(gfx.device->CreateSamplerState(&samplerDesc, nearestNeighbourTextureSamplerState.GetAddressOf()));
+
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+		CHECK_WIN_HRESULT(gfx.device->CreateSamplerState(&samplerDesc, linearTextureSamplerState.GetAddressOf()));
 	}
 }
 
@@ -203,9 +206,13 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 		gfx.ctx->VSSetShader(vsTexturedQuad.shader.Get(), nullptr, 0);
 
 		gfx.ctx->PSSetShader(psTexturedQuad.Get(), nullptr, 0);
-		gfx.ctx->PSSetSamplers(0, 1, pixelTextureSamplerState.GetAddressOf());
+		for (auto& [texture, pos, size, interpolate] : dynamicTexturesToDraw) {
+			if (interpolate) {
+				gfx.ctx->PSSetSamplers(0, 1, linearTextureSamplerState.GetAddressOf());
+			} else {
+				gfx.ctx->PSSetSamplers(0, 1, nearestNeighbourTextureSamplerState.GetAddressOf());
+			}
 
-		for (auto& [texture, pos, size] : dynamicTexturesToDraw) {
 			gfx.ctx->PSSetShaderResources(0, 1, texture->resourceView.GetAddressOf());
 			/*const auto scale = Vec2{ size / 2.0f,  };*/
 			const auto scale = Vec2{ (static_cast<float>(texture->size().x) / static_cast<float>(texture->size().y)) * (size / 2.0f), size / 2.0f };
@@ -393,11 +400,12 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 	}
 }
 
-auto Renderer::drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicTexture) -> void {
+auto Renderer::drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicTexture, bool interpolate) -> void {
 	dynamicTexturesToDraw.push_back(DynamicTextureToDraw{
 		.texture = &dynamicTexture,
 		.pos = pos,
 		.size = size,
+		.interpolate = interpolate
 	});
 }
 

@@ -12,5 +12,5 @@ struct PixelGames {
 	auto update(Gfx& gfx, Renderer& renderer) -> void;
 
 	FourierTransformDemo fourierTransformDemo;
-	EulerianFluid eulerianFluid;
+	EulerianFluidDemo eulerianFluid;
 };

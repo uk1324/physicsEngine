@@ -9,11 +9,6 @@
 #include <imgui/imgui.h>
 using namespace ImGui;
 
-#include <memory>
-#include <vector>
-#include <math.h>
-#include <algorithm>
-
 Fluid::Fluid(Vec2T<i64> gridSize, float cellSpacing, float overRelaxation, float density)
 	: gridSize{ gridSize }
 	, cellSpacing{ cellSpacing }
@@ -25,12 +20,13 @@ Fluid::Fluid(Vec2T<i64> gridSize, float cellSpacing, float overRelaxation, float
 	newVelX.resize(cellCount);
 	newVelY.resize(cellCount);
 	pressure.resize(cellCount);
-	smoke.resize(cellCount, 1.0);
+	smoke.resize(cellCount, 1.0f);
 	isWallValues.resize(cellCount);
 	newSmoke.resize(cellCount);
 
-	for (auto x = 0; x < gridSize.x; x++) {
-		for (auto y = 0; y < gridSize.y; y++) {
+	// Place border walls.
+	for (i64 x = 0; x < gridSize.x; x++) {
+		for (i64 y = 0; y < gridSize.y; y++) {
 			bool wall = false;
 			if (x == 0 || x == gridSize.x - 1 || y == 0 || y == gridSize.y - 1)
 				wall = true;
@@ -39,7 +35,7 @@ Fluid::Fluid(Vec2T<i64> gridSize, float cellSpacing, float overRelaxation, float
 	}
 }
 
-void Fluid::integrate(float dt, float gravity) {
+auto Fluid::integrate(float dt, float gravity) -> void {
 	for (i64 x = 1; x < gridSize.x; x++) {
 		for (i64 y = 1; y < gridSize.y - 1; y++) {
 			if (isWall(x, y) || isWall(x, y - 1))
@@ -49,15 +45,18 @@ void Fluid::integrate(float dt, float gravity) {
 	}
 }
 
-void Fluid::solveIncompressibility(i32 numIters, float dt) {
-	double cp = density * cellSpacing / dt;
-	for (i64 iter = 0; iter < numIters; iter++) {
+auto Fluid::solveIncompressibility(i32 solverIterations, float dt) -> void {
+	const auto pressureWithoutVelocity = density * (cellSpacing * cellSpacing) / dt;
+	// If a fluid is incompressible it has to have a divergence of 0 at each point. The amount of fluid going out of a point has to be equal to the amount goint in. Solve using projection gauss seidel. To find approximate the global solution solve each cell separately multiple times.
+	// Incompressible fluids are a good approximation of water.
+	for (i64 iter = 0; iter < solverIterations; iter++) {
 
 		for (i64 x = 1; x < gridSize.x - 1; x++) {
 			for (i64 y = 1; y < gridSize.y - 1; y++) {
 				if (isWall(x, y))
 					continue;
 
+				// std::vector<bool> is really slow in debug mode.
 				const auto
 					sx0 = !isWall(x - 1, y),
 					sx1 = !isWall(x + 1, y),
@@ -74,8 +73,9 @@ void Fluid::solveIncompressibility(i32 numIters, float dt) {
 					- at(velY, x, y)
 					+ at(velY, x, y + 1);
 
+				// Outflow to each surrouding cell evenly.
 				const auto correctedOutflow = (-divergence / outflowingSidesCount) * overRelaxation;
-				at(pressure, x, y) += cp * correctedOutflow;
+				at(pressure, x, y) += pressureWithoutVelocity * correctedOutflow;
 				at(velX, x, y) -= sx0 * correctedOutflow;
 				at(velX, x + 1, y) += sx1 * correctedOutflow;
 				at(velY, x, y) -= sy0 * correctedOutflow;
@@ -85,21 +85,7 @@ void Fluid::solveIncompressibility(i32 numIters, float dt) {
 	}
 }
 
-void Fluid::extrapolate()
-{
-	for (int i = 0; i < gridSize.x; i++)
-	{
-		velX[i * gridSize.y + 0] = velX[i * gridSize.y + 1];
-		velX[i * gridSize.y + gridSize.y - 1] = velX[i * gridSize.y + gridSize.y - 2];
-	}
-	for (int j = 0; j < gridSize.y; j++)
-	{
-		velY[0 * gridSize.y + j] = velY[1 * gridSize.y + j];
-		velY[(gridSize.x - 1) * gridSize.y + j] = velY[(gridSize.x - 2) * gridSize.y + j];
-	}
-}
-
-float Fluid::sampleField(Vec2 pos, FieldType type) {
+auto Fluid::sampleField(Vec2 pos, FieldType type) -> float {
 	pos.x = std::clamp(pos.x, cellSpacing, gridSize.x * cellSpacing);
 	pos.y = std::clamp(pos.y, cellSpacing, gridSize.y * cellSpacing);
 
@@ -121,6 +107,7 @@ float Fluid::sampleField(Vec2 pos, FieldType type) {
 		break;
 	}
 
+	// Could just use a single clamp here and remove the one from the top.
 	const auto x0 = std::min(static_cast<i64>(floor((pos.x - cellOffset.x) / cellSpacing)), gridSize.x - 1);
 	const auto tx = ((pos.x - cellOffset.x) - x0 * cellSpacing) / cellSpacing;
 	const auto x1 = std::min(x0 + 1, gridSize.x - 1);
@@ -137,41 +124,8 @@ float Fluid::sampleField(Vec2 pos, FieldType type) {
 
 	return bilerpedValue;
 }
-void Fluid::advectVelocity(float dt)
-{
-	//int n = gridSize.y;
-	//double h2 = 0.5 * h;
-	//for (int i = 1; i < gridSize.x; i++)
-	//{
-	//	for (int j = 1; j < gridSize.y; j++)
-	//	{
-	//		if (s[i * n + j] != 0.0 && s[(i - 1) * n + j] != 0.0 && j < gridSize.y - 1)
-	//		{
-	//			double x = i * h;
-	//			double y = j * h + h2;
-	//			double _u = u[i * n + j];
-	//			double _v = avgV(i, j);
 
-	//			x -= dt * _u;
-	//			y -= dt * _v;
-	//			_u = sampleField(x, y, FieldType::VEL_X);
-	//			newU[i * n + j] = _u;
-	//		}
-	//		// v component
-	//		if (s[i * n + j] != 0.0 && s[i * n + j - 1] != 0.0 && i < gridSize.x - 1)
-	//		{
-	//			double x = i * h + h2;
-	//			double y = j * h;
-	//			double _u = avgU(i, j);
-	//			double _v = v[i * n + j];
-	//			x -= dt * _u;
-	//			y -= dt * _v;
-	//			_v = sampleField(x, y, FieldType::VEL_Y);
-	//			newV[i * n + j] = _v;
-	//		}
-	//	}
-	//}
-
+auto Fluid::advectVelocity(float dt) -> void {
 	newVelX = velX;
 	newVelY = velY;
 
@@ -185,7 +139,7 @@ void Fluid::advectVelocity(float dt)
 				const auto pos = Vec2{ x + 0.0f, y + 0.5f } * cellSpacing;
 				const auto avgVelY = (at(velY, x - 1, y) + at(velY, x, y) + at(velY, x - 1, y + 1) + at(velY, x, y + 1)) * 0.25f;
 				const Vec2 vel{ at(velX, x, y), avgVelY };
-				const auto approximatePreviousPos = pos - vel * Time::deltaTime();
+				const auto approximatePreviousPos = pos - vel * dt;
 				at(newVelX, x, y) = sampleField(approximatePreviousPos, FieldType::VEL_X);
 			}
 
@@ -193,7 +147,7 @@ void Fluid::advectVelocity(float dt)
 				const auto pos = Vec2{ x + 0.5f, y + 0.0f } * cellSpacing;
 				const auto avgVelX = (at(velX, x, y - 1) + at(velX, x, y) + at(velX, x + 1, y - 1) + at(velX, x + 1, y)) * 0.25f;
 				const Vec2 vel{ avgVelX, at(velY, x, y) };
-				const auto approximatePreviousPos = pos - vel * Time::deltaTime();
+				const auto approximatePreviousPos = pos - vel * dt;
 				at(newVelY, x, y) = sampleField(approximatePreviousPos, FieldType::VEL_Y);
 			}
 		}
@@ -203,7 +157,7 @@ void Fluid::advectVelocity(float dt)
 	velY = newVelY;
 }
 
-void Fluid::advectSmoke(float dt) {
+auto Fluid::advectSmoke(float dt) -> void {
 	newSmoke = smoke;
 
 	for (i64 x = 1; x < gridSize.x - 1; x++) {
@@ -221,12 +175,10 @@ void Fluid::advectSmoke(float dt) {
 	smoke = newSmoke;
 }
 
-void Fluid::update(float dt, float gravity, i32 solverIterations)
-{
+auto Fluid::update(float dt, float gravity, i32 solverIterations) -> void {
 	integrate(dt, gravity);
-	fill(pressure.begin(), pressure.end(), 0.0);
+	fill(pressure.begin(), pressure.end(), 0.0f);
 	solveIncompressibility(solverIterations, dt);
-	extrapolate();
 	advectVelocity(dt);
 	advectSmoke(dt);
 }
@@ -239,92 +191,157 @@ auto Fluid::isWall(i64 x, i64 y) const -> bool {
 	return isWallValues[x * gridSize.y + y];
 }
 
-EulerianFluid::EulerianFluid(Gfx& gfx) 
+EulerianFluidDemo::EulerianFluidDemo(Gfx& gfx) 
 	: texture{ gfx, GRID_SIZE }
-	, fluid{ GRID_SIZE, 0.02f } {}
+	, fluid{ GRID_SIZE, 0.02f } {
 
-auto EulerianFluid::update(Gfx& gfx, Renderer& renderer) -> void {
+	walls.resize(fluid.gridSize.x * fluid.gridSize.y, false);
+}
 
-	// Gauss seidel.
-
-	// Modify velocities (gravity and other outside forces).
-
-
-	// Make the fluid incompressible (projection).
-	// Solve incompresibility
-
-
-	
+auto EulerianFluidDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 	Camera camera;
 	// TODO: Maybe move this to renderer update. The window size has to be passed anyway. Technically the window size only needs to be passed if it rendering to a texture so maybe make that an optional arugment.
 	camera.aspectRatio = Window::aspectRatio();
 
 	const auto cursorPos = camera.screenSpaceToCameraSpace(Input::cursorPos());
 	const auto texturePos = Vec2{ 0.0f };
-	auto textureSize = camera.height();
-	auto size = Vec2{ textureSize * (texture.size().xOverY()), textureSize };
-	if (textureSize * (texture.size().xOverY()) * camera.aspectRatio > camera.width()) {
-		textureSize = camera.width() / texture.size().xOverY();
+	auto textureHeight = camera.height();
+	if (textureHeight * (texture.size().xOverY()) * camera.aspectRatio > camera.width()) {
+		textureHeight = camera.width() / texture.size().xOverY();
 	}
+	auto textureSize = Vec2{ textureHeight * (texture.size().xOverY()), textureHeight };
 	const auto textureBox = Aabb::fromPosSize(texturePos, Vec2{ texture.size() });
-	if (textureBox.contains(cursorPos) && Input::isMouseButtonHeld(MouseButton::LEFT)) {
-		auto gridPos = camera.posInGrid(cursorPos, texturePos, textureSize, texture.size());
 
-		Vec2 pos = Vec2{ gridPos } * SPACE_BETWEEN_CELLS;
+	auto fluidPosToCameraPos = [this, &textureSize](Vec2 pos) -> Vec2 {
+		auto fluidGridSize = Vec2{ fluid.gridSize } * SPACE_BETWEEN_CELLS;
+		return (pos / fluidGridSize - Vec2{ 0.5f }).flippedY() * textureSize;
+	};
 
-		auto vx = 0.0;
-		auto vy = 0.0;
+	if (textureBox.contains(cursorPos)) {
+		auto gridPos = camera.posInGrid(cursorPos, texturePos, textureHeight, texture.size());
 
-		vx = (pos.x - obstaclePos.x) / Time::deltaTime();
-		vy = (pos.y - obstaclePos.y) / Time::deltaTime();
+		//for (int y = 0; y < 5; y++) {
+		//	fluid.at(fluid.velX, 2, fluid.gridSize.y / 2.0f + y) = 10.0f;
+		//	fluid.at(fluid.smoke, 2, fluid.gridSize.y / 2.0f + y) = 0.0f;
+		//}
 
-		obstaclePos.x = pos.x;
-		obstaclePos.y = pos.y;
-		double r = 0.15f;
-		float cd = sqrt(2) * 0.02f;
+		if (Input::isMouseButtonHeld(MouseButton::LEFT)) {
+			Vec2 newPos = Vec2{ gridPos } * SPACE_BETWEEN_CELLS;
+			auto vel = (newPos - obstaclePos) / Time::deltaTime();
+			obstaclePos = newPos;
 
-		static double elapsed = 0.0f;
-		elapsed += Time::deltaTime();
+			elapsed += Time::deltaTime();
 
-		for (auto i = 1; i < fluid.gridSize.x - 2; i++) {
-			for (auto j = 1; j < fluid.gridSize.y - 2; j++) {
+			// Skip borders
+			for (i64 x = 1; x < fluid.gridSize.x - 2; x++) {
+				for (i64 y = 1; y < fluid.gridSize.y - 2; y++) {
+					const auto cellPos = Vec2{ Vec2T{ x, y } } * fluid.cellSpacing;
+					const auto n = fluid.gridSize.y;
+					if (!fluid.isWall(x, y) && (cellPos - obstaclePos).lengthSq() < pow(obstacleRadius, 2.0f)) {
+						// Smoke doesn't impact velocities it only advectes (moves) with them. It is used to visualize how the fluid moves. The color doesn't represent the amount of fluid at a point. The fluid is incompressible so it has the same amount everywhere. The smoke is kind of like a fluid moving inside a fluid and it can vary from place to place. 
 
-				fluid.setIsWall(i, j, false);
-				//fluid.s[i * fluid.gridSize.y + j] = 1.0;
+						// This code just sets the value of the smoke to a changing value to better show changes and it also looks cool.
+						fluid.at(fluid.smoke, x, y) = 0.5f + 0.5f * sin(elapsed / Time::deltaTime() * 0.1f);
+						fluid.at(fluid.velX, x, y) = vel.x;
+						fluid.at(fluid.velX, x + 1, y) = vel.x;
+						fluid.at(fluid.velY, x, y) = vel.y;
+						fluid.at(fluid.velY, x, y + 1) = vel.y;
+					}
 
-				auto dx = (i + 0.5) * 0.02f - pos.x;
-				auto dy = (j + 0.5) * 0.02f - pos.y;
-				const auto n = fluid.gridSize.y;
-				if (dx * dx + dy * dy < r * r) {
-					//fluid.s[i * n + j] = 0.0;
-					fluid.setIsWall(i, j, true);
-					// if (scene.sceneNr == 2) 
-					fluid.smoke[i * n + j] = 0.5 + 0.5 * sin(elapsed / Time::deltaTime() * 0.1f);
-						// else 
-						// 	f.m[i*n + j] = 1.0;
-					fluid.velX[i * n + j] = vx;
-					fluid.velX[(i + 1) * n + j] = vx;
-					fluid.velY[i * n + j] = vy;
-					fluid.velY[i * n + j + 1] = vy;
+				}
+			}
+		} 
+		
+		std::optional<bool> wallValue;
+
+		if (Input::isMouseButtonHeld(MouseButton::RIGHT)) {
+			wallValue = true;
+		} else if (Input::isMouseButtonHeld(MouseButton::MIDDLE)) {
+			wallValue = false;
+		}
+
+		if (wallValue.has_value()) {
+			const auto radius = Vec2T<i64>{ 3 };
+			const auto min = (gridPos - radius).clamped(Vec2T<i64>{ 0 }, fluid.gridSize - Vec2T<i64>{ 1 });
+			const auto max = (gridPos + radius).clamped(Vec2T<i64>{ 0 }, fluid.gridSize - Vec2T<i64>{ 1 });
+			for (i64 x = min.x; x < max.x; x++) {
+				for (i64 y = min.y; y < max.y; y++) {
+					walls[x * fluid.gridSize.y + y] = *wallValue;
+				}
+			}
+		}
+
+		for (i64 x = 1; x < fluid.gridSize.x - 1; x++) {
+			for (i64 y = 1; y < fluid.gridSize.y - 1; y++) {
+				fluid.setIsWall(x, y, walls[x * fluid.gridSize.y + y]);
+			}
+		}
+
+		// This clears the velocities around walls. This is just a hack to prevent velocites going out from walls. It does create incorrect smoke value around walls, because it can't advect, which is pretty visible. Because no velocity advect out of the walls this creates neverending velocities that can only be removed by removing walls. A proper soultion would be to not sample values from walls. For this to be correct the averages would also need to be divided by the amount of walls. Removing only the velocitites asssocieted with the staggered grid cell might work, but I am not sure.
+		for (i64 x = 0; x < fluid.gridSize.x; x++) {
+			for (i64 y = 0; y < fluid.gridSize.y; y++) {
+				if (fluid.isWall(x, y)) {
+					fluid.at(fluid.velX, x, y) = 0.0f;
+					fluid.at(fluid.velY, x, y) = 0.0f;
+					if (x > 0) {
+						fluid.at(fluid.velX, x - 1, y) = 0.0f;
+						fluid.at(fluid.velY, x - 1, y) = 0.0f;
+						/*if (y < fluid.gridSize.y - 1) {
+							fluid.at(fluid.velX, x - 1, y + 1) = 0.0f;
+							fluid.at(fluid.velY, x - 1, y + 1) = 0.0f;
+						}*/
+					}
+						
+					if (y > 0) {
+						fluid.at(fluid.velX, x, y - 1) = 0.0f;
+						fluid.at(fluid.velY, x, y - 1) = 0.0f;
+		/*				if (x < fluid.gridSize.x - 1) {
+							fluid.at(fluid.velX, x + 1, y - 1) = 0.0f;
+							fluid.at(fluid.velY, x + 1, y - 1) = 0.0f;
+						}*/
+					}
+						
+
+					if (x < fluid.gridSize.x - 1) {
+						fluid.at(fluid.velX, x + 1, y) = 0.0f;
+						fluid.at(fluid.velY, x + 1, y) = 0.0f;
+					}
+
+					if (y < fluid.gridSize.y - 1) {
+						fluid.at(fluid.velX, x, y + 1) = 0.0f;
+						fluid.at(fluid.velY, x, y + 1) = 0.0f;
+					}
 				}
 			}
 		}
 	}
 
-
-
-	Begin("test");
-	auto item = static_cast<int>(draw);
-	Combo("draw", &item, "pressure\0smoke\0\0");
-	draw = static_cast<Draw>(item);
-	Checkbox("use scientific coloring", &useScientificColoring);
+	Begin("fluid simulation");
+	TextWrapped("Use left to move the obstacle from the previous position, right to place a wall and middle to remove a wall");
+	Checkbox("paused", &paused);
+	Combo("draw", reinterpret_cast<int*>(&draw), "pressure\0smoke\0\0");
+	Combo("coloring", reinterpret_cast<int*>(&coloring), "black and white\0scientific\0hsv\0\0");
+	Checkbox("draw streamlines", &drawStreamlines);
+	SliderFloat("streamline step size", &streamlineStepSize, 0.001f, 0.01f);
 	InputFloat("gravity", &gravity);
+	TextWrapped("Use lower values for over-relaxation and solver iterations for paint like effect. This produces invalid pressure.");
+	SliderFloat("over-relaxation", &fluid.overRelaxation, 1.0f, 2.0f);
+	SliderInt("solver iterations", &solverIterations, 10, 40);
+	Checkbox("obstacle", &obstacle);
+	if (obstacle) {
+		SliderFloat("obstacle radius", &obstacleRadius, 0.05f, 1.0f);
+	}
+	if (Button("reset")) {
+		fluid = Fluid{ fluid.gridSize, fluid.cellSpacing, fluid.overRelaxation, fluid.density };
+		std::fill(walls.begin(), walls.end(), false);
+		obstaclePos = Vec2{ 0.0f };
+	}
 	End();
 
-
-	fluid.update(Time::deltaTime(), gravity, 40);
-
-
+	// TODO: A point (x, y) in camera space is the point(-x, -y) in the simulation. Fix this.
+	if (!paused) {
+		fluid.update(Time::deltaTime(), -gravity, solverIterations);
+	}
 
 	auto minPressure = std::numeric_limits<float>::infinity(), maxPressure = -std::numeric_limits<float>::infinity();
 	for (auto& p : fluid.pressure) {
@@ -338,59 +355,44 @@ auto EulerianFluid::update(Gfx& gfx, Renderer& renderer) -> void {
 			continue;
 		}
 
-		float value = 0.0f, minValue = 0.0f, maxValue = 0.0f;
+		float value01 = 0.0f;
 		if (draw == Draw::PRESSURE) {
-			value = fluid.at(fluid.pressure, p.pos.x, p.pos.y);
-			minValue = minPressure;
-			maxValue = maxPressure;
+			value01 = (fluid.at(fluid.pressure, p.pos.x, p.pos.y) - minPressure) / (maxPressure - minPressure);
 		} else if (draw == Draw::SMOKE) {
-			value = fluid.at(fluid.smoke, p.pos.x, p.pos.y);
-			minValue = 0.0f;
-			maxValue = 1.0f;
+			value01 = fluid.at(fluid.smoke, p.pos.x, p.pos.y);
 		}
 
-		p = useScientificColoring
-			? PixelRgba::scientificColoring(value, minValue, maxValue)
-			: PixelRgba{ static_cast<u8>(value * 255.0f) };
+		switch (coloring) {
+		case Coloring::BLACK_AND_WHITE: p = PixelRgba{ static_cast<u8>(value01 * 255.0f) }; break;
+		case Coloring::SCIENTIFIC: p = PixelRgba::scientificColoring(value01, 0.0f, 1.0f); break;
+		case Coloring::HSV: p = PixelRgba::fromHsv(value01, 1.0f, 1.0f); break;
+		}
+
 	}
 
-	//if (false) {
-	//	for (auto& p : texture.indexed()) {
-	//		if (fluid.isWall(p.pos.x, p.pos.y))
-	//		{
-	//			p = PixelRgba{ 128 };
-	//			continue;
-	//		}
-	//		auto v = fluid.pressure[p.pos.x * fluid.gridSize.y + p.pos.y];
-	//		p = PixelRgba::scientificColoring(v, minPressure, maxPressure);
+	if (Input::isKeyHeld(Keycode::K)) {
+		camera.zoom /= 3.0f;
+	}
 
-	//	}
-	//} else {
-	//	for (auto& p : texture.indexed()) {
-	//		const auto pos = GRID_SIZE - Vec2T<i64>{ 1 } - p.pos;
+	Debug::drawAabb(Aabb::fromPosSize(texturePos, textureSize));
 
-	//		if (fluid.isWall(p.pos.x, p.pos.y)) {
-	//			p = PixelRgba{ 128 };
-	//		} else {
-	//			const auto v = fluid.smoke[p.pos.x * fluid.gridSize.y + p.pos.y];
-	//			p = PixelRgba::scientificColoring(v, 0.0f, 1.0f);
-	//			//p = PixelRgba{ static_cast<u8>(v * 255.0f) };
-	//		}
-	//	}
-	//}
+	if (drawStreamlines) {
+		for (i64 x = 2; x < GRID_SIZE.x; x += 5) {
+			for (i64 y = 2; y < GRID_SIZE.y; y += 5) {
+				auto pos = (Vec2{ Vec2T{ x, y } } + Vec2{ 0.5f }) * SPACE_BETWEEN_CELLS;
+				auto fullSize = Vec2{ fluid.gridSize } * SPACE_BETWEEN_CELLS;
 
-	for (i64 x = 0; x < GRID_SIZE.x; x += 5) {
-		for (i64 y = 0; y < GRID_SIZE.y; y += 5) {
-			auto pos = (Vec2{ Vec2T{ x, y } } + Vec2{ 0.5f }) * SPACE_BETWEEN_CELLS;
-			for (i32 i = 0; i < 15; i++) {
-				const Vec2 vel{ fluid.sampleField(pos, Fluid::FieldType::VEL_X), fluid.sampleField(pos, Fluid::FieldType::VEL_Y) };
-				const auto oldPos = pos;
-				pos += vel / 100.0f;
-				Debug::drawLine(oldPos - size / 2.0f, pos - size / 2.0f, Vec3::BLACK);
+				for (i32 i = 0; i < 15; i++) {
+					const Vec2 vel{ fluid.sampleField(pos, Fluid::FieldType::VEL_X), fluid.sampleField(pos, Fluid::FieldType::VEL_Y) };
+					const auto oldPos = pos;
+					pos += vel * streamlineStepSize;
+					/*Debug::drawLine((oldPos / fullSize - Vec2{ 0.5f }).flippedY() * textureSize, (pos / fullSize - Vec2{ 0.5f }).flippedY() * textureSize);*/
+					Debug::drawLine(fluidPosToCameraPos(oldPos), fluidPosToCameraPos(pos));
+				}
 			}
 		}
 	}
 
-	renderer.drawDynamicTexture(texturePos, textureSize, texture);
+	renderer.drawDynamicTexture(texturePos, textureHeight, texture, true);
 	renderer.update(gfx, camera, Window::size(), false);
 }

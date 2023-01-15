@@ -11,6 +11,7 @@ struct PixelRgba {
 	explicit PixelRgba(u8 v, u8 a = 255);
 	PixelRgba(const Vec3& color);
 	static auto scientificColoring(float v, float minV, float maxV) -> PixelRgba;
+	static auto fromHsv(float h, float s, float v) -> PixelRgba;
 
 	auto grayscaled() const -> PixelRgba;
 

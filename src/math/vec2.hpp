@@ -27,6 +27,7 @@ struct Vec2T {
 	auto max(const Vec2T& other) const -> Vec2T;
 	auto scaledAround(const Vec2T& point, const Vec2T& scale) const -> Vec2T;
 	auto xOverY() const -> float; // This should return a float not T.
+	auto flippedY() const -> Vec2T;
 
 	auto operator+(const Vec2T& v) const -> Vec2T;
 	auto operator+=(const Vec2T& v) -> Vec2T&;
@@ -184,6 +185,11 @@ auto Vec2T<T>::scaledAround(const Vec2T& point, const Vec2T& scale) const -> Vec
 template<typename T>
 auto Vec2T<T>::xOverY() const -> float {
 	return static_cast<float>(x) / static_cast<float>(y);
+}
+
+template<typename T>
+auto Vec2T<T>::flippedY() const -> Vec2T {
+	return Vec2T{ x, -y };
 }
 
 template<typename T>

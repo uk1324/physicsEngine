@@ -2,6 +2,7 @@
 #include <stb_image/stb_image.hpp>
 #include <stb_image/stb_image_resize.hpp>
 #include <stb_image/stb_image_write.hpp>
+#include <math/utils.hpp>
 
 ImageRgba::ImageRgba(const char* path, bool& loadedCorrectly) {
 	int x, y, channelCount;
@@ -150,7 +151,7 @@ PixelRgba::PixelRgba(const Vec3& color)
 	, a{ 255 } {}
 
 auto PixelRgba::scientificColoring(float v, float minV, float maxV) -> PixelRgba {
-	v = std::min(std::max(v, minV), maxV - 0.0001f);
+	v = std::min(std::max(v, minV), maxV - 0.01f);
 	auto d = maxV - minV;
 	v = d == 0.0f ? 0.5f : (v - minV) / d;
 	auto m = 0.25f;
@@ -166,7 +167,37 @@ auto PixelRgba::scientificColoring(float v, float minV, float maxV) -> PixelRgba
 	case 3: r = 1.0; g = 1.0 - s; b = 0.0; break;
 	}
 
+	if (r == 0 && g == 0 && b == 0) {
+		g = 255;
+	}
+		
+
 	return { static_cast<u8>(255 * r), static_cast<u8>(255 * g), static_cast<u8>(255 * b) };
+}
+
+auto PixelRgba::fromHsv(float h, float s, float v) -> PixelRgba {
+	float hue = h * 360.f;
+
+	float C = s * v;
+	float X = C * (1 - std::abs(std::fmod(hue / 60.0, 2) - 1));
+	float m = v - C;
+	float r, g, b;
+	if (hue >= 0 && hue < 60)
+		r = C, g = X, b = 0;
+	else if (hue >= 60 && hue < 120)
+		r = X, g = C, b = 0;
+	else if (hue >= 120 && hue < 180)
+		r = 0, g = C, b = X;
+	else if (hue >= 180 && hue < 240)
+		r = 0, g = X, b = C;
+	else if (hue >= 240 && hue < 300)
+		r = X, g = 0, b = C;
+	else
+		r = C, g = 0, b = X;
+	int R = (r + m) * 255;
+	int G = (g + m) * 255;
+	int B = (b + m) * 255;
+	return PixelRgba{ Vec3{ r + m, g + m, b + m } };
 }
 
 auto PixelRgba::grayscaled() const -> PixelRgba {

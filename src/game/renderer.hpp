@@ -23,19 +23,21 @@ class Renderer {
 public:
 	Renderer(Gfx& gfx);
 	auto update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool renderToTexture) -> void;
-	auto drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicTexture) -> void;
+	auto drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicTexture, bool interpolate = false) -> void;
 
 	static constexpr Vec2 textureSize{ 1920.0f, 1080.0f };
 	ComPtr<ID3D11Texture2D> windowTexture;
 	ComPtr<ID3D11RenderTargetView> windowTextureRenderTargetView;
 	ComPtr<ID3D11ShaderResourceView> windowTextureShaderResourceView;
 
-	ComPtr<ID3D11SamplerState> pixelTextureSamplerState;
+	ComPtr<ID3D11SamplerState> nearestNeighbourTextureSamplerState;
+	ComPtr<ID3D11SamplerState> linearTextureSamplerState;
 private:
 	struct DynamicTextureToDraw {
 		DynamicTexture* texture;
 		Vec2 pos;
 		float size;
+		bool interpolate;
 	};
 	std::vector<DynamicTextureToDraw> dynamicTexturesToDraw;
 
