@@ -10,6 +10,7 @@ struct PixelRgba {
 	PixelRgba(u8 r, u8 g, u8 b, u8 a = 255);
 	explicit PixelRgba(u8 v, u8 a = 255);
 	PixelRgba(const Vec3& color);
+	static auto scientificColoring(float v, float minV, float maxV) -> PixelRgba;
 
 	auto grayscaled() const -> PixelRgba;
 

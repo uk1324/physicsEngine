@@ -14,89 +14,72 @@ using namespace ImGui;
 #include <math.h>
 #include <algorithm>
 
-#define U_FIELD  0
-#define V_FIELD  1
-#define S_FIELD  2
-using namespace std;
+Fluid::Fluid(Vec2T<i64> gridSize, float cellSpacing, float overRelaxation, float density)
+	: gridSize{ gridSize }
+	, cellSpacing{ cellSpacing }
+	, density{ density }
+	, overRelaxation{ overRelaxation } {
+	const auto cellCount = gridSize.x * gridSize.y;
+	velX.resize(cellCount);
+	velY.resize(cellCount);
+	newVelX.resize(cellCount);
+	newVelY.resize(cellCount);
+	pressure.resize(cellCount);
+	smoke.resize(cellCount, 1.0);
+	isWallValues.resize(cellCount);
+	newSmoke.resize(cellCount);
 
-Fluid::Fluid(double _density, int _numX, int _numY, double _h, double _overRelaxation, int _numThreads)
-{
-	density = _density;
-	numX = _numX;
-	numY = _numY;
-	numCells = numX * numY;
-	h = _h;
-	u.resize(numCells);
-	v.resize(numCells);
-	newU.resize(numCells);
-	newV.resize(numCells);
-	Vel.resize(numCells);
-	pressure.resize(numCells);
-	s.resize(numCells);
-	m.resize(numCells, 1.0);
-	isWall.resize(numCells);
-	newM.resize(numCells);
-	num = numX * numY;
-	overRelaxation = _overRelaxation;
-
-	for (auto i = 0; i < this->numX; i++) {
-		for (auto j = 0; j < this->numY; j++) {
-			auto s = 1.0;	// fluid
-			if (i == 0 || i == this->numX - 1 || j == 0 || j == this->numY - 1)
-				s = 0.0;	// solid
-			this->s[i * this->numY + j] = s;
+	for (auto x = 0; x < gridSize.x; x++) {
+		for (auto y = 0; y < gridSize.y; y++) {
+			bool wall = false;
+			if (x == 0 || x == gridSize.x - 1 || y == 0 || y == gridSize.y - 1)
+				wall = true;
+			setIsWall(x, y, wall);
 		}
 	}
 }
 
-void Fluid::integrate(double dt, double gravity)
-{
-	int n = numY;
-	//#pragma omp parallel for schedule(static) num_threads(numThreads)
-	for (int i = 1; i < numX; i++)
-	{
-		for (int j = 1; j < numY - 1; j++)
-		{
-			if (s[i * n + j] != 0.0 && s[i * n + j - 1] != 0.0)
-				//#pragma omp atomic update
-				v[i * n + j] += gravity * dt;
+void Fluid::integrate(float dt, float gravity) {
+	for (i64 x = 1; x < gridSize.x; x++) {
+		for (i64 y = 1; y < gridSize.y - 1; y++) {
+			if (isWall(x, y) || isWall(x, y - 1))
+				continue;
+			at(velY, x, y) += gravity * dt;
 		}
 	}
 }
 
-void Fluid::solveIncompressibility(int numIters, double dt)
-{
-	int n = numY;
-	double cp = density * h / dt;
-	for (int iter = 0; iter < numIters; iter++)
-	{
-		//#pragma omp parallel for schedule(static) num_threads(numThreads)
-		for (int i = 1; i < numX - 1; i++)
-		{
-			for (int j = 1; j < numY - 1; j++)
-			{
-				if (s[i * n + j] == 0.0)
+void Fluid::solveIncompressibility(i32 numIters, float dt) {
+	double cp = density * cellSpacing / dt;
+	for (i64 iter = 0; iter < numIters; iter++) {
+
+		for (i64 x = 1; x < gridSize.x - 1; x++) {
+			for (i64 y = 1; y < gridSize.y - 1; y++) {
+				if (isWall(x, y))
 					continue;
 
-				//                double s_ = s[i * n + j];
-				double sx0 = s[(i - 1) * n + j];
-				double sx1 = s[(i + 1) * n + j];
-				double sy0 = s[i * n + j - 1];
-				double sy1 = s[i * n + j + 1];
-				double _s = sx0 + sx1 + sy0 + sy1;
+				const auto
+					sx0 = !isWall(x - 1, y),
+					sx1 = !isWall(x + 1, y),
+					sy0 = !isWall(x, y - 1),
+					sy1 = !isWall(x, y + 1);
+				const auto outflowingSidesCount = sx0 + sx1 + sy0 + sy1;
 
-				if (_s == 0.0)
+				if (outflowingSidesCount == 0.0)
 					continue;
 
-				double div = u[(i + 1) * n + j] - u[i * n + j] + v[i * n + j + 1] - v[i * n + j];
+				const auto divergence =
+					- at(velX, x, y)
+					+ at(velX, x + 1, y)
+					- at(velY, x, y)
+					+ at(velY, x, y + 1);
 
-				double _p = -div / _s;
-				_p *= overRelaxation;
-				pressure[i * n + j] += cp * _p;
-				u[i * n + j] -= sx0 * _p;
-				u[(i + 1) * n + j] += sx1 * _p;
-				v[i * n + j] -= sy0 * _p;
-				v[i * n + j + 1] += sy1 * _p;
+				const auto correctedOutflow = (-divergence / outflowingSidesCount) * overRelaxation;
+				at(pressure, x, y) += cp * correctedOutflow;
+				at(velX, x, y) -= sx0 * correctedOutflow;
+				at(velX, x + 1, y) += sx1 * correctedOutflow;
+				at(velY, x, y) -= sy0 * correctedOutflow;
+				at(velY, x, y + 1) += sy1 * correctedOutflow;
 			}
 		}
 	}
@@ -104,255 +87,161 @@ void Fluid::solveIncompressibility(int numIters, double dt)
 
 void Fluid::extrapolate()
 {
-	int n = numY;
-	for (int i = 0; i < numX; i++)
+	for (int i = 0; i < gridSize.x; i++)
 	{
-		u[i * n + 0] = u[i * n + 1];
-		u[i * n + numY - 1] = u[i * n + numY - 2];
+		velX[i * gridSize.y + 0] = velX[i * gridSize.y + 1];
+		velX[i * gridSize.y + gridSize.y - 1] = velX[i * gridSize.y + gridSize.y - 2];
 	}
-	for (int j = 0; j < numY; j++)
+	for (int j = 0; j < gridSize.y; j++)
 	{
-		v[0 * n + j] = v[1 * n + j];
-		v[(numX - 1) * n + j] = v[(numX - 2) * n + j];
+		velY[0 * gridSize.y + j] = velY[1 * gridSize.y + j];
+		velY[(gridSize.x - 1) * gridSize.y + j] = velY[(gridSize.x - 2) * gridSize.y + j];
 	}
 }
 
-double Fluid::sampleField(double x, double y, int field)
-{
-	int n = numY;
-	double h1 = 1.0 / h;
-	double h2 = 0.5 * h;
+float Fluid::sampleField(Vec2 pos, FieldType type) {
+	pos.x = std::clamp(pos.x, cellSpacing, gridSize.x * cellSpacing);
+	pos.y = std::clamp(pos.y, cellSpacing, gridSize.y * cellSpacing);
 
-	x = fmax(fmin(x, numX * h), h);
-	y = fmax(fmin(y, numY * h), h);
+	std::vector<float>* field = nullptr;
 
-	double dx = 0.0;
-	double dy = 0.0;
-
-	vector<double> f;
-
-	switch (field)
-	{
-	case U_FIELD:
-		f = u;
-		dy = h2;
+	Vec2 cellOffset{ 0.0f };
+	switch (type) {
+	case FieldType::VEL_X:
+		field = &velX;
+		cellOffset.y = cellSpacing / 2.0f;
 		break;
-	case V_FIELD:
-		f = v;
-		dx = h2;
+	case FieldType::VEL_Y:
+		field = &velY;
+		cellOffset.x = cellSpacing / 2.0f;
 		break;
-	case S_FIELD:
-		f = m;
-		dx = h2;
-		dy = h2;
+	case FieldType::SMOKE:
+		field = &smoke;
+		cellOffset = Vec2{ cellSpacing / 2.0f };
 		break;
 	}
 
-	double x0 = fmin(floor((x - dx) * h1), numX - 1);
-	double tx = ((x - dx) - x0 * h) * h1;
-	double x1 = fmin(x0 + 1, numX - 1);
+	const auto x0 = std::min(static_cast<i64>(floor((pos.x - cellOffset.x) / cellSpacing)), gridSize.x - 1);
+	const auto tx = ((pos.x - cellOffset.x) - x0 * cellSpacing) / cellSpacing;
+	const auto x1 = std::min(x0 + 1, gridSize.x - 1);
 
-	double y0 = fmin(floor((y - dy) * h1), numY - 1);
-	double ty = ((y - dy) - y0 * h) * h1;
-	double y1 = fmin(y0 + 1, numY - 1);
+	const auto y0 = std::min(static_cast<i64>(floor((pos.y - cellOffset.y) / cellSpacing)), gridSize.y - 1);
+	const auto ty = ((pos.y - cellOffset.y) - y0 * cellSpacing) / cellSpacing;
+	const auto y1 = std::min(y0 + 1, gridSize.y - 1);
 
-	double sx = 1.0 - tx;
-	double sy = 1.0 - ty;
+	const auto bilerpedValue =
+		(1.0f - tx) * (1.0f - ty) * at(*field, x0, y0) +
+		(1.0f - tx) * ty * at(*field, x0, y1) +
+		tx * (1.0f - ty) * at(*field, x1, y0) +
+		tx * ty * at(*field, x1, y1);
 
-	double val = sx * sy * f[x0 * n + y0] +
-		tx * sy * f[x1 * n + y0] +
-		tx * ty * f[x1 * n + y1] +
-		sx * ty * f[x0 * n + y1];
-
-	return val;
+	return bilerpedValue;
 }
-
-double Fluid::avgU(int i, int j)
+void Fluid::advectVelocity(float dt)
 {
-	int n = numY;
-	return (u[i * n + j - 1] + u[i * n + j] +
-		u[(i + 1) * n + j - 1] + u[(i + 1) * n + j]) * 0.25;
-}
+	//int n = gridSize.y;
+	//double h2 = 0.5 * h;
+	//for (int i = 1; i < gridSize.x; i++)
+	//{
+	//	for (int j = 1; j < gridSize.y; j++)
+	//	{
+	//		if (s[i * n + j] != 0.0 && s[(i - 1) * n + j] != 0.0 && j < gridSize.y - 1)
+	//		{
+	//			double x = i * h;
+	//			double y = j * h + h2;
+	//			double _u = u[i * n + j];
+	//			double _v = avgV(i, j);
 
-double Fluid::avgV(int i, int j)
-{
-	int n = numY;
-	return (v[(i - 1) * n + j] + v[i * n + j] +
-		v[(i - 1) * n + j + 1] + v[i * n + j + 1]) * 0.25;
-}
+	//			x -= dt * _u;
+	//			y -= dt * _v;
+	//			_u = sampleField(x, y, FieldType::VEL_X);
+	//			newU[i * n + j] = _u;
+	//		}
+	//		// v component
+	//		if (s[i * n + j] != 0.0 && s[i * n + j - 1] != 0.0 && i < gridSize.x - 1)
+	//		{
+	//			double x = i * h + h2;
+	//			double y = j * h;
+	//			double _u = avgU(i, j);
+	//			double _v = v[i * n + j];
+	//			x -= dt * _u;
+	//			y -= dt * _v;
+	//			_v = sampleField(x, y, FieldType::VEL_Y);
+	//			newV[i * n + j] = _v;
+	//		}
+	//	}
+	//}
 
-void Fluid::advectVelocity(double dt)
-{
-	newU = u;
-	newV = v;
+	newVelX = velX;
+	newVelY = velY;
 
-	int n = numY;
-	double h2 = 0.5 * h;
-	for (int i = 1; i < numX; i++)
-	{
-		for (int j = 1; j < numY; j++)
-		{
-			if (s[i * n + j] != 0.0 && s[(i - 1) * n + j] != 0.0 && j < numY - 1)
-			{
-				double x = i * h;
-				double y = j * h + h2;
-				double _u = u[i * n + j];
-				double _v = avgV(i, j);
+	for (i64 x = 1; x < gridSize.x; x++) {
+		for (i64 y = 1; y < gridSize.y; y++) {
+			if (isWall(x, y))
+				continue;
 
-				//#pragma omp atomic update
-				x -= dt * _u;
-				//#pragma omp atomic update
-				y -= dt * _v;
-				_u = sampleField(x, y, U_FIELD);
-				newU[i * n + j] = _u;
+			// Going back at step in a straight line and sampling the average previous pos to get the new velocity is called semi-lagrangian advection. This introduces viscosity.
+			if (!isWall(x - 1, y) && y < gridSize.y - 1) {
+				const auto pos = Vec2{ x + 0.0f, y + 0.5f } * cellSpacing;
+				const auto avgVelY = (at(velY, x - 1, y) + at(velY, x, y) + at(velY, x - 1, y + 1) + at(velY, x, y + 1)) * 0.25f;
+				const Vec2 vel{ at(velX, x, y), avgVelY };
+				const auto approximatePreviousPos = pos - vel * Time::deltaTime();
+				at(newVelX, x, y) = sampleField(approximatePreviousPos, FieldType::VEL_X);
 			}
-			// v component
-			if (s[i * n + j] != 0.0 && s[i * n + j - 1] != 0.0 && i < numX - 1)
-			{
-				double x = i * h + h2;
-				double y = j * h;
-				double _u = avgU(i, j);
-				double _v = v[i * n + j];
-				//#pragma omp atomic update
-				x -= dt * _u;
-				//#pragma omp atomic update
-				y -= dt * _v;
-				_v = sampleField(x, y, V_FIELD);
-				newV[i * n + j] = _v;
+
+			if (!isWall(x, y - 1) && x < gridSize.x - 1) {
+				const auto pos = Vec2{ x + 0.5f, y + 0.0f } * cellSpacing;
+				const auto avgVelX = (at(velX, x, y - 1) + at(velX, x, y) + at(velX, x + 1, y - 1) + at(velX, x + 1, y)) * 0.25f;
+				const Vec2 vel{ avgVelX, at(velY, x, y) };
+				const auto approximatePreviousPos = pos - vel * Time::deltaTime();
+				at(newVelY, x, y) = sampleField(approximatePreviousPos, FieldType::VEL_Y);
 			}
 		}
 	}
 
-	u = newU;
-	v = newV;
+	velX = newVelX;
+	velY = newVelY;
 }
 
-void Fluid::advectTracer(double dt)
-{
-	newM = m;
+void Fluid::advectSmoke(float dt) {
+	newSmoke = smoke;
 
-	int n = numY;
-	double h2 = 0.5 * h;
-	//#pragma omp parallel for schedule(static) num_threads(numThreads)
-	for (int i = 1; i < numX - 1; i++)
-	{
-		for (int j = 1; j < numY - 1; j++)
-		{
+	for (i64 x = 1; x < gridSize.x - 1; x++) {
+		for (i64 y = 1; y < gridSize.y - 1; y++) {
+			if (isWall(x, y))
+				continue;
 
-			if (s[i * n + j] != 0.0)
-			{
-				double _u = (u[i * n + j] + u[(i + 1) * n + j]) * 0.5;
-				double _v = (v[i * n + j] + v[i * n + j + 1]) * 0.5;
-				double x = i * h + h2 - dt * _u;
-				double y = j * h + h2 - dt * _v;
-
-				newM[i * n + j] = sampleField(x, y, S_FIELD);
-			}
+			const auto avgVel = Vec2{ at(velX, x, y) + at(velX, x + 1, y), at(velY, x, y) + at(velY, x, y + 1) } / 2.0f;
+			const auto pos = (Vec2{ Vec2T{ x, y } } + Vec2{ 0.5f }) * cellSpacing;
+			const auto approximatePreviousPos = pos - dt * avgVel;
+			at(newSmoke, x, y) = sampleField(approximatePreviousPos, FieldType::SMOKE);
 		}
 	}
-	m = newM;
+
+	smoke = newSmoke;
 }
 
-void Fluid::simulate(double dt, double gravity, int numIters)
+void Fluid::update(float dt, float gravity, i32 solverIterations)
 {
 	integrate(dt, gravity);
 	fill(pressure.begin(), pressure.end(), 0.0);
-	solveIncompressibility(numIters, dt);
+	solveIncompressibility(solverIterations, dt);
 	extrapolate();
 	advectVelocity(dt);
-	advectTracer(dt);
+	advectSmoke(dt);
 }
 
-void Fluid::updateFluidParameters()
-{
-	numCells = numX * numY;
-	u.resize(numCells);
-	v.resize(numCells);
-	newU.resize(numCells);
-	newV.resize(numCells);
-	pressure.resize(numCells);
-	s.resize(numCells);
-	m.resize(numCells, 1.0);
-	newM.resize(numCells);
-	num = numX * numY;
+auto Fluid::setIsWall(i64 x, i64 y, bool value) -> void {
+	isWallValues[x * gridSize.y + y] = value;
 }
 
-static auto staggeredGridBilerp(float x00, float x01, float x10, float x11, float tx, float ty) -> float {
-	return
-		(1.0f - tx) * (1.0f - ty) * x00 +
-		(1.0f - tx) * ty * x01 +
-		tx * (1.0f - tx) * x10 +
-		tx * ty * x11;
+auto Fluid::isWall(i64 x, i64 y) const -> bool {
+	return isWallValues[x * gridSize.y + y];
 }
-
-struct StaggeredGridBilerpPositions {
-	i64 x0, x1, y0, y1;
-	float tx, ty;
-};
-static auto staggeredGridBilerpPositions(Vec2 pos, Vec2 offset, float spaceBetweenCells, Vec2T<i64> gridSize) -> StaggeredGridBilerpPositions {
-	const auto x0 = std::clamp(static_cast<i64>(std::floor((pos.x - offset.x) / spaceBetweenCells)), 0ll, gridSize.x);
-	const auto tx = ((pos.x - offset.x) - x0 * spaceBetweenCells) / spaceBetweenCells;
-	const auto x1 = std::clamp(x0 + 1, 0ll, gridSize.x - 1);
-
-	const auto y0 = std::clamp(static_cast<i64>(std::floor((pos.y - offset.y) / spaceBetweenCells)), 0ll, gridSize.y - 1);
-	const auto ty = ((pos.y - offset.y) - y0 * spaceBetweenCells) / spaceBetweenCells;
-	const auto y1 = std::clamp(y0 + 1, 0ll, gridSize.y - 1);
-
-	return { x0, x1, y0, y1, tx, ty };
-};
 
 EulerianFluid::EulerianFluid(Gfx& gfx) 
-	: texture{ gfx, GRID_SIZE }, fluid(1000.0f, GRID_SIZE.x, GRID_SIZE.y, 0.02f) {
-
-	auto v = staggeredGridBilerpPositions(Vec2{ 0.030808858343710502f, 0.0407460988437136f }, Vec2{ 0.01f, 0.0f }, 0.02f, GRID_SIZE);
-
-	for (i64 x = 0; x < GRID_SIZE.x; x++) {
-		for (i64 y = 0; y < GRID_SIZE.y; y++) {
-			//velocities[x][y] = Vec2::oriented(static_cast<float>(rand()) / RAND_MAX * TAU<float>) / 100000.0f;
-			velocities[x][y] = Vec2{ 0.00000f };
-		}
-	}
-
-	for (auto& col : smoke) {
-		for (auto& v : col) {
-			v = 1.0f;
-		}
-	}
-
-	for (i64 x = 0; x < GRID_SIZE.x; x++) {
-		setIsWall(x, 0, true);
-		setIsWall(x, GRID_SIZE.y - 1, true);
-	}
-
-	for (i64 y = 1; y < GRID_SIZE.y - 1; y++) {
-		setIsWall(0, y, true);
-		setIsWall(GRID_SIZE.x - 1, y, true);
-	}
-}
-
-#include <utils/io.hpp>
-
-static auto getSciColor(float v, float minV, float maxV) -> PixelRgba {
-	v = std::min(std::max(v, minV), maxV - 0.0001f);
-	auto d = maxV - minV;
-	v = d == 0.0f ? 0.5f : (v - minV) / d;
-	auto m = 0.25f;
-	int num = static_cast<int>(std::floor(v / m));
-	auto s = (v - num * m) / m;
-//float r, g, b;
-
-// There is a bug and num can be outisde the switch range . Which causes uninitialized memory access.
-float r = 0.0f, g = 0.0f, b = 0.0f;
-
-switch (num) {
-case 0: r = 0.0; g = s; b = 1.0; break;
-case 1: r = 0.0; g = 1.0; b = 1.0 - s; break;
-case 2: r = s; g = 1.0; b = 0.0; break;
-case 3: r = 1.0; g = 1.0 - s; b = 0.0; break;
-}
-
-return { static_cast<u8>(255 * r), static_cast<u8>(255 * g), static_cast<u8>(255 * b) };
-}
+	: texture{ gfx, GRID_SIZE }
+	, fluid{ GRID_SIZE, 0.02f } {}
 
 auto EulerianFluid::update(Gfx& gfx, Renderer& renderer) -> void {
 
@@ -360,159 +249,12 @@ auto EulerianFluid::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	// Modify velocities (gravity and other outside forces).
 
-	for (i64 x = 1; x < GRID_SIZE.x - 1; x++) {
-		for (i64 y = 1; y < GRID_SIZE.y - 1; y++) {
-			if (isWall(x, y) || isWall(x, y - 1))
-				continue;
-
-			//const auto gravity = -0.98f;
-			const auto gravity = 0.0f;
-			velocities[x][y].y += gravity * Time::deltaTime();
-		}
-	}
-
-	const auto overRelaxation = 1.9f;
 
 	// Make the fluid incompressible (projection).
 	// Solve incompresibility
-	const auto solverIterations = 40;
-	const auto density = 1000.0f;
-	auto cp = density * SPACE_BETWEEN_CELLS / Time::deltaTime();
 
-	for (auto& col : preassure) {
-		for (auto& v : col) {
-			v = 0.0f;
-		}
-	}
 
-	//for (i32 i = 0; i < solverIterations; i++) {
-
-	//	for (i64 x = 1; x < GRID_SIZE.x - 1; x++) {
-	//		for (i64 y = 1; y < GRID_SIZE.y - 1; y++) {
-	//			if (isWall(x, y))
-	//				continue;
-
-	//			/*
-	//			The staggered grid of velocites around the cell [x, y] looks like this.
-	//					vy[x, y + 1]
-	//			vx[x, y]            vx[x + 1, y]
-	//					  vy[x, y]
-	//			*/
-
-	//			const auto outflowingSidesCount =
-	//				!isWall(x - 1, y) +
-	//				!isWall(x + 1, y) +
-	//				!isWall(x, y - 1) +
-	//				!isWall(x, y + 1);
-
-	//			if (outflowingSidesCount == 0)
-	//				continue;
-
-	//			// Total outflow. If outflow is negative then it is inflow.
-	//			const auto divergence =
-	//				- velocities[x][y].x
-	//				+ velocities[x + 1][y].x
-	//				- velocities[x][y].y
-	//				+ velocities[x][y + 1].y;
-
-	//			// An incompressible fluid has to have a divergence of zero.
-	//			// A fluid has to flow equally in all directions.
-	//			const auto outflow = -divergence / outflowingSidesCount * 1.9f;
-	//			// The walls are the same as in outflowingSidesCount.
-	//			preassure[x][y] += outflow * cp;
-	//			velocities[x][y].x -= !isWall(x - 1, y) * outflow;
-	//			velocities[x][y].y -= !isWall(x, y - 1) * outflow;
-	//			velocities[x + 1][y].x += !isWall(x + 1, y) * outflow;
-	//			velocities[x][y + 1].y += !isWall(x, y + 1) * outflow;
-	//		}
-	//	}
-	//}
-
-	// Move the velocity field advection.
-	memcpy(oldVelocities, velocities, sizeof(oldVelocities));
-
-	//for (i64 x = 1; x < GRID_SIZE.x; x++) {
-	//	for (i64 y = 1; y < GRID_SIZE.y; y++) {
-	//		if (!isWall(x, y) && !isWall(x - 1, y) && y < GRID_SIZE.y - 1) {
-	//			const Vec2 pos{ x * SPACE_BETWEEN_CELLS, (y + 0.5f) * SPACE_BETWEEN_CELLS };
-	//			const auto avgVelY = (oldVelocities[x - 1][y].y + oldVelocities[x][y].y + oldVelocities[x - 1][y + 1].y + oldVelocities[x][y + 1].y) / 4.0f;
-	//			const Vec2 vel{ oldVelocities[x][y].x, avgVelY };
-	//			const auto approximatePreviousPos = pos - vel * Time::deltaTime();
-	//			const Vec2 offset{ 0.0f, SPACE_BETWEEN_CELLS / 2.0f };
-	//			const auto p = staggeredGridBilerpPositions(approximatePreviousPos, offset, SPACE_BETWEEN_CELLS, GRID_SIZE);
-	//			velocities[x][y].x = staggeredGridBilerp(oldVelocities[p.x0][p.y0].x, oldVelocities[p.x0][p.y1].x, oldVelocities[p.x1][p.y0].x, oldVelocities[p.x1][p.y1].x, p.tx, p.ty);
-	//		}
-
-	//		// TOOD: take out !isWall(x, y) contineu.
-	//		if (!isWall(x, y) && !isWall(x, y - 1) && x < GRID_SIZE.x - 1) {
-	//			const Vec2 pos{ (x + 0.5f) * SPACE_BETWEEN_CELLS, y * SPACE_BETWEEN_CELLS, };
-	//			const auto avgVelX = (oldVelocities[x][y - 1].x + oldVelocities[x][y].x + oldVelocities[x + 1][y - 1].x + oldVelocities[x + 1][y].x) / 4.0f;
-	//			const Vec2 vel{ avgVelX, oldVelocities[x][y].y };
-	//			const auto approximatePreviousPos = pos - vel * Time::deltaTime();
-	//			const Vec2 offset{ SPACE_BETWEEN_CELLS / 2.0f, 0.0f };
-	//			const auto p = staggeredGridBilerpPositions(approximatePreviousPos, offset, SPACE_BETWEEN_CELLS, GRID_SIZE);
-	//			velocities[x][y].y = staggeredGridBilerp(oldVelocities[p.x0][p.y0].y, oldVelocities[p.x0][p.y1].y, oldVelocities[p.x1][p.y0].y, oldVelocities[p.x1][p.y1].y, p.tx, p.ty);
-	//		}
-	//	}
-	//}
-
-	memcpy(oldSmoke, smoke, sizeof(smoke));
-
-	//for (i64 x = 0; x < GRID_SIZE.x; x++) {
-	//	for (i64 y = 0; y < GRID_SIZE.y; y++) {
-	//		if (isWall(x, y))
-	//			continue;
-
-	//		auto u = (velocities[x][y].x + velocities[x + 1][y].x) * 0.5f;
-	//		auto v = (velocities[x][y].y + velocities[x][y + 1].y) * 0.5f;
-	//		auto xa = x * SPACE_BETWEEN_CELLS + SPACE_BETWEEN_CELLS / 2.0f - Time::deltaTime() * u;
-	//		auto ya = y * SPACE_BETWEEN_CELLS + SPACE_BETWEEN_CELLS / 2.0f - Time::deltaTime() * v;
-
-	//		const Vec2 offset{ SPACE_BETWEEN_CELLS / 2.0f};
-	//		const auto p = staggeredGridBilerpPositions(Vec2{ xa, ya }, offset, SPACE_BETWEEN_CELLS, GRID_SIZE);
-	//		smoke[x][y] = staggeredGridBilerp(oldSmoke[p.x0][p.y0], oldSmoke[p.x0][p.y1], oldSmoke[p.x1][p.y0], oldSmoke[p.x1][p.y1], p.tx, p.ty);
-	//	}
-	//}
-
-	//auto minPressure = std::numeric_limits<float>::infinity(), maxPressure = -std::numeric_limits<float>::infinity();
-	//for (auto& col : preassure) {
-	//	for (auto& v : col) {
-	//		minPressure = std::min(minPressure, v);
-	//		maxPressure = std::max(maxPressure, v);
-	//	}
-	//}
-
-	//for (auto& p : texture.indexed()) {
-	//	const auto pos = GRID_SIZE - Vec2T<i64>{ 1 } - p.pos;
-	//	if (isWall(pos.x, pos.y)) {
-	//		p = PixelRgba{ 128 };
-	//	} else {
-	//		const auto v = preassure[pos.x][pos.y];
-	//		p = getSciColor(v, minPressure, maxPressure);
-	//	}
-	//}
-
-	//for (auto& p : texture.indexed()) {
-	//	const auto pos = GRID_SIZE - Vec2T<i64>{ 1 } - p.pos;
-	//	if (isWall(pos.x, pos.y)) {
-	//		p = PixelRgba{ 128 };
-	//	} else {
-	//		const auto v = smoke[pos.x][pos.y];
-	//		//p = getSciColor(v, 0.0f, 1.0f);
-	//		p = PixelRgba{ static_cast<u8>(v * 255.0f) };
-	//	}
-	//}
-
-	/*for (auto& p : texture.indexed()) {
-		const auto pos = GRID_SIZE - Vec2T<i64>{ 1 } - p.pos;
-		if (isWall(pos.x, pos.y)) {
-			p = PixelRgba{ 128 };
-		} else {
-			const auto v = preassure[pos.x][pos.y];
-			p = getSciColor(v, minPressure, maxPressure);
-		}
-	}*/
-
+	
 	Camera camera;
 	// TODO: Maybe move this to renderer update. The window size has to be passed anyway. Technically the window size only needs to be passed if it rendering to a texture so maybe make that an optional arugment.
 	camera.aspectRatio = Window::aspectRatio();
@@ -527,93 +269,128 @@ auto EulerianFluid::update(Gfx& gfx, Renderer& renderer) -> void {
 	const auto textureBox = Aabb::fromPosSize(texturePos, Vec2{ texture.size() });
 	if (textureBox.contains(cursorPos) && Input::isMouseButtonHeld(MouseButton::LEFT)) {
 		auto gridPos = camera.posInGrid(cursorPos, texturePos, textureSize, texture.size());
-		gridPos = texture.size() - gridPos;
-		/*velocities[gridPos.x][gridPos.y] = Vec2::oriented(static_cast<float>(rand()) / RAND_MAX * TAU<float>);*/
-		velocities[gridPos.x][gridPos.y] = Vec2{ 0.0f, 1.0f };
-		for (int i = 0; i < 5; i++) {
-			for (int j = 0; j < 5; j++) {
-				fluid.u[(gridPos.x + j) * fluid.numY + gridPos.y + i] = 5.0f;
-				fluid.m[(gridPos.x + j) * fluid.numY + gridPos.y + i] = 0.0f;
+
+		Vec2 pos = Vec2{ gridPos } * SPACE_BETWEEN_CELLS;
+
+		auto vx = 0.0;
+		auto vy = 0.0;
+
+		vx = (pos.x - obstaclePos.x) / Time::deltaTime();
+		vy = (pos.y - obstaclePos.y) / Time::deltaTime();
+
+		obstaclePos.x = pos.x;
+		obstaclePos.y = pos.y;
+		double r = 0.15f;
+		float cd = sqrt(2) * 0.02f;
+
+		static double elapsed = 0.0f;
+		elapsed += Time::deltaTime();
+
+		for (auto i = 1; i < fluid.gridSize.x - 2; i++) {
+			for (auto j = 1; j < fluid.gridSize.y - 2; j++) {
+
+				fluid.setIsWall(i, j, false);
+				//fluid.s[i * fluid.gridSize.y + j] = 1.0;
+
+				auto dx = (i + 0.5) * 0.02f - pos.x;
+				auto dy = (j + 0.5) * 0.02f - pos.y;
+				const auto n = fluid.gridSize.y;
+				if (dx * dx + dy * dy < r * r) {
+					//fluid.s[i * n + j] = 0.0;
+					fluid.setIsWall(i, j, true);
+					// if (scene.sceneNr == 2) 
+					fluid.smoke[i * n + j] = 0.5 + 0.5 * sin(elapsed / Time::deltaTime() * 0.1f);
+						// else 
+						// 	f.m[i*n + j] = 1.0;
+					fluid.velX[i * n + j] = vx;
+					fluid.velX[(i + 1) * n + j] = vx;
+					fluid.velY[i * n + j] = vy;
+					fluid.velY[i * n + j + 1] = vy;
+				}
 			}
 		}
-		//setIsWall(gridPos.x, gridPos.y, true);
 	}
 
-	if (Input::isKeyHeld(Keycode::K)) {
-		camera.zoom /= 6.01f;
-	}
 
-	fluid.simulate(Time::deltaTime(), -9.0f, 40);
-	auto min = std::numeric_limits<double>::infinity(), max = -std::numeric_limits<double>::infinity();
+
+	Begin("test");
+	auto item = static_cast<int>(draw);
+	Combo("draw", &item, "pressure\0smoke\0\0");
+	draw = static_cast<Draw>(item);
+	Checkbox("use scientific coloring", &useScientificColoring);
+	InputFloat("gravity", &gravity);
+	End();
+
+
+	fluid.update(Time::deltaTime(), gravity, 40);
+
+
+
+	auto minPressure = std::numeric_limits<float>::infinity(), maxPressure = -std::numeric_limits<float>::infinity();
 	for (auto& p : fluid.pressure) {
-		min = std::min(min, p);
-		max = std::max(max, p);
+		minPressure = std::min(minPressure, p);
+		maxPressure = std::max(maxPressure, p);
 	}
+
 	for (auto& p : texture.indexed()) {
-		if (fluid.s[p.pos.x * fluid.numY + p.pos.y] == 0.0f)
-		{
+		if (fluid.isWall(p.pos.x, p.pos.y)) {
 			p = PixelRgba{ 128 };
 			continue;
 		}
-		auto v = fluid.pressure[p.pos.x * fluid.numY + p.pos.y];
-		p = getSciColor(v, min, max);
-		if (p.data->r != 0) {
-			int x = 5;
+
+		float value = 0.0f, minValue = 0.0f, maxValue = 0.0f;
+		if (draw == Draw::PRESSURE) {
+			value = fluid.at(fluid.pressure, p.pos.x, p.pos.y);
+			minValue = minPressure;
+			maxValue = maxPressure;
+		} else if (draw == Draw::SMOKE) {
+			value = fluid.at(fluid.smoke, p.pos.x, p.pos.y);
+			minValue = 0.0f;
+			maxValue = 1.0f;
 		}
-			
+
+		p = useScientificColoring
+			? PixelRgba::scientificColoring(value, minValue, maxValue)
+			: PixelRgba{ static_cast<u8>(value * 255.0f) };
 	}
 
-	for (auto& p : texture.indexed()) {
-		const auto pos = GRID_SIZE - Vec2T<i64>{ 1 } - p.pos;
-		if (isWall(pos.x, pos.y)) {
-			p = PixelRgba{ 128 };
-		} else {
-			const auto v = fluid.m[p.pos.x * fluid.numY + p.pos.y];
-			//p = getSciColor(v, 0.0f, 1.0f);
-			p = PixelRgba{ static_cast<u8>(v * 255.0f) };
-		}
-	}
+	//if (false) {
+	//	for (auto& p : texture.indexed()) {
+	//		if (fluid.isWall(p.pos.x, p.pos.y))
+	//		{
+	//			p = PixelRgba{ 128 };
+	//			continue;
+	//		}
+	//		auto v = fluid.pressure[p.pos.x * fluid.gridSize.y + p.pos.y];
+	//		p = PixelRgba::scientificColoring(v, minPressure, maxPressure);
+
+	//	}
+	//} else {
+	//	for (auto& p : texture.indexed()) {
+	//		const auto pos = GRID_SIZE - Vec2T<i64>{ 1 } - p.pos;
+
+	//		if (fluid.isWall(p.pos.x, p.pos.y)) {
+	//			p = PixelRgba{ 128 };
+	//		} else {
+	//			const auto v = fluid.smoke[p.pos.x * fluid.gridSize.y + p.pos.y];
+	//			p = PixelRgba::scientificColoring(v, 0.0f, 1.0f);
+	//			//p = PixelRgba{ static_cast<u8>(v * 255.0f) };
+	//		}
+	//	}
+	//}
 
 	for (i64 x = 0; x < GRID_SIZE.x; x += 5) {
 		for (i64 y = 0; y < GRID_SIZE.y; y += 5) {
 			auto pos = (Vec2{ Vec2T{ x, y } } + Vec2{ 0.5f }) * SPACE_BETWEEN_CELLS;
 			for (i32 i = 0; i < 15; i++) {
-				Vec2 v;
-				{
-					const Vec2 offset{ SPACE_BETWEEN_CELLS / 2.0f, 0.0f };
-					const auto p = staggeredGridBilerpPositions(pos, offset, SPACE_BETWEEN_CELLS, GRID_SIZE);
-					v.y = staggeredGridBilerp(velocities[p.x0][p.y0].y, velocities[p.x0][p.y1].y, velocities[p.x1][p.y0].y, velocities[p.x1][p.y1].y, p.tx, p.ty);
-				}
-
-				{
-					const Vec2 offset{ 0.0f, SPACE_BETWEEN_CELLS / 2.0f };
-					const auto p = staggeredGridBilerpPositions(pos, offset, SPACE_BETWEEN_CELLS, GRID_SIZE);
-					v.x = staggeredGridBilerp(velocities[p.x0][p.y0].x, velocities[p.x0][p.y1].x, velocities[p.x1][p.y0].x, velocities[p.x1][p.y1].x, p.tx, p.ty);
-				}
-				v.x = fluid.sampleField(pos.x, pos.y, U_FIELD);
-				v.y = fluid.sampleField(pos.x, pos.y, V_FIELD);
-
-				//const Vec2T<i64> gridPos{ pos.clamped(Vec2{ 0 }, Vec2{ GRID_SIZE }.applied(floor)) };
-				//const auto vel = velocities[gridPos.x][gridPos.y];
+				const Vec2 vel{ fluid.sampleField(pos, Fluid::FieldType::VEL_X), fluid.sampleField(pos, Fluid::FieldType::VEL_Y) };
 				const auto oldPos = pos;
-				pos += v / 100.0f;
-				Debug::drawLine(oldPos - size / 2.0f, pos - size / 2.0f, Vec3::RED);
+				pos += vel / 100.0f;
+				Debug::drawLine(oldPos - size / 2.0f, pos - size / 2.0f, Vec3::BLACK);
 			}
 		}
 	}
 
 	renderer.drawDynamicTexture(texturePos, textureSize, texture);
 	renderer.update(gfx, camera, Window::size(), false);
-}
-
-auto EulerianFluid::isWall(i64 x, i64 y) -> bool {
-	ASSERT(x < GRID_SIZE.x);
-	ASSERT(y < GRID_SIZE.y);
-	return isWallBitset.test(x * GRID_SIZE.y + y);
-}
-
-auto EulerianFluid::setIsWall(i64 x, i64 y, bool value) -> void {
-	ASSERT(x < GRID_SIZE.x);
-	ASSERT(y < GRID_SIZE.y);
-	isWallBitset.set(x * GRID_SIZE.y + y, value);
 }

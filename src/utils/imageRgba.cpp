@@ -149,6 +149,26 @@ PixelRgba::PixelRgba(const Vec3& color)
 	, b{ static_cast<u8>(std::clamp(color.z * 255.0f, 0.0f, 255.0f)) }
 	, a{ 255 } {}
 
+auto PixelRgba::scientificColoring(float v, float minV, float maxV) -> PixelRgba {
+	v = std::min(std::max(v, minV), maxV - 0.0001f);
+	auto d = maxV - minV;
+	v = d == 0.0f ? 0.5f : (v - minV) / d;
+	auto m = 0.25f;
+	int num = static_cast<int>(std::floor(v / m));
+	auto s = (v - num * m) / m;
+
+	float r = 0.0f, g = 0.0f, b = 0.0f;
+
+	switch (num) {
+	case 0: r = 0.0; g = s; b = 1.0; break;
+	case 1: r = 0.0; g = 1.0; b = 1.0 - s; break;
+	case 2: r = s; g = 1.0; b = 0.0; break;
+	case 3: r = 1.0; g = 1.0 - s; b = 0.0; break;
+	}
+
+	return { static_cast<u8>(255 * r), static_cast<u8>(255 * g), static_cast<u8>(255 * b) };
+}
+
 auto PixelRgba::grayscaled() const -> PixelRgba {
 	auto v = static_cast<u8>((static_cast<float>(r) * 0.3f + static_cast<float>(g) * 0.59f + static_cast<float>(b) * 0.11f));
 	return PixelRgba{ v, a };
