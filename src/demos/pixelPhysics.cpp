@@ -67,85 +67,110 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	static std::uniform_int_distribution<int> rand(0, 1);
 	static std::default_random_engine eng;
+
+	auto update = [this](i64 x, i64 y) -> void {
+		auto updated = false;
+		if (frameNumber % 2 == 0) {
+
+			auto& block = blocks[x][y];
+			auto& left = blocks[x - 1][y];
+			auto& right = blocks[x + 1][y];
+			auto& below = blocks[x][y - 1];
+			auto& belowLeft = blocks[x - 1][y - 1];
+			auto& belowRight = blocks[x + 1][y - 1];
+			if (block == Block::SAND || block == Block::WATER) {
+				auto doSwap = [&](Block type) -> bool {
+					if (block == Block::SAND) {
+						return type == Block::AIR || type == Block::WATER;
+					} else if (block == Block::WATER) {
+						return type == Block::AIR;
+					}
+				};
+
+				if (below == Block::AIR) {
+					std::swap(block, below);
+					updated = true;
+				} else {
+					auto checkLeft = [&]() -> bool {
+						if (doSwap(left) && doSwap(belowLeft)) {
+							std::swap(block, belowLeft);
+							updated = true;
+							return true;
+						}
+						return false;
+					};
+					auto checkRight = [&]() -> bool {
+						if (doSwap(right) && doSwap(belowRight)) {
+							std::swap(block, belowRight);
+							updated = true;
+							return true;
+						}
+						return false;
+					};
+
+					if (rand(eng) % 2 == 0) {
+						if (!checkLeft()) checkRight();
+					} else {
+						if (!checkRight()) checkLeft();
+					}
+				}
+			}
+
+			/*if (!updated && block == Block::SAND && below == Block::WATER) {
+				std::swap(block, below);
+				updated = true;
+			}*/
+
+			if (!updated && block == Block::WATER) {
+				auto checkLeft = [&]() -> bool {
+					if (left == Block::AIR) {
+						std::swap(block, left);
+						updated = true;
+						return true;
+					}
+					return false;
+				};
+				auto checkRight = [&]() -> bool {
+					if (right == Block::AIR) {
+						std::swap(block, right);
+						updated = true;
+						return true;
+					}
+					return false;
+				};
+
+				if (rand(eng) % 2 == 0) {
+					if (!checkLeft()) checkRight();
+				} else {
+					if (!checkRight()) checkLeft();
+				}
+			}
+		}
+	};
+
 	if (!paused || doSingleStep) {
 		frameNumber += 1;
 		for (i64 y = 1; y < GRID_SIZE.y - 1; y++) {
-			// !!!!The water is broken because the cells are always evaluated from left to right.
-			for (i64 x = 1; x < GRID_SIZE.x - 1; x++) {
+			if (rand(eng) % 2 == 0) {
+				for (i64 x = 1; x < GRID_SIZE.x - 1; x++) update(x, y);
+			} else {
+				for (i64 x = GRID_SIZE.x - 2; x > 2; x--) update(x, y);
+			}
+		}
 
-				if (frameNumber % 2 == 0) {
-					bool updated = false;
+		auto updateWater = [&](i64 x, i64 y) {
+			auto& block = blocks[x][y];
+			auto& below = blocks[x][y - 1];
+			if (block == Block::WATER && below == Block::SAND) {
+				std::swap(block, below);
+			}
+		};
 
-					auto& block = blocks[x][y];
-					auto& left = blocks[x - 1][y];
-					auto& right = blocks[x + 1][y];
-					auto& below = blocks[x][y - 1];
-					auto& belowLeft = blocks[x - 1][y - 1];
-					auto& belowRight = blocks[x + 1][y - 1];
-					if (block == Block::SAND || block == Block::WATER) {
-						if (below == Block::AIR) {
-							below = block;
-							block = Block::AIR;
-							updated = true;
-						} else {
-							auto checkLeft = [&]() -> bool {
-								if (left == Block::AIR && belowLeft == Block::AIR) {
-									belowLeft = block;
-									block = Block::AIR;
-									updated = true;
-									return true;
-								}
-								return false;
-							};
-							auto checkRight = [&]() -> bool {
-								if (right == Block::AIR && belowRight == Block::AIR) {
-									belowRight = block;
-									block = Block::AIR;
-									updated = true;
-									return true;
-								}
-								return false;
-							};
-
-							/*if ((std::hash<i64>()(x) ^ std::hash<i64>()(y)) % 2 == 0) {*/
-							if (rand(eng) % 2 == 0) {
-								if (!checkLeft()) checkRight();
-							} else {
-								if (!checkRight()) checkLeft();
-							}
-						}
-					}
-
-					if (!updated && block == Block::WATER) {
-						static int a, b;
-						auto checkLeft = [&]() -> bool {
-							if (left == Block::AIR) {
-								a++;
-								left = block;
-								block = Block::AIR;
-								updated = true;
-								return true;
-							}
-							return false;
-						};
-						auto checkRight = [&]() -> bool {
-							if (right == Block::AIR) {
-								b++;
-								right = block;
-								block = Block::AIR;
-								updated = true;
-								return true;
-							}
-							return false;
-						};
-
-						if (rand(eng) % 2 == 0) {
-							if (!checkLeft()) checkRight();
-						} else {
-							if (!checkRight()) checkLeft();
-						}
-					}
-				}
+		for (i64 y = GRID_SIZE.y - 2; y > 2; y--) {
+			if (rand(eng) % 2 == 0) {
+				for (i64 x = 1; x < GRID_SIZE.x - 1; x++) updateWater(x, y);
+			} else {
+				for (i64 x = GRID_SIZE.x - 2; x > 2; x--) updateWater(x, y);
 			}
 		}
 	}
