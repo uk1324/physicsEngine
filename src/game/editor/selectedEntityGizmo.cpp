@@ -1,11 +1,11 @@
 #include <game/editor/selectedEntityGizmo.hpp>
 #include <game/editor/commands.hpp>
-#include <game/editor/customGuis.hpp>
 #include <game/debug.hpp>
 #include <game/editor/input.hpp>
+#include <game/collision/collision.hpp>
+#include <customImguiWidgets.hpp>
 #include <math/lineSegment.hpp>
 #include <math/mat2.hpp>
-#include <game/collision/collision.hpp>
 
 #include <imgui/imgui.h>
 

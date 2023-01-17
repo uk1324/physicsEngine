@@ -336,7 +336,7 @@ auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
 		Debug::drawRay(bodyPair.a->pos, (bodyPair.b->pos - bodyPair.a->pos).normalized() * joint.requiredDistance);
 	}
 
-	renderer.update(gfx, camera, Window::size(), false);
+	renderer.update(gfx, camera);
 }
 auto Game::physicsStep() -> void {
 	for (auto& body : bodies) {

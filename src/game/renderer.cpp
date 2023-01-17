@@ -158,7 +158,9 @@ Renderer::Renderer(Gfx& gfx) {
 
 #include <utils/io.hpp>
 
-auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool renderToTexture) -> void {
+auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture) -> void {
+	const auto windowSize = windowSizeIfRenderingToTexture.has_value() ? *windowSizeIfRenderingToTexture : Window::size();
+	camera.aspectRatio = windowSize.xOverY();
 
 	const D3D11_VIEWPORT viewport{
 		.TopLeftX = 0.0f,
@@ -170,6 +172,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 	};
 	gfx.ctx->RSSetViewports(1, &viewport);
 
+	const auto renderToTexture = windowSizeIfRenderingToTexture.has_value();
 	if (renderToTexture) {
 		float color[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		gfx.ctx->ClearRenderTargetView(windowTextureRenderTargetView.Get(), color);
@@ -214,7 +217,6 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 			}
 
 			gfx.ctx->PSSetShaderResources(0, 1, texture->resourceView.GetAddressOf());
-			/*const auto scale = Vec2{ size / 2.0f,  };*/
 			const auto scale = Vec2{ (static_cast<float>(texture->size().x) / static_cast<float>(texture->size().y)) * (size / 2.0f), size / 2.0f };
 			texturedQuadConstantBuffer.transform = makeTransform(pos, 0.0f, scale);
 			gfx.ctx->VSSetConstantBuffers(0, 1, texturedQuadConstantBufferResource.GetAddressOf());
@@ -222,7 +224,7 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 			D3D11_MAPPED_SUBRESOURCE resource{ 0 };
 			CHECK_WIN_HRESULT(gfx.ctx->Map(texture->texture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource));
 
-			for (usize y = 0; y < texture->size().y; y++) {
+			for (i64 y = 0; y < texture->size().y; y++) {
 				auto rowDst = reinterpret_cast<u8*>(resource.pData) + y * resource.RowPitch;
 				const auto rowByteWidth = texture->size().x * sizeof(u32);
 				auto rowSrc = reinterpret_cast<u8*>(texture->data()) + rowByteWidth * y;
@@ -400,11 +402,11 @@ auto Renderer::update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool rend
 	}
 }
 
-auto Renderer::drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicTexture, bool interpolate) -> void {
+auto Renderer::drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate) -> void {
 	dynamicTexturesToDraw.push_back(DynamicTextureToDraw{
 		.texture = &dynamicTexture,
 		.pos = pos,
-		.size = size,
+		.height = height,
 		.interpolate = interpolate
 	});
 }

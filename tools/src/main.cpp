@@ -142,7 +142,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 	{
 		hppOut << "#pragma once\n\n";
-		hppOut << "#include <game/editor/customGuis.hpp>\n";
+		hppOut << "#include <customImGuiWidgets.hpp>\n";
 		hppOut << "#include <game/editor/editorGuiState.hpp>\n";
 		hppOut << "struct Commands;\n";
 		hppOut << "struct EditorEntities;\n";

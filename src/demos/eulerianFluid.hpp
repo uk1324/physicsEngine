@@ -40,11 +40,6 @@ public:
 	std::vector<bool> isWallValues;
 	std::vector<float> smoke;
 	std::vector<float> newSmoke;
-
-	struct VelocityGenerator {
-		Vec2 pos, magnitude;
-	};
-	std::vector<VelocityGenerator> velocityGenerators;
 	/*
 	Velocities v around a point [x, y] lie on a staggered grid.
 	        v0[x, y + 1]
@@ -56,6 +51,7 @@ public:
 	*/
 };
 
+// TODO: Fluid simulation with diffusion: https://damassets.autodesk.net/content/dam/autodesk/research/publications-assets/pdf/realtime-fluid-dynamics-for.pdf
 struct EulerianFluidDemo {
 	Fluid fluid;
 	EulerianFluidDemo(Gfx& gfx);
@@ -69,6 +65,14 @@ struct EulerianFluidDemo {
 	std::vector<bool> walls;
 
 	float elapsed = 0.0f;
+
+	struct VelocityGenerator {
+		Vec2T<i64> gridPos;
+		Vec2 velocity;
+		i64 radius;
+		float spinSpeed;
+	};
+	std::vector<VelocityGenerator> velocityGenerators;
 
 	bool drawStreamlines = false;
 	float streamlineStepSize = 0.01f;

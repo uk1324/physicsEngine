@@ -55,7 +55,7 @@ Token::Token(TokenType type, usize start, usize length)
 	, length{ length } {}
 
 auto Scanner::init(std::string_view text) -> void {
-	ASSERT(text.size() != 0);
+	ASSERT(text.height() != 0);
 	this->text = text;
 	currentIndex = 0;
 	tokenStartIndex = 0;

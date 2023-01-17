@@ -266,7 +266,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		InputFloat("density", &densityForRecalculation);
 	}
 
-	if (selectedEntities.size() == 2 && selectedEntities[0].type == EntityType::Body && selectedEntities[1].type == EntityType::Body 
+	if (selectedEntities.size() == 2 && selectedEntities[0].type == EntityType::Body && selectedEntities[1].type == EntityType::Body
 		&& Button("join with a distance joint")) {
 		const auto entity = entites.distanceJoint.add(DistanceJointEntityEditor{
 			.anchorA = { selectedEntities[0].index, Vec2{ 0.0f } },
@@ -597,7 +597,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		scalingGizmo.draw(selectedEntities, selectedEntitesAabb, entites);
 	}
 
-	renderer.update(gfx, camera, sceneWindowSize, true);
+	renderer.update(gfx, camera, sceneWindowSize);
 
 	debugChecks();
 }

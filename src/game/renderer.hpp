@@ -22,8 +22,8 @@ struct DynamicTexture : ImageRgba {
 class Renderer {
 public:
 	Renderer(Gfx& gfx);
-	auto update(Gfx& gfx, const Camera& camera, Vec2 windowSize, bool renderToTexture) -> void;
-	auto drawDynamicTexture(Vec2 pos, float size, DynamicTexture& dynamicTexture, bool interpolate = false) -> void;
+	auto update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture = std::nullopt) -> void;
+	auto drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate = false) -> void;
 
 	static constexpr Vec2 textureSize{ 1920.0f, 1080.0f };
 	ComPtr<ID3D11Texture2D> windowTexture;
@@ -36,7 +36,7 @@ private:
 	struct DynamicTextureToDraw {
 		DynamicTexture* texture;
 		Vec2 pos;
-		float size;
+		float height;
 		bool interpolate;
 	};
 	std::vector<DynamicTextureToDraw> dynamicTexturesToDraw;

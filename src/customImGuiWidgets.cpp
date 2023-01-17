@@ -3,6 +3,7 @@
 #include <customImguiWidgets.hpp>
 #include <engine/window.hpp>
 #include <engine/frameAllocator.hpp>
+#include <math/utils.hpp>
 
 #include <imgui/imgui.h>
 
@@ -83,4 +84,16 @@ auto ImGui::imageSaveFileSelect(const ImageRgba& image, const char* label, const
 	image.saveToFile(frameAllocator.format("%s.png", path).data());
 }
 
+auto ImGui::inputAngle(const char* label, float* angle) -> bool {
+	float angleDeg = radToDeg(*angle);
+	const auto changed = InputFloat(label, &angleDeg);
+	*angle = degToRad(angleDeg);
+	return changed;
+}
 
+auto ImGui::sliderAngle(const char* label, float* angle) -> bool{
+	float angleDeg = radToDeg(*angle);
+	const auto changed = SliderFloat(label, &angleDeg, -180, 180);
+	*angle = degToRad(angleDeg);
+	return changed;
+}

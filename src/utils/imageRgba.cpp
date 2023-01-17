@@ -73,7 +73,7 @@ auto ImageRgba::fromFile(const char* path) -> std::optional<ImageRgba> {
 }
 
 auto ImageRgba::saveToFile(const char* path) const -> void {
-	stbi_write_png(path, static_cast<int>(size_.x), static_cast<int>(size_.x), 4, data_, size_.x * 4);
+	stbi_write_png(path, static_cast<int>(size_.x), static_cast<int>(size_.x), 4, data_, static_cast<int>(size_.x * 4));
 }
 
 auto ImageRgba::copyAndResize(const ImageRgba& other) -> void {
@@ -87,10 +87,10 @@ auto ImageRgba::set(Vec2T<i64> pos, PixelRgba color) -> void {
 }
 
 auto ImageRgba::set(Vec2T<i64> pos, const Vec3& color) -> void {
-	const Vec3T<u8> colU8{
-			static_cast<u8>(std::clamp(color.x * 255.0f, 0.0f, 255.0f)),
-			static_cast<u8>(std::clamp(color.y * 255.0f, 0.0f, 255.0f)),
-			static_cast<u8>(std::clamp(color.z * 255.0f, 0.0f, 255.0f))
+	const PixelRgba colU8 {
+		static_cast<u8>(std::clamp(color.x * 255.0f, 0.0f, 255.0f)),
+		static_cast<u8>(std::clamp(color.y * 255.0f, 0.0f, 255.0f)),
+		static_cast<u8>(std::clamp(color.z * 255.0f, 0.0f, 255.0f))
 	};
 	set(pos, colU8);
 }
@@ -161,13 +161,13 @@ auto PixelRgba::scientificColoring(float v, float minV, float maxV) -> PixelRgba
 	float r = 0.0f, g = 0.0f, b = 0.0f;
 
 	switch (num) {
-	case 0: r = 0.0; g = s; b = 1.0; break;
-	case 1: r = 0.0; g = 1.0; b = 1.0 - s; break;
-	case 2: r = s; g = 1.0; b = 0.0; break;
-	case 3: r = 1.0; g = 1.0 - s; b = 0.0; break;
+	case 0: r = 0.0f; g = s; b = 1.0f; break;
+	case 1: r = 0.0f; g = 1.0f; b = 1.0f - s; break;
+	case 2: r = s; g = 1.0f; b = 0.0f; break;
+	case 3: r = 1.0f; g = 1.0f - s; b = 0.0f; break;
 	}
 
-	if (r == 0 && g == 0 && b == 0) {
+	if (r == 0.0f && g == 0.0f && b == 0.0f) {
 		g = 255;
 	}
 		
@@ -179,7 +179,7 @@ auto PixelRgba::fromHsv(float h, float s, float v) -> PixelRgba {
 	float hue = h * 360.f;
 
 	float C = s * v;
-	float X = C * (1 - std::abs(std::fmod(hue / 60.0, 2) - 1));
+	float X = C * (1.0f - std::abs(std::fmod(hue / 60.0f, 2) - 1));
 	float m = v - C;
 	float r, g, b;
 	if (hue >= 0 && hue < 60)
@@ -194,9 +194,6 @@ auto PixelRgba::fromHsv(float h, float s, float v) -> PixelRgba {
 		r = X, g = 0, b = C;
 	else
 		r = C, g = 0, b = X;
-	int R = (r + m) * 255;
-	int G = (g + m) * 255;
-	int B = (b + m) * 255;
 	return PixelRgba{ Vec3{ r + m, g + m, b + m } };
 }
 
@@ -212,3 +209,9 @@ auto ImageRgba::IndexedPixelRange::begin() -> IndexedPixelIterator {
 auto ImageRgba::IndexedPixelRange::end() -> IndexedPixelIterator {
 	return IndexedPixelIterator{ .pos = Vec2T{ 0 }, .data = image.data_ + image.size_.y * image.size_.x, .rowWidth = static_cast<i64>(image.size_.x) };
 }
+
+const PixelRgba PixelRgba::RED{ 255, 0, 0 };
+const PixelRgba PixelRgba::GREEN{ 0, 255, 0 };
+const PixelRgba PixelRgba::BLUE{ 0, 0, 255 };
+const PixelRgba PixelRgba::BLACK{ 0 };
+const PixelRgba PixelRgba::WHITE{ 255 };

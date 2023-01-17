@@ -2,7 +2,7 @@
 
 #include <game/game.hpp>
 #include <game/editor/editor.hpp>
-#include <pixelGames/pixelGames.hpp>
+#include <demos/demos.hpp>
 
 struct GameMain {
 	GameMain(Gfx& gfx);
@@ -20,5 +20,5 @@ struct GameMain {
 	};
 	Scene currentScene = Scene::EDITOR;
 
-	PixelGames pixelGames;
+	Demos pixelGames;
 };

@@ -119,8 +119,8 @@ auto Commands::freeSetFieldCommand(const SetFieldCommand&) -> void {
     freeTop();
 }
 
-auto Commands::allocate(usize size) -> usize {
-    const auto allocationSize = alignUpTo(size, alignof(Header)) + sizeof(Header);
+auto Commands::allocate(usize height) -> usize {
+    const auto allocationSize = alignUpTo(height, alignof(Header)) + sizeof(Header);
     const auto ptr = data.size();
     data.resize(data.size() + allocationSize);
     topHeader() = allocationSize;

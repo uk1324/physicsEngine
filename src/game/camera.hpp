@@ -2,7 +2,7 @@
 
 #include <math/mat3x2.hpp>
 
-// When zoom is 1 the width goes from -1 to 1.
+// When zoom is 1 the width goes from -1 to 1. So the width is 2.
 struct Camera {
 	Camera(Vec2 pos = Vec2{ 0.0f }, float zoom = 1.0f);
 
@@ -13,9 +13,11 @@ struct Camera {
 	auto heightIfWidthIs(float width) const -> float;
 	auto height() const -> float;
 	auto width() const -> float;
+	auto setWidth(float width) -> void;
+	auto cursorPos() const -> Vec2;
 
 	Vec2 pos;
 	float zoom;
 	// Aspect ratio should be width / height.
-	float aspectRatio = 1.0f;
+	float aspectRatio;
 };

@@ -43,7 +43,7 @@ auto inverseDft(std::vector<std::complex<double>>& inOut) -> void {
 	dftHelper(inOut, true);
 	// Because the result is a sum of n complex sinusoids it has to be scaled down by n.
 	for (auto& v : inOut) {
-		v /= inOut.size();
+		v /= static_cast<double>(inOut.size());
 	}
 }
 
@@ -83,7 +83,7 @@ auto inverseFft(std::vector<std::complex<double>>& inOut) -> void {
 	for (auto& v : inOut) v = std::conj(v);
 
 	for (auto& v : inOut) {
-		v /= inOut.size();
+		v /= static_cast<double>(inOut.size());
 	}
 }
 

@@ -146,9 +146,6 @@
     <ClCompile Include="src\math\utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\editor\customGuis.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\game\editor\selectedEntityGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -162,9 +159,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game\editor\scalingGizmo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\pixelGames\pixelGames.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="thirdParty\stb_image\stb_image.cpp">
@@ -185,10 +179,19 @@
     <ClCompile Include="thirdParty\stb_image\stb_image_write.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\pixelGames\fourierTransformDemo.cpp">
+    <ClCompile Include="src\demos\eulerianFluid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\pixelGames\eulerianFluid.cpp">
+    <ClCompile Include="src\demos\flipFluid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demos\fourierTransformDemo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demos\demos.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demos\pixelPhysics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -358,9 +361,6 @@
     <ClInclude Include="src\game\editor\editorGuiState.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game\editor\customGuis.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\game\editor\selectedEntityGizmo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -377,9 +377,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\utils\refOptional.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\pixelGames\pixelGames.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="thirdParty\stb_image\stb_image.hpp">
@@ -406,10 +403,19 @@
     <ClInclude Include="thirdParty\stb_image\stb_image_write.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\pixelGames\fourierTransformDemo.hpp">
+    <ClInclude Include="src\demos\eulerianFluid.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\pixelGames\eulerianFluid.hpp">
+    <ClInclude Include="src\demos\flipFluid.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\fourierTransformDemo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\pixelPhysics.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\demos.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,4 +1,4 @@
-#include <pixelGames/fourierTransformDemo.hpp>
+#include <demos/fourierTransformDemo.hpp>
 #include <engine/window.hpp>
 #include <engine/time.hpp>
 #include <math/fourier.hpp>
@@ -133,5 +133,5 @@ auto FourierTransformDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	renderer.drawDynamicTexture(dynamicTexturePos, dynamicTextureSize, texture);
-	renderer.update(gfx, camera, Window::size(), false);
+	renderer.update(gfx, camera);
 }

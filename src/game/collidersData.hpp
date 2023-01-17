@@ -1,6 +1,6 @@
 #pragma once
 
-#include <game/editor/customGuis.hpp>
+#include <customImGuiWidgets.hpp>
 #include <game/editor/editorGuiState.hpp>
 struct Commands;
 struct EditorEntities;

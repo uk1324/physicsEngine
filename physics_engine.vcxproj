@@ -166,6 +166,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\demos\pixelPhysics.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\engine\audio.cpp" />
     <ClCompile Include="src\engine\frameAllocator.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -205,10 +209,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\game\editor\commands.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
-    <ClCompile Include="src\game\editor\customGuis.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -295,15 +295,19 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeaderFile>
     </ClCompile>
-    <ClCompile Include="src\pixelGames\eulerianFluid.cpp">
+    <ClCompile Include="src\demos\eulerianFluid.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\pixelGames\fourierTransformDemo.cpp">
+    <ClCompile Include="src\demos\flipFluid.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\pixelGames\pixelGames.cpp">
+    <ClCompile Include="src\demos\fourierTransformDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\demos\demos.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -382,7 +386,6 @@
     <ClInclude Include="src\game\collision\collision.hpp" />
     <ClInclude Include="src\game\debug.hpp" />
     <ClInclude Include="src\game\editor\commands.hpp" />
-    <ClInclude Include="src\game\editor\customGuis.hpp" />
     <ClInclude Include="src\game\editor\distanceJointGizmo.hpp" />
     <ClInclude Include="src\game\editor\editor.hpp" />
     <ClInclude Include="src\game\editor\editorEntity.hpp" />
@@ -413,9 +416,11 @@
     <ClInclude Include="src\math\mat3x2.hpp" />
     <ClInclude Include="src\math\vec2.hpp" />
     <ClInclude Include="src\math\vec3.hpp" />
-    <ClInclude Include="src\pixelGames\eulerianFluid.hpp" />
-    <ClInclude Include="src\pixelGames\fourierTransformDemo.hpp" />
-    <ClInclude Include="src\pixelGames\pixelGames.hpp" />
+    <ClInclude Include="src\demos\eulerianFluid.hpp" />
+    <ClInclude Include="src\demos\flipFluid.hpp" />
+    <ClInclude Include="src\demos\fourierTransformDemo.hpp" />
+    <ClInclude Include="src\demos\demos.hpp" />
+    <ClInclude Include="src\demos\pixelPhysics.hpp" />
     <ClInclude Include="src\utils\iter2d.hpp" />
     <ClInclude Include="src\utils\areaAllocator.hpp" />
     <ClInclude Include="src\utils\asserts.hpp" />

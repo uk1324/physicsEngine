@@ -23,7 +23,7 @@ auto jsonToCollider(const Json::Value& json) -> Collider {
 	return Collider{ CircleColliderEditor{ 1.0f } };
 }
 
-auto displayColliderGui(const Collider& collider) -> void {
+auto displayColliderGui(const Collider&) -> void {
 
 }
 
@@ -38,10 +38,13 @@ auto jsonToAnchor(const Json::Value& json) -> std::variant<Vec2, DistanceJointAn
 	if (json.at("type").string() == "Vec2") {
 		auto& value = json.at("value");
 		return Vec2{ value.at("x").floatNumber(), value.at("y").floatNumber() };
-	}
+	} 
 	else UNJSON(DistanceJointAnchorEditor)
+
+	ASSERT_NOT_REACHED();
+	return Vec2{ 0.0f };
 }
 
-auto displayAnchorGui(const std::variant<Vec2, DistanceJointAnchorEditor>& anchor) -> void {
+auto displayAnchorGui(const std::variant<Vec2, DistanceJointAnchorEditor>&) -> void {
 
 }

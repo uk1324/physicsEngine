@@ -1,10 +1,14 @@
 #include <game/camera.hpp>
 #include <math/utils.hpp>
 #include <math/aabb.hpp>
+#include <engine/window.hpp>
+#include <engine/input.hpp>
 
 Camera::Camera(Vec2 pos, float zoom)
 	: pos{ pos }
-	, zoom{ zoom } {}
+	, zoom{ zoom }
+	, aspectRatio{ Window::aspectRatio() } // This is here to prevent bugs from not having the aspect ratio initialized correctly. If the camera is passed into the renderer this should set correctly after the frist frame, but if it is only created in the local scope it is really easy to forget to initialize it.
+{}
 
 auto Camera::posInGrid(Vec2 pos, Vec2 gridCenter, float gridSize, Vec2T<i64> gridCellSize) -> Vec2T<i64> {
 	const Vec2 size{ gridSize * gridCellSize.xOverY(), gridSize };
@@ -29,6 +33,14 @@ auto Camera::height() const -> float {
 
 auto Camera::width() const -> float {
 	return 2.0f / zoom;
+}
+
+auto Camera::setWidth(float width) -> void {
+	zoom = 2.0f / width;
+}
+
+auto Camera::cursorPos() const -> Vec2 {
+	return screenSpaceToCameraSpace(Input::cursorPos());
 }
 
 auto Camera::screenSpaceToCameraSpace(Vec2 screenSpacePos) const -> Vec2 {

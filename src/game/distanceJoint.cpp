@@ -2,7 +2,7 @@
 #include <game/entitesData.hpp>
 #include <math/utils.hpp>
 
-auto DistanceJoint::preStep(Body& a, Body& b, float invDeltaTime) -> void {
+auto DistanceJoint::preStep(Body&, Body&, float invDeltaTime) -> void {
 	bias = invDeltaTime;
 }
 

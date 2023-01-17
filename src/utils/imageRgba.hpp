@@ -15,6 +15,12 @@ struct PixelRgba {
 
 	auto grayscaled() const -> PixelRgba;
 
+	static const PixelRgba RED;
+	static const PixelRgba GREEN;
+	static const PixelRgba BLUE;
+	static const PixelRgba BLACK;
+	static const PixelRgba WHITE;
+
 	u8 r, g, b, a;
 };
 

@@ -15,11 +15,13 @@ struct Vec2T {
 	template<typename U> 
 	explicit constexpr Vec2T(Vec2T<U> other);
 	static auto oriented(T angle) -> Vec2T;
+	static auto fromPolar(T angle, T length) -> Vec2T;
 
 	auto clamped(T min, T max) const -> Vec2T;
 	auto clamped(Vec2T min, Vec2T max) const -> Vec2T;
 	auto lengthSq() const -> T;
 	auto length() const -> T;
+	auto angle() const -> float;
 	auto normalized() const -> Vec2T;
 	auto rotBy90deg() const -> Vec2T;
 	auto applied(T (*function)(T)) const -> Vec2T;
@@ -125,6 +127,11 @@ auto Vec2T<T>::oriented(T angle) -> Vec2T {
 }
 
 template<typename T>
+auto Vec2T<T>::fromPolar(T angle, T length) -> Vec2T {
+	return oriented(angle) * length;
+}
+
+template<typename T>
 auto Vec2T<T>::clamped(T min, T max) const -> Vec2T {
 	return Vec2T{ std::clamp(x, min, max), std::clamp(y, min, max) };
 }
@@ -142,6 +149,11 @@ auto Vec2T<T>::lengthSq() const -> T {
 template<typename T>
 auto Vec2T<T>::length() const -> T {
 	return sqrtf(lengthSq());
+}
+
+template<typename T>
+auto Vec2T<T>::angle() const -> float {
+	return atan2(y, x);
 }
 
 template<typename T>
