@@ -160,19 +160,27 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 
 		auto updateWater = [&](i64 x, i64 y) {
 			auto& block = blocks[x][y];
-			auto& below = blocks[x][y - 1];
-			if (block == Block::WATER && below == Block::SAND) {
-				std::swap(block, below);
+			auto& above = blocks[x][y + 1];
+			if (block == Block::WATER && above == Block::SAND) {
+				std::swap(block, above);
 			}
 		};
 
-		for (i64 y = GRID_SIZE.y - 2; y > 2; y--) {
+		// Iterating up and swapping block with up isn't the same as iterating down and swapping down. And the same is true with replaced down with up in the first and second part. In any order (up, up) (down, down) or (up, down), (down, up)
+		if (frameNumber % 4 == 0) {
+			for (i64 x = 1; x < GRID_SIZE.x - 1; x++) {
+				/*for (i64 y = GRID_SIZE.y - 2; y > 2; y--) updateWater(x, y);*/
+				for (i64 y = 1; y < GRID_SIZE.y - 1; y++) updateWater(x, y);
+			}
+		}
+
+		/*for (i64 y = GRID_SIZE.y - 2; y > 2; y--) {
 			if (rand(eng) % 2 == 0) {
 				for (i64 x = 1; x < GRID_SIZE.x - 1; x++) updateWater(x, y);
 			} else {
 				for (i64 x = GRID_SIZE.x - 2; x > 2; x--) updateWater(x, y);
 			}
-		}
+		}*/
 	}
 
 	const auto cursorPos = Vec2T<i64>{ (camera.cursorPos() / CELL_SIZE).applied(floor) };

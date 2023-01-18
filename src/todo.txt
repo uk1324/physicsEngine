@@ -70,3 +70,10 @@ https://www.cs.cmu.edu/~baraff/sigcourse/
 
 When interpolating between 2 signed distance fields the colors should also be interpolated. Interpolating between colors might look better when interpolating between the curves.
 
+Gauss sidel is a method for solving systems of equations.
+In the case of a linear system of equations the process looks like this.
+Frist select some random initial values.
+Solve the first equation for the first unknown. Pass the value to the subsequent equations and repeat with the other equations.
+This method doesn't always converge.
+The solutions to a linear system of equations can be interpreted as an intersection of n hyperplanes.
+Soultions of each equation represents a plane. The gauss seidel method esentially projects (shortest distance) a random point onto the subsequent planes. This often gets coloser to the point of intersection of the hyperplanes.
