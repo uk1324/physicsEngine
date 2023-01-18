@@ -42,8 +42,25 @@ auto LineSegment::aabb() const -> Aabb {
 	return Aabb::fromCorners(corners[0], corners[1]);
 }
 
-auto LineSegment::getCorners() const->std::array<Vec2, 2> {
+auto LineSegment::getCorners() const -> std::array<Vec2, 2> {
 	const auto alongLine = -line.n.rotBy90deg();
 	const auto offset = line.n * line.d;
 	return { alongLine * minDistanceAlongLine + offset, alongLine * maxDistanceAlongLine + offset };
+}
+
+auto LineSegment::raycastHit(Vec2 rayBegin, Vec2 rayEnd) -> std::optional<Vec2> {
+	const LineSegment rayLineSegment{ rayBegin, rayEnd };
+	const auto intersection = line.intersection(rayLineSegment.line);
+	if (!intersection.has_value())
+		return std::nullopt;
+
+	const auto distanceAlong = line.distanceAlong(*intersection);
+	if (distanceAlong < minDistanceAlongLine || distanceAlong > maxDistanceAlongLine)
+		return std::nullopt;
+
+	const auto distanceAlongRay = rayLineSegment.line.distanceAlong(*intersection);
+	if (distanceAlongRay < rayLineSegment.minDistanceAlongLine || distanceAlongRay > rayLineSegment.maxDistanceAlongLine)
+		return std::nullopt;
+
+	return intersection;
 }

@@ -64,6 +64,10 @@ auto Aabb::combined(const Aabb& aabb) const -> Aabb {
 	return Aabb{ min.min(aabb.min), max.max(aabb.max) };
 }
 
+auto Aabb::extended(Vec2 point) const -> Aabb {
+	return Aabb{ min.min(point), max.max(point) };
+}
+
 auto Aabb::area() const -> float {
 	const auto s = size();
 	return s.x * s.y;

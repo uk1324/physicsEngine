@@ -3,6 +3,7 @@
 #include <math/vec2.hpp>
 #include <utils/int.hpp>
 
+// Row major
 template<typename T>
 struct Mat2T {
 	Mat2T() = default;
@@ -12,6 +13,7 @@ struct Mat2T {
 
 	auto transposed() const -> Mat2T;
 	auto orthonormalInv() const -> Mat2T;
+	auto inversed() const -> Mat2T;
 
 	auto det() const -> float;
 	
@@ -57,6 +59,19 @@ auto Mat2T<T>::transposed() const -> Mat2T {
 template<typename T>
 auto Mat2T<T>::orthonormalInv() const -> Mat2T {
 	return transposed();
+}
+
+template<typename T>
+auto Mat2T<T>::inversed() const -> Mat2T {
+	const auto det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+	if (det == 0.0f) {
+		ASSERT_NOT_REACHED();
+	}
+
+	return Mat2T{
+		Vec2T{ m[1][1] / det, -m[1][0] / det },
+		Vec2T{ -m[0][1] / det, m[0][0] / det },
+	};
 }
 
 template<typename T>

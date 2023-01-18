@@ -170,6 +170,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\demos\triangulationDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\engine\audio.cpp" />
     <ClCompile Include="src\engine\frameAllocator.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -299,10 +303,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\demos\flipFluid.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="src\demos\fourierTransformDemo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -377,6 +377,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\customImguiWidgets.hpp" />
+    <ClInclude Include="src\demos\triangulationDemo.hpp" />
     <ClInclude Include="src\engine\audio.hpp" />
     <ClInclude Include="src\engine\frameAllocator.hpp" />
     <ClInclude Include="src\game\bvhCollisionSystem.hpp" />
@@ -417,7 +418,6 @@
     <ClInclude Include="src\math\vec2.hpp" />
     <ClInclude Include="src\math\vec3.hpp" />
     <ClInclude Include="src\demos\eulerianFluid.hpp" />
-    <ClInclude Include="src\demos\flipFluid.hpp" />
     <ClInclude Include="src\demos\fourierTransformDemo.hpp" />
     <ClInclude Include="src\demos\demos.hpp" />
     <ClInclude Include="src\demos\pixelPhysics.hpp" />

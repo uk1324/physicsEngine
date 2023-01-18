@@ -13,6 +13,8 @@ struct LineSegment {
 	auto asCapsuleContains(float thickness, Vec2 p) const -> bool;
 	auto aabb() const -> Aabb;
 	auto getCorners() const -> std::array<Vec2, 2>;
+	// This is essentially just LineSegment vs LineSegment intersection
+	auto raycastHit(Vec2 rayBegin, Vec2 rayEnd) -> std::optional<Vec2>;
 
 	Line line;
 	float minDistanceAlongLine;

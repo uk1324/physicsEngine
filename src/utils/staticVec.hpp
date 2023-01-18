@@ -15,6 +15,7 @@ public:
 	auto data() -> T* { return reinterpret_cast<T*>(data_); }
 	auto data() const -> const T* { return reinterpret_cast<const T*>(data_); }
 	auto size() -> usize { return size_; }
+	auto operator[](usize i) const -> const T&;
 
 	auto begin() -> T*;
 	auto end() -> T*;
@@ -39,7 +40,7 @@ StaticVec<T, CAPACITY>::~StaticVec() {
 
 template<typename T, usize CAPACITY>
 auto StaticVec<T, CAPACITY>::push(const T& value) -> void {
-	if (size_ + 1 >= CAPACITY) {
+	if (size_ + 1 > CAPACITY) {
 		ASSERT_NOT_REACHED();
 		return;
 	}
@@ -55,6 +56,11 @@ auto StaticVec<T, CAPACITY>::pop() -> void {
 	}
 	data()[size_ - 1].~T();
 	size_--;
+}
+
+template<typename T, usize CAPACITY>
+auto StaticVec<T, CAPACITY>::operator[](usize i) const -> const T& {
+	return data()[i];
 }
 
 template<typename T, usize CAPACITY>

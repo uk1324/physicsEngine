@@ -1,4 +1,5 @@
 #include <math/line.hpp>
+#include <math/mat2.hpp>
 #include <cmath>
 
 Line::Line(Vec2 n, float d)
@@ -20,6 +21,19 @@ auto Line::distanceAlong(Vec2 v) const -> float {
 
 auto Line::projectPointOntoLine(Vec2 p) const -> Vec2 {
 	return p - n * distance(*this, p);
+}
+
+auto Line::intersection(const Line& other) const -> std::optional<Vec2> {
+	// xA = b
+	// x = inv(A) * b
+	const Mat2 A{ n, other.n };
+	if (A.det() == 0.0f) {
+		return std::nullopt;
+	}
+
+	const auto x = A * A.inversed();
+	const Vec2 b{ d, other.d };
+	return b * A.inversed();
 }
 
 auto signedDistance(const Line& l, Vec2 p) -> float {

@@ -4,8 +4,8 @@
 #include <game/renderer.hpp>
 #include <demos/fourierTransformDemo.hpp>
 #include <demos/eulerianFluid.hpp>
-#include <demos/flipFluid.hpp>
 #include <demos/pixelPhysics.hpp>
+#include <demos/triangulationDemo.hpp>
 
 #include <complex>
 
@@ -15,6 +15,6 @@ struct Demos {
 
 	FourierTransformDemo fourierTransformDemo;
 	EulerianFluidDemo eulerianFluid;
-	FlipFluidDemo flipFluidDemo;
 	PixelPhysics pixelPhysics;
+	TriangulationDemo triangulationDemo;
 };

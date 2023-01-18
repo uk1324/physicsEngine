@@ -77,3 +77,10 @@ Solve the first equation for the first unknown. Pass the value to the subsequent
 This method doesn't always converge.
 The solutions to a linear system of equations can be interpreted as an intersection of n hyperplanes.
 Soultions of each equation represents a plane. The gauss seidel method esentially projects (shortest distance) a random point onto the subsequent planes. This often gets coloser to the point of intersection of the hyperplanes.
+https://www.quora.com/What-is-the-difference-between-the-Gauss-Seidel-and-the-Jacobi-Method
+https://erkaman.github.io/posts/jacobi_and_gauss_seidel.html
+// It might not actually be always a straight projection idk.
+https://shahriyarshahrabi.medium.com/gentle-introduction-to-fluid-simulation-for-programmers-and-technical-artists-7c0045c40bac
+If it were a projection onto the line with on the path using only x or y then it would probably create a spiral. And it would work if dot(a, b) == 0.
+
+Inverse of matrix using cramer's rule

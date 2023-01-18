@@ -182,9 +182,6 @@
     <ClCompile Include="src\demos\eulerianFluid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\demos\flipFluid.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\demos\fourierTransformDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -192,6 +189,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\demos\pixelPhysics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demos\triangulationDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -406,9 +406,6 @@
     <ClInclude Include="src\demos\eulerianFluid.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\demos\flipFluid.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\demos\fourierTransformDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -416,6 +413,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\demos\demos.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\triangulationDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -61,6 +61,9 @@ auto Mat3x2T<T>::operator[](isize i) const {
 
 template<typename T>
 auto Mat3x2T<T>::inversed() const -> Mat3x2T {
+	// This code is wrong The [0][0] and [1][1] should be swapped and there are probably other issues.
+	// TODO: Fix this.
+	ASSERT_NOT_REACHED();
 	const auto det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
 	return Mat3x2T<T>{
 		Vec2T{ m[0][0] / det, -m[0][1] / det },
