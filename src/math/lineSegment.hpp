@@ -14,7 +14,8 @@ struct LineSegment {
 	auto aabb() const -> Aabb;
 	auto getCorners() const -> std::array<Vec2, 2>;
 	// This is essentially just LineSegment vs LineSegment intersection
-	auto raycastHit(Vec2 rayBegin, Vec2 rayEnd) -> std::optional<Vec2>;
+	auto raycastHit(Vec2 rayBegin, Vec2 rayEnd) const -> std::optional<Vec2>;
+	auto intersection(const LineSegment& other) const -> std::optional<Vec2>;
 
 	Line line;
 	float minDistanceAlongLine;

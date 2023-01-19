@@ -48,9 +48,13 @@ auto LineSegment::getCorners() const -> std::array<Vec2, 2> {
 	return { alongLine * minDistanceAlongLine + offset, alongLine * maxDistanceAlongLine + offset };
 }
 
-auto LineSegment::raycastHit(Vec2 rayBegin, Vec2 rayEnd) -> std::optional<Vec2> {
+auto LineSegment::raycastHit(Vec2 rayBegin, Vec2 rayEnd) const -> std::optional<Vec2> {
 	const LineSegment rayLineSegment{ rayBegin, rayEnd };
-	const auto intersection = line.intersection(rayLineSegment.line);
+	return intersection(rayLineSegment);
+}
+
+auto LineSegment::intersection(const LineSegment& other) const -> std::optional<Vec2> {
+	const auto intersection = line.intersection(other.line);
 	if (!intersection.has_value())
 		return std::nullopt;
 
@@ -58,8 +62,8 @@ auto LineSegment::raycastHit(Vec2 rayBegin, Vec2 rayEnd) -> std::optional<Vec2> 
 	if (distanceAlong < minDistanceAlongLine || distanceAlong > maxDistanceAlongLine)
 		return std::nullopt;
 
-	const auto distanceAlongRay = rayLineSegment.line.distanceAlong(*intersection);
-	if (distanceAlongRay < rayLineSegment.minDistanceAlongLine || distanceAlongRay > rayLineSegment.maxDistanceAlongLine)
+	const auto otherDistanceAlong = other.line.distanceAlong(*intersection);
+	if (otherDistanceAlong < other.minDistanceAlongLine || otherDistanceAlong > other.maxDistanceAlongLine)
 		return std::nullopt;
 
 	return intersection;
