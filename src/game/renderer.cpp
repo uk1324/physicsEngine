@@ -295,6 +295,7 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 		auto data = reinterpret_cast<PcVert*>(resource.pData);
 
 		for (const auto& [triangle, color] : Debug::triangles) {
+			// Clockwise ordered triangles.
 			data[toDraw] = PcVert{ triangle.v[0] * triangleVertTransform, color };
 			toDraw++;
 			data[toDraw] = PcVert{ triangle.v[1] * triangleVertTransform, color };
@@ -307,6 +308,7 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 				gfx.ctx->Draw(toDraw, 0);
 				toDraw = 0;
 				gfx.ctx->Map(dynamicTriangles.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+				data = reinterpret_cast<PcVert*>(resource.pData);
 			}
 		}
 		gfx.ctx->Unmap(dynamicTriangles.Get(), 0);

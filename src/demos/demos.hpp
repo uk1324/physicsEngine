@@ -6,6 +6,7 @@
 #include <demos/eulerianFluid.hpp>
 #include <demos/pixelPhysics.hpp>
 #include <demos/triangulationDemo.hpp>
+#include <demos/waterDemo.hpp>
 
 #include <complex>
 
@@ -17,4 +18,5 @@ struct Demos {
 	EulerianFluidDemo eulerianFluid;
 	PixelPhysics pixelPhysics;
 	TriangulationDemo triangulationDemo;
+	WaterDemo waterDemo;
 };

@@ -6,8 +6,6 @@
 
 
 struct TriangulationDemo {
-	TriangulationDemo();
-
 	auto update(Gfx& gfx, Renderer& renderer) -> void;
 
 	bool showTriangulation = true;

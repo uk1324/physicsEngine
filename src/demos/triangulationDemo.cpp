@@ -6,9 +6,6 @@
 
 #include <imgui/imgui.h>
 
-TriangulationDemo::TriangulationDemo() {
-}
-
 // If any concave shape can be represented using triangles. Then any concave shapes with holes can be created by cutting out triangles from the shape. To cut out a shape could look at the intersections of the lines (infinite lines) created from the sides of the triangle, that is trying to be cut out.
 
 // If you were to just try to triangulate an O shape by making only making cut at the top and then running this algorithm there might be issues, because of vertices intersecting. It would be better to separate the shape into 2 shapes without holes and the run the algorithm on both.
