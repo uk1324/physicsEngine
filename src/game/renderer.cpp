@@ -33,6 +33,49 @@ Renderer::Renderer(Gfx& gfx) {
 	debugShapesFragmentShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(debugShapesFragmentShaderConstantBuffer));
 	sizeof(parabolaShaderConstantBuffer);
 	{
+		const D3D11_BUFFER_DESC desc{
+			.ByteWidth = static_cast<UINT>(sizeof(PcVert) * DYNAMIC_TRIANGLES_SIZE),
+			.Usage = D3D11_USAGE_DYNAMIC,
+			.BindFlags = static_cast<UINT>(D3D11_BIND_VERTEX_BUFFER),
+			.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+			.MiscFlags = 0,
+			.StructureByteStride = sizeof(PcVert),
+		};
+		CHECK_WIN_HRESULT(gfx.device->CreateBuffer(&desc, nullptr, dynamicTriangles.GetAddressOf()));
+		const D3D11_INPUT_ELEMENT_DESC layoutDesc[] = {
+			{
+				.SemanticName = "Position",
+				.SemanticIndex = 0,
+				.Format = DXGI_FORMAT_R32G32_FLOAT,
+				.InputSlot = 0,
+				.AlignedByteOffset = offsetof(PcVert, pos),
+				.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
+				.InstanceDataStepRate = 0
+			},
+			{
+				.SemanticName = "Color",
+				.SemanticIndex = 0,
+				.Format = DXGI_FORMAT_R32G32B32_FLOAT,
+				.InputSlot = 0,
+				.AlignedByteOffset = offsetof(PcVert, color),
+				.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA,
+				.InstanceDataStepRate = 0
+			}
+		};
+
+		vsColoredTriangle = gfx.vsFromFile(BUILD_DIR L"vsColoredTriangle.cso");
+		psColoredTriangle = gfx.psFromFile(BUILD_DIR L"psColoredTriangle.cso");
+
+		CHECK_WIN_HRESULT(gfx.device->CreateInputLayout(
+			layoutDesc,
+			static_cast<UINT>(std::size(layoutDesc)),
+			vsColoredTriangle.blob->GetBufferPointer(),
+			vsColoredTriangle.blob->GetBufferSize(),
+			pcLayout.GetAddressOf()
+		));
+	}
+
+	{
 		fullscreenQuadPtVb = gfx.createVb(fullscreenQuadVerts, sizeof(fullscreenQuadVerts), sizeof(fullscreenQuadVerts[0]));
 		fullscreenQuadIb = gfx.createIb(fullscreenQuadIndices, sizeof(fullscreenQuadIndices), sizeof(fullscreenQuadIndices[0]));
 		// Can use D3D10_APPEND_ALIGNED_ELEMENT instead of the offsetof
@@ -187,13 +230,6 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 	}
 
 	gfx.ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	{
-		const UINT stride{ sizeof(PtVert) }, offset{ 0 };
-		gfx.ctx->IASetVertexBuffers(0, 1, fullscreenQuadPtVb.GetAddressOf(), &stride, &offset);
-	}
-
-	gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
-	gfx.ctx->IASetInputLayout(ptLayout.Get());
 
 	const auto aspectRatio{ windowSize.x / windowSize.y };
 	const auto screenScale{ Mat3x2::scale(Vec2{ 1.0f, aspectRatio }) };
@@ -204,6 +240,7 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(scale) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
 	};
 
+	// Dynamic textures
 	{
 		gfx.updateConstantBuffer(texturedQuadConstantBufferResource, &texturedQuadConstantBuffer, sizeof(texturedQuadConstantBuffer));
 		gfx.ctx->VSSetShader(vsTexturedQuad.shader.Get(), nullptr, 0);
@@ -240,6 +277,44 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 
 	}
 
+	// Dynamic triangles.
+	{
+		gfx.ctx->VSSetShader(vsColoredTriangle.shader.Get(), nullptr, 0);
+		gfx.ctx->PSSetShader(psColoredTriangle.Get(), nullptr, 0);
+
+		gfx.ctx->IASetInputLayout(pcLayout.Get());
+
+		const UINT stride{ sizeof(PcVert) }, offset{ 0 };
+		gfx.ctx->IASetVertexBuffers(0, 1, dynamicTriangles.GetAddressOf(), &stride, &offset);
+
+		const auto triangleVertTransform = screenScale * cameraTransform;
+
+		UINT toDraw = 0;
+		D3D11_MAPPED_SUBRESOURCE resource{ 0 };
+		gfx.ctx->Map(dynamicTriangles.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+		auto data = reinterpret_cast<PcVert*>(resource.pData);
+
+		for (const auto& [triangle, color] : Debug::triangles) {
+			data[toDraw] = PcVert{ triangle.v[0] * triangleVertTransform, color };
+			toDraw++;
+			data[toDraw] = PcVert{ triangle.v[1] * triangleVertTransform, color };
+			toDraw++;
+			data[toDraw] = PcVert{ triangle.v[2] * triangleVertTransform, color };
+			toDraw++;
+
+			if (toDraw >= DYNAMIC_TRIANGLES_SIZE) {
+				gfx.ctx->Unmap(dynamicTriangles.Get(), 0);
+				gfx.ctx->Draw(toDraw, 0);
+				toDraw = 0;
+				gfx.ctx->Map(dynamicTriangles.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+			}
+		}
+		gfx.ctx->Unmap(dynamicTriangles.Get(), 0);
+		if (toDraw != 0) {
+			gfx.ctx->Draw(toDraw, 0);
+		}
+	}
+
 	debugShapesFragmentShaderConstantBuffer.lineWidth = 0.003f * 1920.0f / windowSize.x;
 	debugShapesFragmentShaderConstantBuffer.smoothingWidth = debugShapesFragmentShaderConstantBuffer.lineWidth * (2.0f / 3.0f);
 	gfx.updateConstantBuffer(debugShapesFragmentShaderConstantBufferResource, &debugShapesFragmentShaderConstantBuffer, sizeof(debugShapesFragmentShaderConstantBuffer));
@@ -248,6 +323,13 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 	// remember to put a draw or checkDraw after a loop.
 		// Circle
 	// !!!!!!!!!!!!! TODO: Make a templated class or a macro for dealing with drawing debug shapes. Later specifying the width might be needed.
+	gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
+	gfx.ctx->IASetInputLayout(ptLayout.Get());
+	{
+		const UINT stride{ sizeof(PtVert) }, offset{ 0 };
+		gfx.ctx->IASetVertexBuffers(0, 1, fullscreenQuadPtVb.GetAddressOf(), &stride, &offset);
+	}
+
 	{
 		gfx.ctx->VSSetShader(vsCircle.shader.Get(), nullptr, 0);
 

@@ -65,7 +65,7 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 	SET(TERMITE, "termite");
 #undef SET
 	auto selected = static_cast<int>(selectedBlock);
-	Combo("selected block", &selected, items, std::size(items));
+	Combo("selected block", &selected, items, static_cast<int>(std::size(items)));
 	selectedBlock = static_cast<Block>(selected);
 
 	const i64 minRadius = 1, maxRadius = 10;
@@ -94,6 +94,7 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 					} else if (block == Block::WATER) {
 						return type == Block::AIR;
 					}
+					return false;
 				};
 
 				if (below == Block::AIR) {
@@ -366,7 +367,7 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	if (!Input::isMouseButtonHeld(MouseButton::LEFT) || selectedBlock == Block::AIR) {
-		Debug::drawHollowCircle(camera.cursorPos(), radius);
+		Debug::drawHollowCircle(camera.cursorPos(), static_cast<float>(radius));
 	}
 
 	if (Input::scrollDelta() > 0.0f) {
@@ -380,10 +381,7 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 		return (std::hash<i64>()(x)) * 17 ^ std::hash<i64>()(y) * 587;
 	};
 
-	srand(frameNumber / 2);
-	auto hashPosRand = [&](i64 x, i64 y) -> usize {
-		return ::rand();
-	};
+	srand(static_cast<int>(frameNumber / 2));
 
 	for (auto& p : texture.indexed()) {
 		auto gridPos = p.pos;
@@ -400,7 +398,7 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 		case Block::WATER: {
 			/*const PixelRgba colors[] = { { 9,144,222 }, { 8,130,200 }, {9,99,151}, {9,78,118} };*/
 			const PixelRgba colors[] = { { 9, 144 - 10, 222 }, { 9, 144 - 20, 222 + 2}, { 9, 144 - 30, 222 + 4 }, { 9, 144 - 40, 222 + 6 } };
-			p = colors[hashPosRand(gridPos.x, gridPos.y) % 4];
+			p = colors[::rand() % 4];
 			break;
 		}
 		// To get more intersting colors choose the color based on the hash of the position. This won't probably won't look very well for slow moving things. For fast moving things it might look ok.
@@ -422,6 +420,7 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 		}
 		case Block::WOOD: p = PixelRgba{ 215, 186, 137 }; break;
 		case Block::TERMITE: p = PixelRgba{ 64 };
+		default: ASSERT_NOT_REACHED(); break;
 		}
 	}
 

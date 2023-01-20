@@ -8,6 +8,7 @@ auto Debug::update() -> void {
 	circleColliders.clear();
 	hollowCircles.clear();
 	parabolas.clear();
+	triangles.clear();
 }
 
 auto Debug::drawLine(Vec2 start, Vec2 end, const Vec3& color) -> void {
@@ -87,9 +88,20 @@ auto Debug::drawCollider(const Collider& collider, Vec2 pos, float orientation, 
 	else ASSERT_NOT_REACHED();
 }
 
+auto Debug::drawSimplePolygon(Span<const Vec2> vertices, const Vec3& color) -> void {
+	if (vertices.size() < 3)
+		return;
+
+	const auto& tris = triangulate(vertices);
+	for (const auto& triangle : tris) {
+		triangles.push_back(Triangle{ triangle, color });
+	}
+}
+
 std::vector<Debug::Line> Debug::lines;
 std::vector<Debug::Circle> Debug::circles;
 std::vector<Debug::Point> Debug::points;
 std::vector<Debug::OrientedCircle> Debug::circleColliders;
 std::vector<Debug::Circle> Debug::hollowCircles;
 std::vector<Debug::Parabola> Debug::parabolas;
+std::vector<Debug::Triangle> Debug::triangles;

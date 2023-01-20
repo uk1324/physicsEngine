@@ -59,6 +59,17 @@ private:
 	ComPtr<ID3D11Buffer> fullscreenQuadPtVb;
 	ComPtr<ID3D11Buffer> fullscreenQuadIb;
 
+	struct PcVert {
+		Vec2 pos;
+		Vec3 color;
+	};
+	ComPtr<ID3D11InputLayout> pcLayout;
+	static constexpr usize DYNAMIC_TRIANGLES_SIZE = 3 * 100;
+	ComPtr<ID3D11Buffer> dynamicTriangles;
+
+	VertexShader vsColoredTriangle;
+	ComPtr<ID3D11PixelShader> psColoredTriangle;
+
 	VertexShader vsTexturedQuad;
 	ComPtr<ID3D11PixelShader> psTexturedQuad;
 	ComPtr<ID3D11Buffer> texturedQuadConstantBufferResource;

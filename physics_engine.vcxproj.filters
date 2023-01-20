@@ -194,6 +194,12 @@
     <ClCompile Include="src\demos\triangulationDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\math\triangulate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\triangle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -418,6 +424,12 @@
     <ClInclude Include="src\demos\triangulationDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\math\triangulate.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\triangle.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\game\shaders\vsLine.hlsl" />
@@ -431,6 +443,8 @@
     <FxCompile Include="src\game\shaders\psHollowCircle.hlsl" />
     <FxCompile Include="src\game\shaders\vsTexturedQuad.hlsl" />
     <FxCompile Include="src\game\shaders\psTexturedQuad.hlsl" />
+    <FxCompile Include="src\game\shaders\vsColoredTriangle.hlsl" />
+    <FxCompile Include="src\game\shaders\psColoredTriangle.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\txt.txt" />

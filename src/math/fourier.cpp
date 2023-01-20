@@ -120,3 +120,5 @@ auto inverseFft(std::vector<std::complex<double>>& inOut) -> void {
 // https://www.youtube.com/watch?v=GzbKb59my3U And other videos from around that time.
 // Fourier transform of example images.
 // https://www.youtube.com/watch?v=oACegp4iGi0
+// Proofs for fourier transform and series on this website.
+// https://lpsa.swarthmore.edu/Fourier/Xforms/FXFS.html

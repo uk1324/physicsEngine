@@ -1,5 +1,5 @@
 #include <game/levelFormat.hpp>
 
-auto isDistanceJointEntityValid(const EditorEntities& entites, const DistanceJointEntityEditor& joint) -> bool {
+auto isDistanceJointEntityValid(const EditorEntities&, const DistanceJointEntityEditor&) -> bool {
     return false;
 }

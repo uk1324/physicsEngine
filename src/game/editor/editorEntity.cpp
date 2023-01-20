@@ -87,6 +87,8 @@ auto EditorEntities::getPosOrOrigin(const Entity& entity) -> Vec2& {
 	case EntityType::Null:
 		return null;
 	}
+	ASSERT_NOT_REACHED();
+	return null;
 }
 
 auto EditorEntities::getPos(const Entity& entity) -> std::optional<Vec2> {

@@ -2,6 +2,7 @@
 #include <game/debug.hpp>
 #include <engine/input.hpp>
 #include <math/mat2.hpp>
+#include <random>
 
 #include <imgui/imgui.h>
 
@@ -20,6 +21,7 @@ TriangulationDemo::TriangulationDemo() {
 // If found the remove the point p and do the next vertex and add the triangle(p, leftNeighbour, rightNeighbour) to the list.
 // else try the next vertex.
 // Do this until there is only a single triangle left.
+// It turns out this is basically just the Ear clipping method for polygon triangulation.
 static auto myTriangulationAlgorithm(const std::vector<Vec2>& points) -> std::optional<std::vector<Triangle>> {
 	if (points.size() < 3)
 		return std::nullopt;
@@ -145,7 +147,7 @@ static auto myTriangulationAlgorithm(const std::vector<Vec2>& points) -> std::op
 			Debug::drawPoint((left + right) / 2.0f);
 			// Check if the line lies inside the shape. This just checks if a single arbitrary points on the line lies inside the shape. Don't know if it is true that if a single point lines in the shape on a line which doesn't intersect the shape it means that the whole line lies inside the shape. If this is false then this algorithm is incorrect.
 			if (isPointInsideShape((left + right) / 2.0f)) {
-				Triangle tri{ .verts = { left, right, vertices[i] } };
+				Triangle tri{ left, right, vertices[i] };
 				// Could try to detect triangles with small area, but if the case in which this is the only case isn't handled it might lead to infinite loops.
 				// TODO: There might be a case, which creates 3 points which lie on the same line. In this case this needs to be detected by either checking area or something else and this point needs to be removed. If it isn't removed the it might never halt. Also check what effect does the intersects function returning false on collinear lines has on this. 
 				triangles.push_back(tri);
@@ -154,11 +156,12 @@ static auto myTriangulationAlgorithm(const std::vector<Vec2>& points) -> std::op
 			}
 
 			// If the point and it's neighbours can't be turned into a triangle then try the next point. There might be some cases in which the algorithm doesn't terminate. To prove that the algorithm does teminate, you would need to prove that for any closed, non self-intersecting concave polygon there is a wave to connect a points and its neighbours into a triangle, which doesn't self intersect the shape and lies inside the shape. This is true for convex shapes, because from the definition any line from a vertex to vertex lies inside the shape. For concave shapes it intuitivelly makes sense, because for there to be a concativty there needs to be some part which "is convex" or "concavities are created from convex parts".
+			// It turns out this is called the Two ears theorem.
 			tryNextVertex:
 			continue;
 		}
 	}
-	triangles.push_back(Triangle{ .verts = { vertices[0], vertices[1], vertices[2] } });
+	triangles.push_back(Triangle{ vertices[0], vertices[1], vertices[2] } );
 	return triangles;
 }
 
@@ -170,159 +173,17 @@ auto TriangulationDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 		points.push_back(camera.cursorPos());
 	}
 
-	Debug::drawLines(points);
-	//if (points.size() >= 3 && showTriangulation) {
-	//	auto aabb = Aabb::fromCorners(points[0], points[1]);
-	//	for (usize i = 2; i < points.size(); i++) {
-	//		aabb = aabb.extended(points[i]);
-	//	}
-	//	Debug::drawAabb(aabb);
-
-	//	std::vector<LineSegment> lineSegments;
-
-	//	auto calculateLineSegments = [&]() -> void {
-	//		lineSegments.clear();
-	//		if (points.size() >= 2) {
-	//			lineSegments.push_back(LineSegment{ points[0], points[1] });
-	//			for (usize i = 1; i < points.size() - 1; i++) {
-	//				lineSegments.push_back(LineSegment{ points[i], points[i + 1] });
-	//			}
-	//			if (points.size() > 2) {
-	//				lineSegments.push_back(LineSegment{ points[points.size() - 1], points[0] });
-	//			}
-	//		}
-	//	};
-
-	//	calculateLineSegments();
-	//	for (const auto& a : lineSegments) {
-	//		for (const auto& b : lineSegments) {
-	//			if (&a == &b)
-	//				continue;
-	//			const auto [a0, a1] = a.getCorners();
-	//			const auto [b0, b1] = b.getCorners();
-
-	//			const auto intersection = a.raycastHit(b0, b1);
-	//			if (intersection.has_value() && distance(*intersection, a0) > 0.001f && distance(*intersection, a1) > 0.001f && distance(*intersection, b0) > 0.001f && distance(*intersection, b1) > 0.001f) {
-	//				goto selfIntersecting;
-	//			}
-	//		}
-	//	}
-
-	//	auto isPointInsideShape = [&](Vec2 p) -> bool {
-	//		auto current = Vec2{ aabb.min.x - 0.2f, (aabb.min.y + aabb.max.y) / 2.0f };
-	//		std::optional<LineSegment*> toIgnore;
-	//		usize hitCount = 0;
-	//		for (;;) {
-	//			//Debug::drawPoint(current);
-	//			std::optional<Vec2> closestHitPoint;
-	//			std::optional<LineSegment*> closestHitSegment;
-	//			float closestHitPointDistance = std::numeric_limits<float>::infinity();
-	//			for (auto& segment : lineSegments) {
-	//				if (&segment == toIgnore)
-	//					continue;
-
-	//				auto hit = segment.raycastHit(current, p);
-	//				if (hit.has_value()) {
-	//					//Debug::drawPoint(*hit, Vec3::RED);
-	//					if (closestHitPoint.has_value()) {
-	//						if (const auto d = distance(*hit, current); d < closestHitPointDistance) {
-	//							closestHitPointDistance = d;
-	//							closestHitPoint = *hit;
-	//							closestHitSegment = &segment;
-	//						}
-	//					} else {
-	//						closestHitPoint = *hit;
-	//						closestHitPointDistance = distance(*closestHitPoint, current);
-	//						closestHitSegment = &segment;
-	//					}
-	//				}
-	//			}
-
-	//			if (!closestHitPoint.has_value()) {
-	//				// Ray could also be collinear.
-	//				return hitCount % 2 == 1;
-	//			}
-
-	//			toIgnore = closestHitSegment;
-	//			current = *closestHitPoint;
-	//			hitCount++;
-
-	//			if (distance(*closestHitPoint, p) < 0.001f) {
-	//				return hitCount % 2 == 1;
-	//			}
-	//		}
-	//	};
-
-	//	/*if (isPointInsideShape(camera.cursorPos())) {
-	//		Debug::drawPoint(camera.cursorPos(), Vec3::RED);
-	//	}*/
-
-	//	const auto oldSize = triangles.size();
-	//	triangles.clear();
-
-	//	auto pointsOld = points;
-	//	auto iterations = 0;
-	//	while (points.size() > 3) {
-	//		if (iterations > 200)
-	//			break;
-	//		iterations++;
-	//		calculateLineSegments();
-	//		for (usize i = 0; i < points.size(); i++) {
-	//			auto& left = i == 0 ? points[points.size() - 1] : points[i - 1];
-	//			auto& right = i == points.size() - 1 ? points[0] : points[i + 1];
-
-	//			const LineSegment line{ left, right };
-
-	//			for (const auto& segment : lineSegments) {
-	//				const auto [start, end] = segment.getCorners();
-	//				const auto intersection = line.raycastHit(start, end);
-	//				if (intersection.has_value() && distance(*intersection, left) > 0.001f && distance(*intersection, right) > 0.001f && distance(*intersection, start) > 0.001f && distance(*intersection, end) > 0.001f) {
-	//					goto nextLoop;
-	//				}
-	//				Debug::drawPoint(points[i], Vec3::GREEN);
-	//			}
-
-	//			Debug::drawPoint((left + right) / 2.0f);
-	//			if (isPointInsideShape((left + right) / 2.0f)) {
-	//				Triangle tri{ .verts = { left, right, points[i] } };
-	//				/*const auto area = det(tri.verts[1] - tri.verts[0], tri.verts[2] - tri.verts[0]) / 2.0f;
-	//				if (area < 0.01f) {
-	//					goto nextLoop;
-	//				}*/
-	//				triangles.push_back(tri);
-	//				points.erase(points.begin() + i);
-	//					
-	//				break;
-	//			}
-
-	//			continue;
-	//			nextLoop:
-	//			int x = 5;
-	//		}
-	//	}
-	//	triangles.push_back(Triangle{ .verts = { points[0], points[1], points[2] } });
-
-	//	if (triangles.size() != oldSize)
-	//		j = triangles.size();
-	//
-	//	points = pointsOld;
-	//}
-
-	//selfIntersecting:
 
 	if (points.size() >= 3 && showTriangulation) {
 		const auto oldSize = triangles.size();
-		auto optTriangles = myTriangulationAlgorithm(points);
-		if (optTriangles.has_value()) {
-			triangles = *optTriangles;
-			if (triangles.size() != oldSize) {
-				j = triangles.size();
-			}
-		} else {
-			triangles.clear();
-			j = 0;
+		triangles = triangulator(points);
+		if (triangles.size() != oldSize) {
+			j = static_cast<int>(triangles.size());
 		}
 	}
+
+	Debug::drawLines(points);
+	Debug::drawSimplePolygon(points);
 
 
 	if (Input::isKeyDown(Keycode::D)) {
@@ -330,19 +191,21 @@ auto TriangulationDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 
 	if (showTriangulation) {
-		for (int i = 0; i < j; i++) {
-			const auto& triangle = triangles[i];
-			Debug::drawLine(triangle.verts[0], triangle.verts[1], Vec3::RED);
-			Debug::drawLine(triangle.verts[1], triangle.verts[2], Vec3::RED);
-			Debug::drawLine(triangle.verts[2], triangle.verts[0], Vec3::RED);
+		for (int k = 0; k < j; k++) {
+			const auto& triangle = triangles[k];
+			Debug::drawLine(triangle.v[0], triangle.v[1], Vec3::RED);
+			Debug::drawLine(triangle.v[1], triangle.v[2], Vec3::RED);
+			Debug::drawLine(triangle.v[2], triangle.v[0], Vec3::RED);
 		}
 	}
 
-	ImGui::SliderInt("i", &i, 0, points.size() - 1);
-	ImGui::SliderInt("j", &j, 0, triangles.size());
+	ImGui::SliderInt("vertex do highlight", &i, 0, static_cast<int>(points.size() - 1));
+	ImGui::SliderInt("triangle count to display", &j, 0, static_cast<int>(triangles.size()));
 	if (points.size() != 0) {
 		Debug::drawPoint(points[i]);
 	}
-
+	if (ImGui::Button("shift points")) {
+		std::rotate(points.begin(), points.begin() + 1, points.end());
+	}
 	renderer.update(gfx, camera);
 }
