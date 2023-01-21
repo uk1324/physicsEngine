@@ -84,3 +84,5 @@ https://shahriyarshahrabi.medium.com/gentle-introduction-to-fluid-simulation-for
 If it were a projection onto the line with on the path using only x or y then it would probably create a spiral. And it would work if dot(a, b) == 0.
 
 Inverse of matrix using cramer's rule
+
+Joining the triangles of a triangulated shape to improve the efficiency of the collider. Might need to construct some conectiveness graph, either during the triangulation algorithm or after. The simplest way would probably be a greedy algorithm.
