@@ -1,6 +1,7 @@
 #include <demos/waterDemo.hpp>
 #include <game/debug.hpp>
 #include <engine/time.hpp>
+#include <engine/renderer.hpp>
 #include <game/input.hpp>
 
 #include <imgui/imgui.h>
@@ -10,7 +11,7 @@ WaterDemo::WaterDemo() {
 	reset();
 }
 
-auto WaterDemo::update(Gfx& gfx, Renderer& renderer) -> void {
+auto WaterDemo::update() -> void {
 	Camera camera;
 	const auto gridSize = CELL_SIZE * Vec2{ GRID_SIZE };
 	// Set corner bottom left corner at [0, 0].
@@ -208,7 +209,7 @@ auto WaterDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 	Checkbox("showDensity", &showDensity);
 	End();
 
-	renderer.update(gfx, camera);
+	Renderer::update(camera);
 }
 
 auto WaterDemo::reset() -> void {

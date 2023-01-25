@@ -1,7 +1,7 @@
 #pragma once
 
 #include <game/editor/editorEntity.hpp>
-#include <game/camera.hpp>
+#include <engine/camera.hpp>
 
 struct DistanceJointGizmo {
 	auto update(

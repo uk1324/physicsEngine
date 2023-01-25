@@ -13,7 +13,7 @@ auto ImGui::fileSelect(const char* label, char* outPath, int maxPathStringLength
 	ASSERT(maxPathStringLength >= MIN_FILE_SELECT_STRING_LENGTH);
 	OPENFILENAMEA openFile{
 		.lStructSize = sizeof(OPENFILENAMEA),
-		.hwndOwner = Window::hWnd(),
+		.hwndOwner = reinterpret_cast<HWND>(Window::hWnd()),
 		.lpstrFilter = filterString,
 		.nFilterIndex = 1,
 		.lpstrFile = outPath,
@@ -60,7 +60,7 @@ auto ImGui::imageSaveFileSelect(const ImageRgba& image, const char* label, const
 	char path[MIN_FILE_SELECT_STRING_LENGTH] = "";
 	OPENFILENAMEA openFile{
 		.lStructSize = sizeof(OPENFILENAMEA),
-		.hwndOwner = Window::hWnd(),
+		.hwndOwner = reinterpret_cast<HWND>(Window::hWnd()),
 		.lpstrFilter = "(*.png)\0*.png\0",
 		.nFilterIndex = 1,
 		.lpstrFile = path,

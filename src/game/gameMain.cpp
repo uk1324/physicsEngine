@@ -1,13 +1,8 @@
 #include <game/gameMain.hpp>
 #include <engine/input.hpp>
 
-GameMain::GameMain(Gfx& gfx) 
-	: renderer{ gfx }
-	, gfx{ gfx }
-	, pixelGames{ gfx } {}
-
 auto GameMain::update() -> void {
-	pixelGames.update(gfx, renderer);
+	pixelGames.update();
 	return;
 
 	//if (Input::isKeyDown(Keycode::TAB)) {
@@ -22,8 +17,8 @@ auto GameMain::update() -> void {
 	//}
 
 	//if (currentScene == Scene::EDITOR) {
-	//	editor.update(gfx, renderer);
+	//	editor.update();
 	//} else if (currentScene == Scene::GAME) {
-	//	game.update(gfx, renderer);
+	//	game.update();
 	//}
 }

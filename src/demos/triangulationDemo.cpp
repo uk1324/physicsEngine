@@ -1,5 +1,6 @@
 #include <demos/triangulationDemo.hpp>
 #include <game/debug.hpp>
+#include <engine/renderer.hpp>
 #include <engine/input.hpp>
 #include <math/mat2.hpp>
 #include <random>
@@ -162,9 +163,8 @@ static auto myTriangulationAlgorithm(const std::vector<Vec2>& points) -> std::op
 	return triangles;
 }
 
-auto TriangulationDemo::update(Gfx& gfx, Renderer& renderer) -> void {
+auto TriangulationDemo::update() -> void {
 	Camera camera;
-
 
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 		points.push_back(camera.cursorPos());
@@ -204,5 +204,5 @@ auto TriangulationDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 	if (ImGui::Button("shift points")) {
 		std::rotate(points.begin(), points.begin() + 1, points.end());
 	}
-	renderer.update(gfx, camera);
+	Renderer::update(camera);
 }

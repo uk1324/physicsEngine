@@ -3,6 +3,7 @@
 #include <game/debug.hpp>
 #include <engine/input.hpp>
 #include <math/mat2.hpp>
+#include <engine/renderer.hpp>
 
 struct ConvexPolygon {
 	std::vector<Vec2> verts;
@@ -52,7 +53,6 @@ static auto minSeparation(const ConvexPolygon& a, Vec2 aPos, const Mat2& aRot, c
 
 		for (auto v : a.verts) {
 			v = v * aRot + aPos;
-			Debug::drawPoint(v);
 			const auto d = dot(n, v);
 			if (d < minA) {
 				minA = d;
@@ -64,7 +64,6 @@ static auto minSeparation(const ConvexPolygon& a, Vec2 aPos, const Mat2& aRot, c
 
 		for (auto v : b.verts) {
 			v = v * bRot + bPos;
-			Debug::drawPoint(v);
 			const auto d = dot(n, v);
 			if (d < minB) {
 				minB = d;
@@ -83,29 +82,8 @@ static auto minSeparation(const ConvexPolygon& a, Vec2 aPos, const Mat2& aRot, c
 		} else {
 			auto min = a.normals[nI] * aRot * 0.1f;
 			auto edge = (a.verts[nI] + a.verts[(nI + 1) % a.verts.size()]) / 2.0f * aRot * 0.1f + aPos;
-			Debug::drawPoint(a.normals[nI] * aRot * minA, Vec3::RED);
-			Debug::drawPoint(a.normals[nI] * aRot * maxA, Vec3::RED);
-			Debug::drawPoint(a.normals[nI] * aRot * minB, Vec3::GREEN);
-			Debug::drawPoint(a.normals[nI] * aRot * maxB, Vec3::GREEN);
-			Debug::drawRay(edge, min, Vec3::GREEN);
-			if (Input::isKeyDown(Keycode::G)) {
-				__debugbreak();
-			}
 			return std::nullopt;
 		}
-
-		/*if (minA <= maxB && maxA >= minB) {
-			auto separation = minB - maxA;
-			if (separation > maxSeparation) {
-				maxSeparation = separation;
-				maxSeparationNormal = nI;
-			}
-		} else if (!(((minA > minB) && (maxA < maxB)) || ((minB > minA) && (maxB < maxA)))) {
-			auto min = a.normals[nI] * aRot * 0.1f;
-			auto edge = (a.verts[nI] + a.verts[(nI + 1) % a.verts.size()]) / 2.0f * aRot * 0.1f + aPos;
-			Debug::drawRay(edge, min, Vec3::GREEN);
-			return std::nullopt;
-		}*/
 	}
 
 	return Separation{
@@ -128,15 +106,74 @@ static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const
 	auto bS = minSeparation(b, bPos, Mat2::rotate(bOrientation), a, aPos, Mat2::rotate(aOrientation));
 	if (!bS.has_value())
 		return;
+
+	const ConvexPolygon* reference;
+	Mat3x2 referenceTransform;
+	const ConvexPolygon* incident;
+	Mat3x2 incidentTransform;
+	Mat2 incidentRot;
+	Vec2 normal;
+
+	Vec2 referenceFaceMidPoint;
 	if (aS->separation > bS->separation) {
-		min = a.normals[aS->edgeIndex] * Mat2::rotate(aOrientation) * aS->separation;
-		edge = (a.verts[aS->edgeIndex] + a.verts[(aS->edgeIndex + 1) % a.verts.size()]) / 2.0f * Mat2::rotate(aOrientation) + aPos;
+		reference = &a;
+		incident = &b;
+		normal = a.normals[aS->edgeIndex] * Mat2::rotate(aOrientation) * aS->separation;
+		referenceFaceMidPoint = (a.verts[aS->edgeIndex] + a.verts[(aS->edgeIndex + 1) % a.verts.size()]) / 2.0f * Mat2::rotate(aOrientation) + aPos;
+		/*min = a.normals[aS->edgeIndex] * Mat2::rotate(aOrientation) * aS->separation;
+		edge = (a.verts[aS->edgeIndex] + a.verts[(aS->edgeIndex + 1) % a.verts.size()]) / 2.0f * Mat2::rotate(aOrientation) + aPos;*/
+		referenceTransform = Mat3x2::rotate(aOrientation) * Mat3x2::translate(aPos);
+		incidentTransform = Mat3x2::rotate(bOrientation) * Mat3x2::translate(bPos);
+		incidentRot = Mat2::rotate(bOrientation);
 	} else {
-		min = b.normals[bS->edgeIndex] * Mat2::rotate(bOrientation) * bS->separation;
-		edge = (b.verts[bS->edgeIndex] + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos;
+		reference = &b;
+		incident = &a;
+		normal = b.normals[bS->edgeIndex] * Mat2::rotate(bOrientation) * bS->separation;
+		referenceFaceMidPoint = (b.verts[bS->edgeIndex] + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos;
+		/*min = b.normals[bS->edgeIndex] * Mat2::rotate(bOrientation) * bS->separation;
+		edge = (b.verts[bS->edgeIndex] + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos;*/
+		referenceTransform = Mat3x2::rotate(bOrientation) * Mat3x2::translate(bPos);
+		incidentTransform = Mat3x2::rotate(aOrientation) * Mat3x2::translate(aPos);
+		incidentRot = Mat2::rotate(aOrientation);
 	}
 
-	Debug::drawRay(edge, min, Vec3::RED);
+	i32 furthestPointOfIndidentInsideReference = 0;
+	auto maxDistance = -std::numeric_limits<float>::infinity();
+	for (usize i = 0; i < incident->verts.size(); i++) {
+		auto d = dot(normal, incident->verts[i] * incidentTransform);
+		if (d > maxDistance) {
+			maxDistance = d;
+			furthestPointOfIndidentInsideReference = i;
+		}
+	}
+
+	/*Debug::drawRay(referenceFaceMidPoint, normal, Vec3::RED);*/
+	//Debug::drawRay(incident, normal, Vec3::RED);
+	Vec2 p = incident->verts[furthestPointOfIndidentInsideReference] * incidentTransform;
+
+	auto face0 = incident->normals[furthestPointOfIndidentInsideReference] * incidentRot;
+	auto face1 = incident->normals[(furthestPointOfIndidentInsideReference - 1) % incident->normals.size()] * incidentRot;
+
+	Debug::drawRay(Vec2{ 0.0f }, face0);
+	Debug::drawRay(Vec2{ 0.0f }, face1);
+	Debug::drawRay(Vec2{ 0.0f }, normal);
+
+	i32 face;
+	if (dot(normal, face0) > dot(normal, face1)) {
+		face = furthestPointOfIndidentInsideReference;
+	} else {
+		face = (furthestPointOfIndidentInsideReference - 1) % incident->normals.size();
+	}
+
+	Debug::drawLine(incident->verts[face] * incidentTransform, incident->verts[(face + 1) % incident->verts.size()] * incidentTransform, Vec3::RED);
+
+	//edge = ( + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos; */
+
+
+	//Debug::drawPoint(p);
+	//Debug::draw
+
+	//Debug::drawRay(edge, min, Vec3::RED);
 }
 
 auto drawPolygon(const ConvexPolygon& polygon, Vec2 pos, float orientation) {
@@ -156,13 +193,16 @@ auto drawPolygon(const ConvexPolygon& polygon, Vec2 pos, float orientation) {
 	Debug::drawRay(midPoint, normals.back() * rotation * 0.05f);
 }
 
-auto TestDemo::update(Gfx& gfx, Renderer& renderer) -> void {
+auto TestDemo::update() -> void {
 	Camera camera;
 
 	Vec2 aPos{ camera.cursorPos() }; 
 	static float aOrientation = 0.0f;
 	if (Input::isKeyHeld(Keycode::A)) {
 		aOrientation += 0.01f;
+	}
+	if (Input::isKeyHeld(Keycode::D)) {
+		aOrientation -= 0.01f;
 	}
 	auto cornersA = BoxCollider{ BoxColliderEditor{ Vec2{ 0.1f } } }.getCorners(Vec2{ 0.0f }, 0.0f);
 	std::vector<Vec2> verticesA;
@@ -171,7 +211,7 @@ auto TestDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 	}
 	/*ConvexPolygon a{ verticesA };
 	a.calculateNormals();*/
-	auto a = makeRegularPolygon(3, 0.2f);
+	auto a = makeRegularPolygon(4, 0.2f);
 
 	Vec2 bPos{ 0.3f, 0.2f };
 	float bOrientation = 0.0f;
@@ -182,12 +222,12 @@ auto TestDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 	//}
 	//ConvexPolygon b{ verticesB };
 	//b.calculateNormals();
-	auto b = makeRegularPolygon(6, 0.2f);
+	auto b = makeRegularPolygon(4, 0.2f);
 
 	drawPolygon(a, aPos, aOrientation);
 	drawPolygon(b, bPos, bOrientation);
 
 	collide(a, aPos, aOrientation, b, bPos, bOrientation);
 
-	renderer.update(gfx, camera);
+	Renderer::update(camera);
 }

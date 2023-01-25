@@ -1,4 +1,4 @@
-#include <game/camera.hpp>
+#include <engine/camera.hpp>
 #include <math/utils.hpp>
 #include <math/aabb.hpp>
 #include <engine/window.hpp>

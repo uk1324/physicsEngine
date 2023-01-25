@@ -1,7 +1,7 @@
 #pragma once
 
-#include <game/renderer.hpp>
 #include <game/bvhCollisionSystem.hpp>
+#include <engine/camera.hpp>
 
 // TODO: Replay system. Mouse position would need to be either saved in world space or later transformed by the camera transform. Could store 2 camera transforms one for the actual camera and the replay camera.
 
@@ -64,7 +64,7 @@ public:
 	auto detectCollisions() -> void;
 	auto loadLevel() -> void;
 	auto drawUi() -> void;
-	auto update(Gfx& gfx, Renderer& renderer) -> void;
+	auto update() -> void;
 	auto physicsStep() -> void;
 
 	Vec2* controlledValue = nullptr;

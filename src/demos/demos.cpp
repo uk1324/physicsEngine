@@ -1,17 +1,12 @@
 #include <demos/demos.hpp>
 #include <imgui/imgui.h>
 
-Demos::Demos(Gfx& gfx)
-	: fourierTransformDemo{ gfx } 
-	, eulerianFluid{ gfx } 
-	, pixelPhysics{ gfx } {}
-	
-auto Demos::update(Gfx& gfx, Renderer& renderer) -> void {
+auto Demos::update() -> void {
 	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_NoDockingInCentralNode | ImGuiDockNodeFlags_PassthruCentralNode);
-	//pixelPhysics.update(gfx, renderer);
-	//triangulationDemo.update(gfx, renderer);
-	//fourierTransformDemo.update(gfx, renderer);
-	//eulerianFluid.update(gfx, renderer);
-	//waterDemo.update(gfx, renderer);
-	testDemo.update(gfx, renderer);
+	//pixelPhysics.update();
+	//triangulationDemo.update();
+	//fourierTransformDemo.update();
+	//eulerianFluid.update();
+	//waterDemo.update();
+	testDemo.update();
 }

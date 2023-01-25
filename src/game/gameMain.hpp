@@ -5,11 +5,7 @@
 #include <demos/demos.hpp>
 
 struct GameMain {
-	GameMain(Gfx& gfx);
 	auto update() -> void;
-
-	Gfx& gfx;
-	Renderer renderer;
 
 	Game game;
 	Editor editor;

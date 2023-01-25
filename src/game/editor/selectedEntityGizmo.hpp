@@ -2,7 +2,7 @@
 
 #include <game/entitesData.hpp>
 #include <game/editor/editorEntity.hpp>
-#include <game/camera.hpp>
+#include <engine/camera.hpp>
 #include <math/utils.hpp>
 
 /*

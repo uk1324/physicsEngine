@@ -1,18 +1,14 @@
 #include <pch.hpp>
-#include <game/renderer.hpp>
-#include <game/debug.hpp>
-#include <math/utils.hpp>
-#include <winUtils.hpp>
+#include <engine/dx11Renderer.hpp>
 #include <engine/window.hpp>
-#include <stdio.h>
-#include <cmath>
+#include <imgui/imgui.h>
+#include <game/debug.hpp>
+#include <winUtils.hpp>
 
 #define BUILD_DIR "./x64/Debug/"
 
-#include <imgui/imgui.h>
-#include <engine/input.hpp>
-
-Renderer::Renderer(Gfx& gfx) {
+Dx11Renderer::Dx11Renderer(Gfx& gfx)
+	: gfx{ gfx } {
 	vsCircle = gfx.vsFromFile(BUILD_DIR L"vsCircle.cso");
 	psCircleCollider = gfx.psFromFile(BUILD_DIR L"psCircleCollider.cso");
 	psCircle = gfx.psFromFile(BUILD_DIR L"psCircle.cso");
@@ -124,7 +120,7 @@ Renderer::Renderer(Gfx& gfx) {
 	ComPtr<ID3D11RasterizerState> rasterizerState;
 	CHECK_WIN_HRESULT(gfx.device->CreateRasterizerState(&rasterizerDesc, rasterizerState.GetAddressOf()));
 	gfx.ctx->RSSetState(rasterizerState.Get());
-	
+
 	const D3D11_BLEND_DESC blendDesc{
 		.AlphaToCoverageEnable = FALSE,
 		.IndependentBlendEnable = FALSE,
@@ -202,7 +198,7 @@ Renderer::Renderer(Gfx& gfx) {
 
 #include <utils/io.hpp>
 
-auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture) -> void {
+auto Dx11Renderer::update(Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture) -> void {
 	const auto windowSize = windowSizeIfRenderingToTexture.has_value() ? *windowSizeIfRenderingToTexture : Window::size();
 	camera.aspectRatio = windowSize.xOverY();
 
@@ -281,13 +277,14 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 				gfx.ctx->PSSetSamplers(0, 1, nearestNeighbourTextureSamplerState.GetAddressOf());
 			}
 
-			gfx.ctx->PSSetShaderResources(0, 1, texture->resourceView.GetAddressOf());
+			auto& textureData = handleToDynamicTextureData[texture->textureHandle];
+			gfx.ctx->PSSetShaderResources(0, 1, textureData.resourceView.GetAddressOf());
 			const auto scale = Vec2{ (static_cast<float>(texture->size().x) / static_cast<float>(texture->size().y)) * (size / 2.0f), size / 2.0f };
 			texturedQuadConstantBuffer.transform = makeTransform(pos, 0.0f, scale);
 			gfx.ctx->VSSetConstantBuffers(0, 1, texturedQuadConstantBufferResource.GetAddressOf());
 
 			D3D11_MAPPED_SUBRESOURCE resource{ 0 };
-			CHECK_WIN_HRESULT(gfx.ctx->Map(texture->texture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource));
+			CHECK_WIN_HRESULT(gfx.ctx->Map(textureData.texture.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource));
 
 			for (i64 y = 0; y < texture->size().y; y++) {
 				auto rowDst = reinterpret_cast<u8*>(resource.pData) + y * resource.RowPitch;
@@ -296,7 +293,7 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 				memcpy(rowDst, rowSrc, rowByteWidth);
 			}
 
-			gfx.ctx->Unmap(texture->texture.Get(), 0);
+			gfx.ctx->Unmap(textureData.texture.Get(), 0);
 
 			// Assumes the fullscreen quad index buffer is set.
 			gfx.ctx->DrawIndexed(static_cast<UINT>(std::size(fullscreenQuadIndices)), 0, 0);
@@ -512,7 +509,7 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 	}
 }
 
-auto Renderer::drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate) -> void {
+auto Dx11Renderer::drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate) -> void {
 	dynamicTexturesToDraw.push_back(DynamicTextureToDraw{
 		.texture = &dynamicTexture,
 		.pos = pos,
@@ -521,11 +518,21 @@ auto Renderer::drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynami
 	});
 }
 
-DynamicTexture::DynamicTexture(Gfx& gfx, Vec2T<i64> size)
-	: ImageRgba{ size } {
+auto Dx11Renderer::createDynamicTextureData(Vec2T<i64> size) -> u64 {
+	DynamicTextureData data{ gfx, size };
+	const auto handle = reinterpret_cast<u64>(data.resourceView.Get());
+	handleToDynamicTextureData[handle] = std::move(data);
+	return handle;
+}
+
+auto Dx11Renderer::destroyDynamicTextureData(u64 handle) -> void {
+	handleToDynamicTextureData.erase(handle);
+}
+
+Dx11Renderer::DynamicTextureData::DynamicTextureData(Gfx& gfx, Vec2T<i64> size) {
 	const D3D11_TEXTURE2D_DESC textureDesc{
-		.Width = static_cast<UINT>(size_.x),
-		.Height = static_cast<UINT>(size_.y),
+		.Width = static_cast<UINT>(size.x),
+		.Height = static_cast<UINT>(size.y),
 		.MipLevels = 1,
 		.ArraySize = 1,
 		.Format = DXGI_FORMAT_R8G8B8A8_UNORM,

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <gfx/gfx.hpp>
-#include <game/renderer.hpp>
-
+#include <engine/renderer.hpp>
 #include <bitset>
 
 // https://tomforsyth1000.github.io/papers/cellular_automata_for_physical_modelling.html
@@ -25,9 +23,9 @@
 // Could make fire lose energy faster when it is surrounded by not air, because it doesn't have access to oxygen.
 
 struct PixelPhysics {
-	PixelPhysics(Gfx& gfx);
+	PixelPhysics();
 
-	auto update(Gfx& gfx, Renderer& renderer) -> void;
+	auto update() -> void;
 
 	DynamicTexture texture;
 	static constexpr Vec2T<i64> GRID_SIZE{ 150, 100 };

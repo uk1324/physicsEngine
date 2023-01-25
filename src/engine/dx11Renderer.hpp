@@ -1,38 +1,39 @@
-#pragma once
-
 #include <gfx/gfx.hpp>
 #include <gfx/hlslTypes.hpp>
-#include <utils/imageRgba.hpp>
-#include <game/camera.hpp>
+#include <engine/renderer.hpp>
 
 #include <vector>
-
-// TODO: Maybe use order independent transparency. It shouldn't be expensive because it is just quads.
-// TODO: Shader preprocesor that when it find DEBUG_OUT(<variable>) it replaces it with if (<variable_flag>) return <variable> and creates a variable <variable_flag>. It also creates maybe a json struct describing the flags. It uses the struct to display a select menu using ImGui. One limitation that it can only be used in the main function.
-
-struct DynamicTexture : ImageRgba {
-	ComPtr<ID3D11Texture2D> texture;
-	ComPtr<ID3D11ShaderResourceView> resourceView;
-
-	DynamicTexture(Gfx& gfx, Vec2T<i64> size);
-};
+#include <unordered_map>
 
 #pragma warning(push)
 #pragma warning(disable : 4324) // Padding added.
-class Renderer {
+class Dx11Renderer {
 public:
-	Renderer(Gfx& gfx);
-	auto update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture = std::nullopt) -> void;
+	Dx11Renderer(Gfx& gfx);
+	auto update(Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture = std::nullopt) -> void;
 	auto drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate = false) -> void;
 
+	auto createDynamicTextureData(Vec2T<i64> size) -> u64;
+	auto destroyDynamicTextureData(u64 handle) -> void;
+
+	ComPtr<ID3D11ShaderResourceView> windowTextureShaderResourceView;
+private:
 	static constexpr Vec2 textureSize{ 1920.0f, 1080.0f };
 	ComPtr<ID3D11Texture2D> windowTexture;
 	ComPtr<ID3D11RenderTargetView> windowTextureRenderTargetView;
-	ComPtr<ID3D11ShaderResourceView> windowTextureShaderResourceView;
 
 	ComPtr<ID3D11SamplerState> nearestNeighbourTextureSamplerState;
 	ComPtr<ID3D11SamplerState> linearTextureSamplerState;
-private:
+
+	struct DynamicTextureData {
+		DynamicTextureData() {};
+		DynamicTextureData(Gfx& gfx, Vec2T<i64> size);
+		ComPtr<ID3D11Texture2D> texture;
+		ComPtr<ID3D11ShaderResourceView> resourceView;
+	};
+
+	std::unordered_map<u64, DynamicTextureData> handleToDynamicTextureData;
+
 	struct DynamicTextureToDraw {
 		DynamicTexture* texture;
 		Vec2 pos;
@@ -40,6 +41,8 @@ private:
 		bool interpolate;
 	};
 	std::vector<DynamicTextureToDraw> dynamicTexturesToDraw;
+
+	Gfx& gfx;
 
 	struct PtVert {
 		Vec2 pos;

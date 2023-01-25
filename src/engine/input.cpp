@@ -118,7 +118,8 @@ auto Input::onMouseMove(Vec2 mousePos) -> void {
 }
 
 auto Input::onMouseScroll(i16 scroll) -> void {
-	scrollDelta_ = static_cast<float>(scroll / WHEEL_DELTA);
+	static constexpr float WHEEL_DELTA = 120.0f;
+	scrollDelta_ = static_cast<float>(scroll) / WHEEL_DELTA;
 }
 
 bool Input::ignoreImGuiWantCapture = false;

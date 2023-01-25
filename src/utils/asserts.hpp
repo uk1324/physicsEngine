@@ -1,8 +1,9 @@
 #pragma once
 
-#include <assert.h>
+#ifdef _DEBUG
+#define ASSERT(expr) do { __debugbreak(); } while (false)
+#else
+#define ASSERT(expr)
+#endif 
 
-
-// TODO: Rewrite to allow enabling asserts in release mode.
-#define ASSERT(expr) assert(expr)
-#define ASSERT_NOT_REACHED() assert(false)
+#define ASSERT_NOT_REACHED() ASSERT(false)

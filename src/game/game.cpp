@@ -7,6 +7,7 @@
 #include <engine/window.hpp>
 #include <math/utils.hpp>
 #include <math/mat2.hpp>
+#include <engine/renderer.hpp>
 #include <imgui/imgui.h>
 
 // spatial hashing / bucketing
@@ -193,7 +194,7 @@ auto Game::drawUi() -> void {
 	End();
 }
 
-auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
+auto Game::update() -> void {
 	camera.aspectRatio = Window::aspectRatio();
 	if (cameraFollow && followedPos != nullptr) {
 		camera.interpolateTo(*followedPos, 2.0f * Time::deltaTime());
@@ -346,7 +347,7 @@ auto Game::update(Gfx& gfx, Renderer& renderer) -> void {
 		Debug::drawRay(bodyPair.a->pos, (bodyPair.b->pos - bodyPair.a->pos).normalized() * joint.requiredDistance);
 	}
 
-	renderer.update(gfx, camera);
+	Renderer::update(camera);
 }
 auto Game::physicsStep() -> void {
 	for (auto& body : bodies) {

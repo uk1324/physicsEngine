@@ -9,8 +9,8 @@
 
 #include <imgui/imgui.h>
 
-FourierTransformDemo::FourierTransformDemo(Gfx& gfx)
-	: texture{ gfx, Vec2T<i64>{ IMAGE_SIZE } } {
+FourierTransformDemo::FourierTransformDemo()
+	: texture{ Vec2T<i64>{ IMAGE_SIZE } } {
 	for (auto pixel : texture.indexed()) {
 		pixel = PixelRgba{ (pixel.pos.x > texture.size().x / 2) ? u8(0) : u8(255) };
 	}
@@ -18,7 +18,7 @@ FourierTransformDemo::FourierTransformDemo(Gfx& gfx)
 
 using namespace ImGui;
 
-auto FourierTransformDemo::update(Gfx& gfx, Renderer& renderer) -> void {
+auto FourierTransformDemo::update() -> void {
 
 	Begin("fourier transform");
 
@@ -132,6 +132,6 @@ auto FourierTransformDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 
 	}
 
-	renderer.drawDynamicTexture(dynamicTexturePos, dynamicTextureSize, texture);
-	renderer.update(gfx, camera);
+	Renderer::drawDynamicTexture(dynamicTexturePos, dynamicTextureSize, texture);
+	Renderer::update(camera);
 }

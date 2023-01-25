@@ -1,12 +1,10 @@
 #pragma once
 
-#include <gfx/gfx.hpp>
-#include <game/renderer.hpp>
 #include <math/triangulate.hpp>
 
 
 struct TriangulationDemo {
-	auto update(Gfx& gfx, Renderer& renderer) -> void;
+	auto update() -> void;
 
 	bool showTriangulation = true;
 	int i = 0;

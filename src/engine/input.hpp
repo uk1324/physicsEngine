@@ -1,6 +1,5 @@
 #pragma once
 
-#include <utils/int.hpp>
 #include <math/vec2.hpp>
 
 #include <bitset>
@@ -49,12 +48,8 @@ enum class MouseButton : u8 {
 	COUNT,
 };
 
-class Window;
-
 // There is no way to make private variables without a class if templated functions are used and also the on<action> functions couldn't be private.
 class Input {
-	friend class Window;
-
 public:
 	template<typename ButtonEnum>
 	static auto registerKeyButton(Keycode key, ButtonEnum button) -> void;
@@ -88,11 +83,11 @@ public:
 
 	static bool ignoreImGuiWantCapture;
 
-private:
 	static auto onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void;
 	static auto onKeyUp(u8 virtualKeyCode) -> void;
 	static auto onMouseMove(Vec2 mousePos) -> void;
 	static auto onMouseScroll(i16 scroll) -> void;
+private:
 
 	static constexpr auto MOUSE_BUTTON_COUNT = static_cast<size_t>(MouseButton::COUNT);
 	static constexpr auto KEYCODE_COUNT = static_cast<size_t>(Keycode::COUNT);

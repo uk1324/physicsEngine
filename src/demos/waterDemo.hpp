@@ -1,7 +1,6 @@
 #pragma once
 
-#include <gfx/gfx.hpp>
-#include <game/renderer.hpp>
+#include <math/vec2.hpp>
 
 // Compute the vertical pressure.
 // Iterate from top to bottom. if water then Pressure = above pressure + 1 else 0
@@ -10,9 +9,10 @@
 // One thing that is probably not worth implementing is making the visuals actually preserve volume. This might even look weird in some cases. Like how would water falling down look if it doesn't take the full with of a block. It is easier to preserve the volume in the code logic and just make it look smooth in the drawing logic. Could even do something with signed distance fields to make the shapes really smooth. Not sure how to implement this. Just simply bilinearlly interpolating the values doesn't look good.
 
 // Could try interpolating the water falling down in between frames. This might not work out thought, because it might break other water moving, although it shouldn't if it is strictly done in between frames. Not sure if it would look good or just weird.
+
 struct WaterDemo {
 	WaterDemo();
-	auto update(Gfx& gfx, Renderer& renderer) -> void;
+	auto update() -> void;
 	auto reset() -> void;
 
 	struct Cell {

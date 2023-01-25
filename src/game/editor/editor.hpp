@@ -1,11 +1,11 @@
 #pragma once
 
-#include <game/renderer.hpp>
 #include <game/editor/selectedEntityGizmo.hpp>
 #include <game/editor/distanceJointGizmo.hpp>
 #include <game/editor/scalingGizmo.hpp>
 #include <game/editor/commands.hpp>
 #include <game/editor/editorGuiState.hpp>
+#include <engine/renderer.hpp>
 
 #include <unordered_set>
 
@@ -13,7 +13,7 @@ class Editor {
 public:
 	Editor();
 	auto registerInputButtons() -> void;
-	auto update(Gfx& gfx, Renderer& renderer) -> void;
+	auto update() -> void;
 
 	auto saveCurrentLevel() -> void;
 

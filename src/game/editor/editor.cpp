@@ -62,7 +62,7 @@ auto sortedInsert(std::vector<T>& vec, const T& item) -> void {
 
 #include <filesystem>
 
-auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
+auto Editor::update() -> void {
 	using namespace ImGui;
 
 	DockSpaceOverViewport(GetMainViewport());
@@ -152,7 +152,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMax()
 	);
 	const auto sceneWindowSize = sceneWindowWindowSpace.size();
-	ImGui::Image(reinterpret_cast<void*>(renderer.windowTextureShaderResourceView.Get()), sceneWindowSize, Vec2{ 0.0f }, sceneWindowSize / renderer.textureSize);
+	ImGui::Image(reinterpret_cast<void*>(Renderer::outputTextureHandle()), sceneWindowSize, Vec2{ 0.0f }, sceneWindowSize / Renderer::textureSize);
 
 	if (IsWindowHovered()) {
 		Input::ignoreImGuiWantCapture = true;
@@ -597,7 +597,7 @@ auto Editor::update(Gfx& gfx, Renderer& renderer) -> void {
 		scalingGizmo.draw(selectedEntities, selectedEntitesAabb, entites);
 	}
 
-	renderer.update(gfx, camera, sceneWindowSize);
+	Renderer::update(camera, sceneWindowSize);
 
 	debugChecks();
 }

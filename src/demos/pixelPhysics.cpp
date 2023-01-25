@@ -10,8 +10,8 @@ using namespace ImGui;
 
 #include <random>
 
-PixelPhysics::PixelPhysics(Gfx& gfx)
-	: texture{ gfx, GRID_SIZE } {
+PixelPhysics::PixelPhysics()
+	: texture{ GRID_SIZE } {
 	for (i64 x = 0; x < GRID_SIZE.x; x++) {
 		for (i64 y = 0; y < GRID_SIZE.y; y++) {
 			if (x == 0 || x == GRID_SIZE.x - 1 || y == 0 || y == GRID_SIZE.y - 1) {
@@ -24,7 +24,7 @@ PixelPhysics::PixelPhysics(Gfx& gfx)
 
 }
 
-auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
+auto PixelPhysics::update() -> void {
 	const auto gridSize = CELL_SIZE * Vec2{ GRID_SIZE };
 	// Set corner bottom left corner at [0, 0].
 	const auto gridCenter = gridSize / 2.0f;
@@ -424,8 +424,8 @@ auto PixelPhysics::update(Gfx& gfx, Renderer& renderer) -> void {
 		}
 	}
 
-	renderer.drawDynamicTexture(gridCenter, gridSize.y, texture);
-	renderer.update(gfx, camera);
+	Renderer::drawDynamicTexture(gridCenter, gridSize.y, texture);
+	Renderer::update(camera);
 }
 
 auto PixelPhysics::blockAt(Vec2T<i64> pos) -> Block& {

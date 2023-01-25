@@ -1,10 +1,10 @@
 #pragma once
 
-#include <gfx/gfx.hpp>
-#include <game/renderer.hpp>
+#include <engine/renderer.hpp>
 #include <math/vec2.hpp>
 
 #include <bitset>
+#include <vector>
 
 // Based on https://www.youtube.com/watch?v=iKAVRgIrUOU
 // Eulerian means grid based.
@@ -54,8 +54,8 @@ public:
 // TODO: Fluid simulation with diffusion: https://damassets.autodesk.net/content/dam/autodesk/research/publications-assets/pdf/realtime-fluid-dynamics-for.pdf
 struct EulerianFluidDemo {
 	Fluid fluid;
-	EulerianFluidDemo(Gfx& gfx);
-	auto update(Gfx& gfx, Renderer& renderer) -> void;
+	EulerianFluidDemo();
+	auto update() -> void;
 	static constexpr Vec2T<i64> GRID_SIZE{ 2 * 96 + 2, 2 * 50 + 2 };
 	static constexpr float SPACE_BETWEEN_CELLS = 0.02f;
 	DynamicTexture texture;

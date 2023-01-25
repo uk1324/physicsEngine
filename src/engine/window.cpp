@@ -5,6 +5,69 @@
 #include <stdlib.h>
 #include <imgui/imgui_impl_win32.h>
 
+static constexpr auto WINDOW_CLASS_NAME = "game";
+
+static HWND hWnd_;
+
+static Vec2 size_;
+static bool firstFrame;
+static bool resizedOnThisFrame;
+
+static bool running_;
+static int exitCode_;
+
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+static auto WINAPI windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
+	if (const auto result = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+		return !result;
+	}
+
+	switch (msg) {
+	case WM_CLOSE:
+		PostQuitMessage(EXIT_SUCCESS);
+		return 0;
+
+	case WM_SIZE:
+		// Resizing sends a lot of WM_SIZE messages and blocks the game loop by sending all the messages to this callback function. This is probably better because the swap chain doesn't need to get resized on every frame that the window is being resized and only gets updated once, when the application goes back to executing the game loop. Googling "win32 resizing blocking" gives good information about it.
+		const auto size = MAKEPOINTS(lParam);
+		size_.x = size.x;
+		size_.y = size.y;
+		resizedOnThisFrame = true;
+		break;
+
+	case WM_MOUSEMOVE:
+		const auto pos = MAKEPOINTS(lParam);
+		Input::onMouseMove(Vec2{ static_cast<float>(pos.x), static_cast<float>(pos.y) });
+		break;
+
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN: {
+		const auto autoRepeat = static_cast<bool>(lParam >> 30);
+		Input::onKeyDown(static_cast<u8>(wParam), autoRepeat);
+	} break;
+
+	case WM_KEYUP:
+	case WM_SYSKEYUP: {
+		Input::onKeyUp(static_cast<u8>(wParam));
+	} break;
+
+	case WM_LBUTTONDOWN: Input::onKeyDown(VK_LBUTTON, false); break;
+	case WM_RBUTTONDOWN: Input::onKeyDown(VK_RBUTTON, false); break;
+	case WM_MBUTTONDOWN: Input::onKeyDown(VK_MBUTTON, false); break;
+
+	case WM_LBUTTONUP: Input::onKeyUp(VK_LBUTTON); break;
+	case WM_RBUTTONUP: Input::onKeyUp(VK_RBUTTON); break;
+	case WM_MBUTTONUP: Input::onKeyUp(VK_MBUTTON); break;
+
+	case WM_MOUSEWHEEL:
+		Input::onMouseScroll(GET_WHEEL_DELTA_WPARAM(wParam));
+		break;
+	}
+
+	return DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
 auto Window::init(const char* title, Vec2 size) -> void {
 	exitCode_ = EXIT_SUCCESS;
 	running_ = true;
@@ -83,67 +146,30 @@ auto Window::update() -> void {
 	}
 }
 
+auto Window::hWnd() -> void* {
+	return hWnd_;
+}
+
+auto Window::size() -> const Vec2& {
+	return size_;
+}
+
+auto Window::aspectRatio() -> float {
+	return size_.x / size_.y;
+}
+
+auto Window::resized() -> bool { 
+	return resizedOnThisFrame; 
+}
+
+auto Window::running() -> bool {
+	return running_;
+}
+
+auto Window::exitCode() -> int {
+	return exitCode_;
+}
+
 auto Window::maximize() -> void {
 	PostMessage(hWnd_, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
 }
-
-extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-auto WINAPI Window::windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
-	if (const auto result = ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
-		return !result;
-	}
-
-	switch (msg) {
-	case WM_CLOSE:
-		PostQuitMessage(EXIT_SUCCESS);
-		return 0;
-
-	case WM_SIZE:
-		// Resizing sends a lot of WM_SIZE messages and blocks the game loop by sending all the messages to this callback function. This is probably better because the swap chain doesn't need to get resized on every frame that the window is being resized and only gets updated once, when the application goes back to executing the game loop. Googling "win32 resizing blocking" gives good information about it.
-		const auto size = MAKEPOINTS(lParam);
-		size_.x = size.x;
-		size_.y = size.y;
-		resizedOnThisFrame = true;
-		break;
-
-	case WM_MOUSEMOVE:
-		const auto pos = MAKEPOINTS(lParam);
-		Input::onMouseMove(Vec2{ static_cast<float>(pos.x), static_cast<float>(pos.y) });
-		break;
-
-	case WM_KEYDOWN:
-	case WM_SYSKEYDOWN: {
-		const auto autoRepeat = static_cast<bool>(lParam >> 30);
-		Input::onKeyDown(static_cast<u8>(wParam), autoRepeat);
-	} break;
-
-	case WM_KEYUP:
-	case WM_SYSKEYUP: {
-		Input::onKeyUp(static_cast<u8>(wParam));
-	} break;
-
-	case WM_LBUTTONDOWN: Input::onKeyDown(VK_LBUTTON, false); break;
-	case WM_RBUTTONDOWN: Input::onKeyDown(VK_RBUTTON, false); break;
-	case WM_MBUTTONDOWN: Input::onKeyDown(VK_MBUTTON, false); break;
-
-	case WM_LBUTTONUP: Input::onKeyUp(VK_LBUTTON); break;
-	case WM_RBUTTONUP: Input::onKeyUp(VK_RBUTTON); break;
-	case WM_MBUTTONUP: Input::onKeyUp(VK_MBUTTON); break;
-
-	case WM_MOUSEWHEEL:
-		Input::onMouseScroll(GET_WHEEL_DELTA_WPARAM(wParam));
-		break;
-	}
-
-	return DefWindowProc(hWnd, msg, wParam, lParam);
-}
-
-HWND Window::hWnd_;
-
-Vec2 Window::size_;
-bool Window::firstFrame;
-bool Window::resizedOnThisFrame;
-
-int Window::exitCode_;
-bool Window::running_;

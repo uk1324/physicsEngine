@@ -1,14 +1,12 @@
 #pragma once
 
-#include <gfx/gfx.hpp>
-#include <game/renderer.hpp>
-
+#include <engine/renderer.hpp>
 #include <complex>
 
 struct FourierTransformDemo {
-	FourierTransformDemo(Gfx& gfx);
+	FourierTransformDemo();
 
-	auto update(Gfx& gfx, Renderer& renderer) -> void;
+	auto update() -> void;
 
 	Camera camera;
 

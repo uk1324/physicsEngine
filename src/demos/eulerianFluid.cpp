@@ -197,8 +197,8 @@ auto Fluid::isWall(i64 x, i64 y) const -> bool {
 	return isWallValues[x * gridSize.y + y];
 }
 
-EulerianFluidDemo::EulerianFluidDemo(Gfx& gfx) 
-	: texture{ gfx, GRID_SIZE }
+EulerianFluidDemo::EulerianFluidDemo() 
+	: texture{ GRID_SIZE }
 	, fluid{ GRID_SIZE, SPACE_BETWEEN_CELLS } {
 
 	walls.resize(fluid.gridSize.x * fluid.gridSize.y, false);
@@ -207,7 +207,7 @@ EulerianFluidDemo::EulerianFluidDemo(Gfx& gfx)
 // After a while the fluid stops moving. Do the walls stop the fluid or is it just numerical precision?
 // Not sure if the pressures are correct. The fluid should flow from hight pressure area to low pressure ones to even it out. Not sure if this is always the case. It kind of looks wrong sometimes, but this might be because the low pressure areas are created because fluid is pushed out of them and this force is stronger than the force that moves the high pressure values into the low pressure ones. The pressure seems to looks good when there is gravity. The high pressures concentrates on the bottoms of enclosed areas. If there are multiple boxes it also looks good.
 // Could also implement diffusion. Currently the smoke only moves with the fluid. This can be seen by pausing and just pressing the left mouse button on different points and unpausing. This creates spots of different densites of the smoke.
-auto EulerianFluidDemo::update(Gfx& gfx, Renderer& renderer) -> void {
+auto EulerianFluidDemo::update() -> void {
 	Camera camera;
 	// TODO: Maybe move this to renderer update. The window size has to be passed anyway. Technically the window size only needs to be passed if it rendering to a texture so maybe make that an optional arugment.
 	camera.aspectRatio = Window::aspectRatio();
@@ -444,6 +444,6 @@ auto EulerianFluidDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 		Debug::drawRay(fluidPosToCameraPos(Vec2{ gridPos } * fluid.cellSpacing), (velocity / (Vec2{ fluid.gridSize } *fluid.cellSpacing) * textureSize * Time::deltaTime() * 4.0f).flippedY(), Vec3::GREEN);
 	}
 
-	renderer.drawDynamicTexture(texturePos, textureHeight, texture, true);
-	renderer.update(gfx, camera);
+	Renderer::drawDynamicTexture(texturePos, textureHeight, texture, true);
+	Renderer::update(camera);
 }
