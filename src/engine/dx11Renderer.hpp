@@ -17,8 +17,8 @@ public:
 	auto destroyDynamicTextureData(u64 handle) -> void;
 
 	ComPtr<ID3D11ShaderResourceView> windowTextureShaderResourceView;
-private:
 	static constexpr Vec2 textureSize{ 1920.0f, 1080.0f };
+private:
 	ComPtr<ID3D11Texture2D> windowTexture;
 	ComPtr<ID3D11RenderTargetView> windowTextureRenderTargetView;
 

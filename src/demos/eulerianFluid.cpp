@@ -2,9 +2,9 @@
 #include <engine/time.hpp>
 #include <engine/input.hpp>
 #include <engine/window.hpp>
+#include <engine/debug.hpp>
 #include <math/utils.hpp>
 #include <math/aabb.hpp>
-#include <game/debug.hpp>
 
 #include <imgui/imgui.h>
 using namespace ImGui;

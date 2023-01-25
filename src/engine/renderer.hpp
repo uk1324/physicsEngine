@@ -21,8 +21,7 @@ public:
 
 	static auto drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate = false) -> void;
 	static auto outputTextureHandle() -> void*;
-	// @Hack: copied from dx11.
-	static constexpr Vec2 textureSize{ 1920.0f, 1080.0f };
+	static auto textureSize() -> Vec2;
 private:
 
 	static auto createDynamicTexture(Vec2T<i64> size) -> u64;

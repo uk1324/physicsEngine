@@ -1,5 +1,5 @@
 #include <demos/triangulationDemo.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 #include <engine/renderer.hpp>
 #include <engine/input.hpp>
 #include <math/mat2.hpp>

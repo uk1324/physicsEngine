@@ -1,8 +1,8 @@
 #include <pch.hpp>
 #include <engine/dx11Renderer.hpp>
 #include <engine/window.hpp>
+#include <engine/debug.hpp>
 #include <imgui/imgui.h>
-#include <game/debug.hpp>
 #include <winUtils.hpp>
 
 #define BUILD_DIR "./x64/Debug/"

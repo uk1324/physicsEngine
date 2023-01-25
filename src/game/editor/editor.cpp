@@ -1,9 +1,9 @@
 #include <game/editor/editor.hpp>
-#include <game/debug.hpp>
 #include <imgui/imgui.h>
 #include <game/editor/input.hpp>
 #include <game/collision/collision.hpp>
 #include <game/levelFormat.hpp>
+#include <engine/debug.hpp>
 #include <engine/time.hpp>
 #include <engine/frameAllocator.hpp>
 #include <math/lineSegment.hpp>
@@ -152,7 +152,7 @@ auto Editor::update() -> void {
 		Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMax()
 	);
 	const auto sceneWindowSize = sceneWindowWindowSpace.size();
-	ImGui::Image(reinterpret_cast<void*>(Renderer::outputTextureHandle()), sceneWindowSize, Vec2{ 0.0f }, sceneWindowSize / Renderer::textureSize);
+	ImGui::Image(Renderer::outputTextureHandle(), sceneWindowSize, Vec2{ 0.0f }, sceneWindowSize / Renderer::textureSize());
 
 	if (IsWindowHovered()) {
 		Input::ignoreImGuiWantCapture = true;

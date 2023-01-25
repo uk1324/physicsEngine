@@ -5,6 +5,7 @@
 #include <imgui/imgui_impl_win32.h>
 
 static std::unique_ptr<Gfx> gfx;
+// Could make renderer an interface.
 static std::unique_ptr<Dx11Renderer> renderer;
 
 auto Renderer::init() -> void {
@@ -42,6 +43,10 @@ auto Renderer::drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynami
 
 auto Renderer::outputTextureHandle() -> void* {
 	return renderer->windowTextureShaderResourceView.Get();
+}
+
+auto Renderer::textureSize() -> Vec2 {
+	return Dx11Renderer::textureSize;
 }
 
 auto Renderer::createDynamicTexture(Vec2T<i64> size) -> u64 {

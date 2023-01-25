@@ -4,7 +4,7 @@
 #include <math/mat2.hpp>
 #include <math/vec3.hpp>
 #include <math/utils.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 
 #include <utils/overloaded.hpp>
 

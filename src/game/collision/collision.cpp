@@ -41,8 +41,6 @@ auto Collision::update(ContactPoint* newContacts, i32 newContactCount) -> void {
 	contactCount = newContactCount;
 }
 
-#include <game/debug.hpp>
-
 auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 	for (int i = 0; i < contactCount; ++i) {
 		ContactPoint* c = contacts + i;
@@ -430,17 +428,209 @@ static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
 	c[1].v = pos + c[1].v * Rot;
 }
 
-//auto collide(Vec2 aPos, float aOrientation, Span, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision> {
+//struct ConvexPolygon {
+//	std::vector<Vec2> verts;
+//	std::vector<Vec2> normals;
 //
+//	auto calculateNormals() -> void {
+//		if (verts.size() < 3) {
+//			ASSERT_NOT_REACHED();
+//			return;
+//		}
+//
+//		for (usize i = 0; i < verts.size() - 1; i++) {
+//			normals.push_back((verts[i + 1] - verts[i]).rotBy90deg().normalized());
+//		}
+//		normals.push_back((verts[0] - verts.back()).rotBy90deg().normalized());
+//	}
+//};
+//
+//struct Separation {
+//	float separation;
+//	i32 edgeIndex;
+//};
+//
+//static auto minSeparation(const ConvexPolygon& a, Vec2 aPos, const Mat2& aRot, const ConvexPolygon& b, Vec2 bPos, const Mat2& bRot) -> std::optional<Separation> {
+//	auto maxSeparation = -std::numeric_limits<float>::infinity();
+//	i32 maxSeparationNormal = 0;
+//
+//	for (i32 nI = 0; nI < a.normals.size(); nI++) {
+//		auto n = a.normals[nI];
+//		n *= aRot;
+//
+//		auto minA = std::numeric_limits<float>::infinity();
+//		auto maxA = -minA;
+//		auto minB = minA, maxB = maxA;
+//
+//		for (auto v : a.verts) {
+//			v = v * aRot + aPos;
+//			const auto d = dot(n, v);
+//			if (d < minA) {
+//				minA = d;
+//			}
+//			if (d > maxA) {
+//				maxA = d;
+//			}
+//		}
+//
+//		for (auto v : b.verts) {
+//			v = v * bRot + bPos;
+//			const auto d = dot(n, v);
+//			if (d < minB) {
+//				minB = d;
+//			}
+//			if (d > maxB) {
+//				maxB = d;
+//			}
+//		}
+//
+//		if (minA <= maxB && maxA >= minB) {
+//			auto separation = minB - maxA;
+//			if (separation > maxSeparation) {
+//				maxSeparation = separation;
+//				maxSeparationNormal = nI;
+//			}
+//		} else {
+//			auto min = a.normals[nI] * aRot * 0.1f;
+//			auto edge = (a.verts[nI] + a.verts[(nI + 1) % a.verts.size()]) / 2.0f * aRot * 0.1f + aPos;
+//			return std::nullopt;
+//		}
+//	}
+//
+//	return Separation{
+//		maxSeparation,
+//		maxSeparationNormal
+//	};
 //}
-
-//auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision> {
-//	const auto normalsA = Mat2::rotate(aOrientation), normalsB = Mat2::rotate(bOrientation);
-//	const auto halfSizeA = aBox.size / 2.0f, halfSizeB = bBox.size / 2.0f;
 //
-//	const auto vertsA = aBox.getCorners(aPos, aOrientation), vertsB = aBox.getCorners(aPos, aOrientation);
-//	
-//	//if (dot())
+////struct Transform {
+////
+////};
+//
+//struct Contact {
+//	Vec2 pos;
+//	float penetration;
+//};
+//
+//static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const ConvexPolygon& b, Vec2 bPos, float bOrientation) -> std::vector<Contact> {
+//	Vec2 min;
+//	Vec2 edge;
+//
+//	auto aS = minSeparation(a, aPos, Mat2::rotate(aOrientation), b, bPos, Mat2::rotate(bOrientation));
+//	if (!aS.has_value())
+//		return;
+//	auto bS = minSeparation(b, bPos, Mat2::rotate(bOrientation), a, aPos, Mat2::rotate(aOrientation));
+//	if (!bS.has_value())
+//		return;
+//
+//	const ConvexPolygon* reference;
+//	Mat3x2 referenceTransform;
+//	const ConvexPolygon* incident;
+//	Mat3x2 incidentTransform;
+//	Mat2 incidentRot;
+//	Vec2 normal;
+//
+//	Vec2 edgeStart;
+//	Vec2 edgeEnd;
+//
+//	Vec2 referenceFaceMidPoint;
+//	if (aS->separation > bS->separation) {
+//		reference = &a;
+//		incident = &b;
+//		normal = a.normals[aS->edgeIndex] * Mat2::rotate(aOrientation) * aS->separation;
+//		referenceFaceMidPoint = (a.verts[aS->edgeIndex] + a.verts[(aS->edgeIndex + 1) % a.verts.size()]) / 2.0f * Mat2::rotate(aOrientation) + aPos;
+//		/*min = a.normals[aS->edgeIndex] * Mat2::rotate(aOrientation) * aS->separation;
+//		edge = (a.verts[aS->edgeIndex] + a.verts[(aS->edgeIndex + 1) % a.verts.size()]) / 2.0f * Mat2::rotate(aOrientation) + aPos;*/
+//		referenceTransform = Mat3x2::rotate(aOrientation) * Mat3x2::translate(aPos);
+//		incidentTransform = Mat3x2::rotate(bOrientation) * Mat3x2::translate(bPos);
+//		incidentRot = Mat2::rotate(bOrientation);
+//		edgeStart = a.verts[aS->edgeIndex] * referenceTransform;
+//		edgeEnd = a.verts[(aS->edgeIndex + 1) % a.verts.size()] * referenceTransform;
+//	} else {
+//		reference = &b;
+//		incident = &a;
+//		normal = b.normals[bS->edgeIndex] * Mat2::rotate(bOrientation) * bS->separation;
+//		referenceFaceMidPoint = (b.verts[bS->edgeIndex] + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos;
+//		/*min = b.normals[bS->edgeIndex] * Mat2::rotate(bOrientation) * bS->separation;
+//		edge = (b.verts[bS->edgeIndex] + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos;*/
+//		referenceTransform = Mat3x2::rotate(bOrientation) * Mat3x2::translate(bPos);
+//		incidentTransform = Mat3x2::rotate(aOrientation) * Mat3x2::translate(aPos);
+//		incidentRot = Mat2::rotate(aOrientation);
+//		edgeStart = b.verts[bS->edgeIndex] * referenceTransform;
+//		edgeEnd = b.verts[(bS->edgeIndex + 1) % b.verts.size()] * referenceTransform;
+//	}
+//
+//	i32 furthestPointOfIndidentInsideReference = 0;
+//	auto maxDistance = -std::numeric_limits<float>::infinity();
+//	for (usize i = 0; i < incident->verts.size(); i++) {
+//		auto d = dot(normal, incident->verts[i] * incidentTransform);
+//		if (d > maxDistance) {
+//			maxDistance = d;
+//			furthestPointOfIndidentInsideReference = i;
+//		}
+//	}
+//
+//	auto getEdges = [](const ConvexPolygon* p, u32 i, const Mat3x2& t) -> std::pair<Vec2, Vec2> {
+//		return { p->verts[i] * t, p->verts[(i + 1) % p->verts.size()] * t };
+//	};
+//
+//
+//	auto face0Index = furthestPointOfIndidentInsideReference;
+//	auto face1Index = (furthestPointOfIndidentInsideReference - 1);
+//	if (face1Index < 0) {
+//		face1Index = incident->normals.size() - 1;
+//	}
+//	auto face0 = incident->normals[face0Index] * incidentRot;
+//	auto face1 = incident->normals[face1Index] * incidentRot;
+//
+//	i32 face;
+//	if (dot(normal, face0) > dot(normal, face1)) {
+//		face = face0Index;
+//	} else {
+//		face = face1Index;
+//	}
+//
+//	auto incidentEdges = getEdges(incident, face, incidentTransform);
+//
+//	Line lineA{ edgeStart, edgeStart + normal };
+//	Line lineB{ edgeEnd, edgeEnd - normal };
+//
+//	auto clipPoints = [](const std::pair<Vec2, Vec2>& points, const Line& line) -> std::pair<Vec2, Vec2> {
+//		auto clipPoint = [](Vec2 p, const Line& line, const Line& edgeLine) -> Vec2 {
+//			auto distanceFromLine = signedDistance(line, p);
+//			if (distanceFromLine > 0.0f) {
+//				auto x = line.intersection(edgeLine);
+//				if (!x.has_value()) {
+//					//Debug::drawPoint(Vec2{ 0.0f }, Vec3::GREEN);
+//				}
+//
+//				return *x;
+//			}
+//			return p;
+//		};
+//
+//		Line edgeLine{ points.first, points.second };
+//
+//		return {
+//			clipPoint(points.first, line, edgeLine),
+//			clipPoint(points.second, line, edgeLine)
+//		};
+//	};
+//
+//	auto cliped = clipPoints(incidentEdges, lineA);
+//	cliped = clipPoints(cliped, lineB);
+//
+//	std::vector<Contact> points;
+//	Line incidentFaceLine{ edgeStart, edgeEnd };
+//	auto d = signedDistance(incidentFaceLine, cliped.first);
+//	if (d >= 0.0f) {
+//		points.push_back({ cliped.first, d });
+//	}
+//
+//	d = signedDistance(incidentFaceLine, cliped.second);
+//	if (d >= 0.0f) {
+//		points.push_back({ cliped.second, d });
+//	}
 //}
 
 auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision> {

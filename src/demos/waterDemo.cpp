@@ -1,5 +1,5 @@
 #include <demos/waterDemo.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 #include <engine/time.hpp>
 #include <engine/renderer.hpp>
 #include <game/input.hpp>

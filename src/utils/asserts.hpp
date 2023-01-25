@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef _DEBUG
-#define ASSERT(expr) do { __debugbreak(); } while (false)
+#define ASSERT(expr) do { if (!(expr)) { __debugbreak(); } } while (false)
 #else
 #define ASSERT(expr)
 #endif 

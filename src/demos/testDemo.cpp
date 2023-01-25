@@ -1,9 +1,15 @@
 #include <demos/testDemo.hpp>
 #include <game/collision/collision.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 #include <engine/input.hpp>
 #include <math/mat2.hpp>
 #include <engine/renderer.hpp>
+#include <math/transform.hpp>
+
+//struct Edge {
+//	Vec2 edgeStartVert;
+//	Vec2 edgeNormal;
+//};
 
 struct ConvexPolygon {
 	std::vector<Vec2> verts;
@@ -22,6 +28,25 @@ struct ConvexPolygon {
 	}
 };
 
+struct ContactManifoldPoint {
+	Vec2 pos;
+	float penetration;
+	i32 id;
+};
+
+struct ContactManifold {
+	// SAT with clipping can return at most 2 contactPoints. I don't think there is a case when a convex shape would need more than 2 contact points. There is either face vs face, face vs vertex or vertex vs vertex.
+	ContactManifoldPoint contactPoints[2];
+	i32 contactPointsCount;
+	Vec2 normal;
+
+	float invNormalEffectiveMass;
+	float invTangentEffectiveMass;
+
+	float accumulatedNormalImpluse = 0.0f;
+	float accumulatedTangentImpulse = 0.0f;
+};
+
 struct Separation {
 	float separation;
 	i32 edgeIndex;
@@ -33,7 +58,7 @@ static auto makeRegularPolygon(i32 sides, float radius) -> ConvexPolygon {
 	ConvexPolygon polygon;
 	const auto angleStep = TAU<float> / sides;
 	for (i32 i = 0; i < sides; i++) {
-		polygon.verts.push_back(Vec2::oriented(angleStep * i) * radius);
+		polygon.verts.push_back(Vec2::oriented(angleStep / 2.0f + angleStep * i) * radius);
 	}
 	polygon.calculateNormals();
 	return polygon;
@@ -96,6 +121,11 @@ static auto minSeparation(const ConvexPolygon& a, Vec2 aPos, const Mat2& aRot, c
 //
 //};
 
+struct Contact {
+	Vec2 pos;
+	float penetration;
+};
+
 static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const ConvexPolygon& b, Vec2 bPos, float bOrientation) -> void {
 	Vec2 min;
 	Vec2 edge;
@@ -114,6 +144,9 @@ static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const
 	Mat2 incidentRot;
 	Vec2 normal;
 
+	Vec2 edgeStart;
+	Vec2 edgeEnd;
+
 	Vec2 referenceFaceMidPoint;
 	if (aS->separation > bS->separation) {
 		reference = &a;
@@ -125,6 +158,8 @@ static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const
 		referenceTransform = Mat3x2::rotate(aOrientation) * Mat3x2::translate(aPos);
 		incidentTransform = Mat3x2::rotate(bOrientation) * Mat3x2::translate(bPos);
 		incidentRot = Mat2::rotate(bOrientation);
+		edgeStart = a.verts[aS->edgeIndex] * referenceTransform;
+		edgeEnd = a.verts[(aS->edgeIndex + 1) % a.verts.size()] * referenceTransform;
 	} else {
 		reference = &b;
 		incident = &a;
@@ -135,6 +170,8 @@ static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const
 		referenceTransform = Mat3x2::rotate(bOrientation) * Mat3x2::translate(bPos);
 		incidentTransform = Mat3x2::rotate(aOrientation) * Mat3x2::translate(aPos);
 		incidentRot = Mat2::rotate(aOrientation);
+		edgeStart = b.verts[bS->edgeIndex] * referenceTransform;
+		edgeEnd = b.verts[(bS->edgeIndex + 1) % b.verts.size()] * referenceTransform;
 	}
 
 	i32 furthestPointOfIndidentInsideReference = 0;
@@ -147,33 +184,99 @@ static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const
 		}
 	}
 
-	/*Debug::drawRay(referenceFaceMidPoint, normal, Vec3::RED);*/
-	//Debug::drawRay(incident, normal, Vec3::RED);
-	Vec2 p = incident->verts[furthestPointOfIndidentInsideReference] * incidentTransform;
+	auto getEdges = [](const ConvexPolygon* p, u32 i, const Mat3x2& t) -> std::pair<Vec2, Vec2> {
+		return { p->verts[i] * t, p->verts[(i + 1) % p->verts.size()] * t };
+	};
 
-	auto face0 = incident->normals[furthestPointOfIndidentInsideReference] * incidentRot;
-	auto face1 = incident->normals[(furthestPointOfIndidentInsideReference - 1) % incident->normals.size()] * incidentRot;
+	auto drawEdge = [](const ConvexPolygon* p, u32 i, const Mat3x2& t) -> void {
+		Debug::drawLine(p->verts[i] * t, p->verts[(i + 1) % p->verts.size()] * t, Vec3::RED);
+	};
 
-	Debug::drawRay(Vec2{ 0.0f }, face0);
-	Debug::drawRay(Vec2{ 0.0f }, face1);
-	Debug::drawRay(Vec2{ 0.0f }, normal);
+	/*Vec2 p = incident->verts[furthestPointOfIndidentInsideReference] * incidentTransform;
+	Debug::drawPoint(p, Vec3::GREEN);*/
+
+	auto face0Index = furthestPointOfIndidentInsideReference;
+	auto face1Index = (furthestPointOfIndidentInsideReference - 1);
+	if (face1Index < 0) {
+		face1Index = incident->normals.size() - 1;
+	}
+	auto face0 = incident->normals[face0Index] * incidentRot;
+	auto face1 = incident->normals[face1Index] * incidentRot;
 
 	i32 face;
 	if (dot(normal, face0) > dot(normal, face1)) {
-		face = furthestPointOfIndidentInsideReference;
+		face = face0Index;
 	} else {
-		face = (furthestPointOfIndidentInsideReference - 1) % incident->normals.size();
+		face = face1Index;
+	}
+	Debug::drawLine(edgeStart, edgeEnd, Vec3::GREEN);
+	drawEdge(incident, face, incidentTransform);
+
+	auto incidentEdges = getEdges(incident, face, incidentTransform);
+
+	Line lineA{ edgeStart, edgeStart + normal };
+	//Debug::drawRay(Vec2{ 0.0f }, lineA.n, Vec3::BLUE);
+
+	Debug::drawLineSegment(LineSegment{ lineA, -0.5f, 0.5f });
+
+	Line lineB{ edgeEnd, edgeEnd - normal };
+	Debug::drawRay(Vec2{ 0.0f }, lineB.n, Vec3::BLUE);
+
+	//Debug::drawLineSegment(LineSegment{ lineB, -0.5f, 0.5f });
+
+	//Debug::drawPoint(incidentEdges.first, Vec3::RED);
+	//Debug::drawPoint(incidentEdges.second, Vec3::RED);
+
+	auto clipPoints = [](const std::pair<Vec2, Vec2>& points, const Line& line) -> std::pair<Vec2, Vec2> {
+		auto clipPoint = [](Vec2 p, const Line& line, const Line& edgeLine) -> Vec2 {
+			auto distanceFromLine = signedDistance(line, p);
+			if (distanceFromLine > 0.0f) {
+				auto x = line.intersection(edgeLine);
+				if (!x.has_value()) {
+					Debug::drawPoint(Vec2{ 0.0f }, Vec3::GREEN);
+				}
+
+				return *x;
+				//auto h = p + distanceFromLine * line.n;
+				//return h + signedDistance(edgeLine, h) * edgeLine.n;
+			}
+			return p;
+		};
+
+		Line edgeLine{ points.first, points.second };
+
+		return {
+			clipPoint(points.first, line, edgeLine),
+			clipPoint(points.second, line, edgeLine)
+		};
+	};
+
+	auto cliped = clipPoints(incidentEdges, lineA);
+	cliped = clipPoints(cliped, lineB);
+
+	std::vector<Vec2> points;
+	Line incidentFaceLine{ edgeStart, edgeEnd };
+	auto d = signedDistance(incidentFaceLine, cliped.first);
+	if (d >= 0.0f) {
+		points.push_back(cliped.first);
 	}
 
-	Debug::drawLine(incident->verts[face] * incidentTransform, incident->verts[(face + 1) % incident->verts.size()] * incidentTransform, Vec3::RED);
+	d = signedDistance(incidentFaceLine, cliped.second);
+	if (d >= 0.0f) {
+		points.push_back(cliped.second);
+	}
 
-	//edge = ( + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos; */
+
+	for (auto& p : points) {
+		Debug::drawPoint(p, Vec3::RED);
+	}
 
 
-	//Debug::drawPoint(p);
-	//Debug::draw
 
-	//Debug::drawRay(edge, min, Vec3::RED);
+	/*Debug::drawPoint(cliped.first, Vec3::RED);
+	Debug::drawPoint(cliped.second, Vec3::RED);*/
+
+	Debug::drawRay(edge, min, Vec3::RED);
 }
 
 auto drawPolygon(const ConvexPolygon& polygon, Vec2 pos, float orientation) {
@@ -211,7 +314,7 @@ auto TestDemo::update() -> void {
 	}
 	/*ConvexPolygon a{ verticesA };
 	a.calculateNormals();*/
-	auto a = makeRegularPolygon(4, 0.2f);
+	auto a = makeRegularPolygon(4, 0.15f);
 
 	Vec2 bPos{ 0.3f, 0.2f };
 	float bOrientation = 0.0f;
@@ -223,6 +326,7 @@ auto TestDemo::update() -> void {
 	//ConvexPolygon b{ verticesB };
 	//b.calculateNormals();
 	auto b = makeRegularPolygon(4, 0.2f);
+
 
 	drawPolygon(a, aPos, aOrientation);
 	drawPolygon(b, bPos, bOrientation);

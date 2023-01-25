@@ -1,6 +1,6 @@
 #include <game/bvhCollisionSystem.hpp>
 #include <utils/io.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 
 BvhCollisionSystem::BvhCollisionSystem()
 	: rootNode{ NULL_NODE }
@@ -34,6 +34,7 @@ auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vect
 	}
 	
 	for (const auto body : toAdd) {
+		ASSERT(leafNodes.find(body) == leafNodes.end());
 		insert(*body);
 	}
 

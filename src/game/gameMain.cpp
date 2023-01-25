@@ -2,7 +2,7 @@
 #include <engine/input.hpp>
 
 auto GameMain::update() -> void {
-	pixelGames.update();
+	demos.update();
 	return;
 
 	//if (Input::isKeyDown(Keycode::TAB)) {

@@ -1,7 +1,7 @@
 #include <appMain.hpp>
 #include <game/gameMain.hpp>
-#include <game/debug.hpp>
 #include <engine/time.hpp>
+#include <engine/debug.hpp>
 #include <engine/window.hpp>
 #include <engine/audio.hpp>
 #include <engine/input.hpp>

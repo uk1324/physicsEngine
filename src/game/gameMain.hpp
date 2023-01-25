@@ -16,5 +16,5 @@ struct GameMain {
 	};
 	Scene currentScene = Scene::GAME;
 
-	Demos pixelGames;
+	Demos demos;
 };

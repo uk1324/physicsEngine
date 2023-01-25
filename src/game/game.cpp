@@ -1,5 +1,5 @@
 #include <game/game.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 #include <game/input.hpp>
 #include <game/collision/collision.hpp>
 #include <game/distanceJoint.hpp>
@@ -38,6 +38,7 @@ Game::Game() {
 			bodies.push_back(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });
 		}
 	}
+	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
 
 	/*for (int i = 0; i < 10; i++) {
 		bodies.push_back(Body{ Vec2{ 0.0f, i * 1.05f + 0.5f }, BoxColliderEditor{ Vec2{ 1.0f } }, false });
@@ -48,7 +49,7 @@ Game::Game() {
 	//}
 
 	//bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxColliderEditor{ Vec2{ 5.0f, 2.5f } }, false });
-	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
+	//bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
 
 	///*bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });*/
 	//bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });

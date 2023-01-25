@@ -1,6 +1,6 @@
 #include <game/editor/selectedEntityGizmo.hpp>
 #include <game/editor/commands.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 #include <game/editor/input.hpp>
 #include <game/collision/collision.hpp>
 #include <customImguiWidgets.hpp>

@@ -1,7 +1,7 @@
 #include <game/editor/distanceJointGizmo.hpp>
 #include <game/editor/input.hpp>
 #include <game/editor/commands.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 #include <math/mat2.hpp>
 
 auto DistanceJointGizmo::update(

@@ -1,7 +1,7 @@
 #include <demos/pixelPhysics.hpp>
 #include <engine/window.hpp>
 #include <engine/input.hpp>
-#include <game/debug.hpp>
+#include <engine/debug.hpp>
 #include <utils/staticVec.hpp>
 #include <math/utils.hpp>
 

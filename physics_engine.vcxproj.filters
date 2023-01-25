@@ -53,9 +53,6 @@
     <ClCompile Include="src\math\line.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\debug.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\engine\audio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -218,6 +215,12 @@
     <ClCompile Include="src\utils\asserts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\engine\debug.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\math\transform.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -272,9 +275,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\line.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\debug.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\engine\audio.hpp">
@@ -463,21 +463,27 @@
     <ClInclude Include="src\appMain.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\engine\debug.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\transform.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="src\game\shaders\vsLine.hlsl" />
-    <FxCompile Include="src\game\shaders\psLine.hlsl" />
-    <FxCompile Include="src\game\shaders\psCircleCollider.hlsl" />
-    <FxCompile Include="src\game\shaders\vsCircle.hlsl" />
-    <FxCompile Include="src\game\shaders\psCircle.hlsl" />
-    <FxCompile Include="src\game\shaders\vsParabola.hlsl" />
-    <FxCompile Include="src\game\shaders\psParabola.hlsl" />
-    <FxCompile Include="src\game\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />
-    <FxCompile Include="src\game\shaders\psHollowCircle.hlsl" />
-    <FxCompile Include="src\game\shaders\vsTexturedQuad.hlsl" />
-    <FxCompile Include="src\game\shaders\psTexturedQuad.hlsl" />
-    <FxCompile Include="src\game\shaders\vsColoredTriangle.hlsl" />
-    <FxCompile Include="src\game\shaders\psColoredTriangle.hlsl" />
+    <FxCompile Include="src\engine\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />
+    <FxCompile Include="src\engine\shaders\psCircle.hlsl" />
+    <FxCompile Include="src\engine\shaders\psCircleCollider.hlsl" />
+    <FxCompile Include="src\engine\shaders\psColoredTriangle.hlsl" />
+    <FxCompile Include="src\engine\shaders\psHollowCircle.hlsl" />
+    <FxCompile Include="src\engine\shaders\psLine.hlsl" />
+    <FxCompile Include="src\engine\shaders\psParabola.hlsl" />
+    <FxCompile Include="src\engine\shaders\psTexturedQuad.hlsl" />
+    <FxCompile Include="src\engine\shaders\vsCircle.hlsl" />
+    <FxCompile Include="src\engine\shaders\vsColoredTriangle.hlsl" />
+    <FxCompile Include="src\engine\shaders\vsLine.hlsl" />
+    <FxCompile Include="src\engine\shaders\vsParabola.hlsl" />
+    <FxCompile Include="src\engine\shaders\vsTexturedQuad.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\txt.txt" />
