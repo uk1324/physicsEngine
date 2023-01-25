@@ -52,7 +52,7 @@ auto AreaAllocator::allocAlligned(usize alignment, usize sizeBytes) -> void* {
 		return aligned;
 	}
 
-	CHECK_WIN_ZERO(VirtualAlloc(memory + (currentPageNumber + 1) * pageSize, (newPageNumber - currentPageNumber - 1) * pageSize, MEM_COMMIT, PAGE_READWRITE));
+	CHECK_WIN_ZERO(VirtualAlloc(memory + (currentPageNumber + 1) * pageSize, (newPageNumber - currentPageNumber) * pageSize, MEM_COMMIT, PAGE_READWRITE));
 	for (auto i = currentPageNumber + 1; i < newPageNumber; i++) {
 		__try {
 			// The pages only get commited if the memory is accessed.

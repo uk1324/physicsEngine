@@ -9,7 +9,6 @@
 #include <math/mat2.hpp>
 #include <imgui/imgui.h>
 
-// TODO: Understand gauss–Seidel method
 // spatial hashing / bucketing
 // inactive flag on objects
 
@@ -27,19 +26,28 @@ std::vector<Body> bodies;
 
 
 Game::Game() {
-	//int height = 14;
-	//float boxSize = 1.0f;
-	//float gapSize = 0.1f;
-	//for (int i = 1; i < height + 1; i++) {
-	//	for (int j = 0; j < i; j++) {
-	//		float y = (height + 1 - i) * (boxSize + gapSize);
-	//		float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
+	int height = 14;
+	float boxSize = 1.0f;
+	float gapSize = 0.1f;
+	for (int i = 1; i < height + 1; i++) {
+		for (int j = 0; j < i; j++) {
+			float y = (height + 1 - i) * (boxSize + gapSize);
+			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
-	//		bodies.push_back(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });
-	//	}
+			bodies.push_back(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });
+		}
+	}
+
+	/*for (int i = 0; i < 10; i++) {
+		bodies.push_back(Body{ Vec2{ 0.0f, i * 1.05f + 0.5f }, BoxColliderEditor{ Vec2{ 1.0f } }, false });
+	}*/
+
+	//for (int i = 0; i < 10; i++) {
+	//	bodies.push_back(Body{ Vec2{ 0.0f, i * 1.05f + 0.5f }, CircleColliderEditor{ 0.5f }, false });
 	//}
-	//bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxColliderEditor{ Vec2{ 5.0f, 2.5f } }, false });
 
+	//bodies.push_back(Body{ Vec2{ 100.0f, 100.0f }, BoxColliderEditor{ Vec2{ 5.0f, 2.5f } }, false });
+	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
 
 	///*bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });*/
 	//bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
@@ -53,7 +61,7 @@ Game::Game() {
 	//	joints[BodyPair{ &bodies[bodies.size() - i], &bodies[bodies.size() - i - 1] }] = DistanceJoint{ .requiredDistance = 2.0f };
 	//	//bodies.push_back(Body{ Vec2{ -1.0, 4.0 }, BoxColliderEditor{ Vec2{ 1.0f, 1.0f } }, false });
 	//}
-	loadLevel();
+	//loadLevel();
 
 	camera.zoom = 0.125f / 2.0f;
 	camera.pos = Vec2{ 0.0f, 6.0f };
@@ -180,6 +188,8 @@ auto Game::drawUi() -> void {
 	} else {
 		gravity = Vec2{ 0.0f, -10.0f };
 	}
+
+	Checkbox("reuse previous contact accumulators", &reusePreviousFrameContactAccumulators);
 	End();
 }
 
@@ -382,6 +392,6 @@ auto Game::physicsStep() -> void {
 }
 
 
-bool Game::warmStarting = true;
+bool Game::reusePreviousFrameContactAccumulators = true;
 bool Game::positionCorrection = true;
 bool Game::accumulateImpulses = true;

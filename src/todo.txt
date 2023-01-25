@@ -86,3 +86,5 @@ If it were a projection onto the line with on the path using only x or y then it
 Inverse of matrix using cramer's rule
 
 Joining the triangles of a triangulated shape to improve the efficiency of the collider. Might need to construct some conectiveness graph, either during the triangulation algorithm or after. The simplest way would probably be a greedy algorithm.
+
+TODO: Rewrite the renderer to use 3x3 matricies or if possible fix the inverse of 3x2 matrices(It should just use a 3x3 matrix inverse). Maybe use it also inside camera. And in general makes the transforms in the renderer and camera more organized.

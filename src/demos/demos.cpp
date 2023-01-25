@@ -12,5 +12,6 @@ auto Demos::update(Gfx& gfx, Renderer& renderer) -> void {
 	//triangulationDemo.update(gfx, renderer);
 	//fourierTransformDemo.update(gfx, renderer);
 	//eulerianFluid.update(gfx, renderer);
-	waterDemo.update(gfx, renderer);
+	//waterDemo.update(gfx, renderer);
+	testDemo.update(gfx, renderer);
 }

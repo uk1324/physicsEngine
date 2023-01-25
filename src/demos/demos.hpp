@@ -7,8 +7,7 @@
 #include <demos/pixelPhysics.hpp>
 #include <demos/triangulationDemo.hpp>
 #include <demos/waterDemo.hpp>
-
-#include <complex>
+#include <demos/testDemo.hpp>
 
 struct Demos {
 	Demos(Gfx& gfx);
@@ -19,4 +18,5 @@ struct Demos {
 	PixelPhysics pixelPhysics;
 	TriangulationDemo triangulationDemo;
 	WaterDemo waterDemo;
+	TestDemo testDemo;
 };

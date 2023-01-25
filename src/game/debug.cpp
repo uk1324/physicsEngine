@@ -1,5 +1,6 @@
 #include <game/debug.hpp>
 #include <math/mat2.hpp>
+#include <engine/frameAllocator.hpp>
 
 auto Debug::update() -> void {
 	lines.clear();
@@ -9,6 +10,7 @@ auto Debug::update() -> void {
 	hollowCircles.clear();
 	parabolas.clear();
 	triangles.clear();
+	text.clear();
 }
 
 auto Debug::drawLine(Vec2 start, Vec2 end, const Vec3& color) -> void {
@@ -98,6 +100,13 @@ auto Debug::drawSimplePolygon(Span<const Vec2> vertices, const Vec3& color) -> v
 	}
 }
 
+auto Debug::drawText(Vec2 pos, const char* text, const Vec3& color, float height) -> void {
+	auto length = strlen(text) + 1;
+	auto t = frameAllocator.alloc(length);
+	memcpy(t, text, length);
+	Debug::text.push_back(Text{ pos, reinterpret_cast<char*>(t), color, height });
+}
+
 std::vector<Debug::Line> Debug::lines;
 std::vector<Debug::Circle> Debug::circles;
 std::vector<Debug::Point> Debug::points;
@@ -105,3 +114,4 @@ std::vector<Debug::OrientedCircle> Debug::circleColliders;
 std::vector<Debug::Circle> Debug::hollowCircles;
 std::vector<Debug::Parabola> Debug::parabolas;
 std::vector<Debug::Triangle> Debug::triangles;
+std::vector<Debug::Text> Debug::text;

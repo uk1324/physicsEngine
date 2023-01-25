@@ -23,23 +23,38 @@ auto Collision::update(ContactPoint* newContacts, i32 newContactCount) -> void {
 			ContactPoint* c = mergedContacts + i;
 			ContactPoint* old = contacts + oldContactSameAsNew;
 			*c = *cNew;
-			// Warm starting.
-			c->accumulatedNormalImpluse = old->accumulatedNormalImpluse;
-			c->accumulatedTangentImpulse = old->accumulatedTangentImpulse;
+			if (Game::reusePreviousFrameContactAccumulators) {
+				c->accumulatedNormalImpluse = old->accumulatedNormalImpluse;
+				c->accumulatedTangentImpulse = old->accumulatedTangentImpulse;
+			} else {
+				c->accumulatedNormalImpluse = 0.0f;
+				c->accumulatedTangentImpulse = 0.0f;
+			}
 		} else {
 			mergedContacts[i] = newContacts[i];
 		}
 	}
 
-	for (int i = 0; i < newContactCount; ++i)
+	for (i32 i = 0; i < newContactCount; ++i)
 		contacts[i] = mergedContacts[i];
 
 	contactCount = newContactCount;
 }
 
+#include <game/debug.hpp>
+
 auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 	for (int i = 0; i < contactCount; ++i) {
 		ContactPoint* c = contacts + i;
+		
+		// n = normal
+		// cA = contactPosOnA
+		// cB = contactPosOnB = contactPosOnA + n
+		// C(x) = dot(cA - cB, n)
+		// C(x) = dot(pA + rA - (pB + rB), n)
+		// C'(x) = dot(velA - velB, n)
+		// C'(x) = dot((vA + aA * rA) - (vB + aB * rB), n)
+		// JV + b = 0
 
 		Vec2 r1 = c->position - a->pos;
 		Vec2 r2 = c->position - b->pos;
@@ -64,8 +79,17 @@ auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 		// bias = [scalar] * [velocity]
 		const auto biasFactor = 0.2f;
 		// Decreasing the allowed penetration makes things more bouncy.
-		const auto k_allowedPenetration = 0.01f;
-		c->bias = -biasFactor * invDeltaTime * std::min(0.0f, c->penetrationDepth + k_allowedPenetration);
+		/*const auto k_allowedPenetration = 0.01f;*/
+		// Some penetration is allowed to decrease jitter, especially when multiple objects are stacked on top of eachother. This is sometimes called slop.
+		const auto ALLOWED_PENETRATION = 0.01f;
+
+		auto relativeVelAtContact = (b->vel + cross(b->angularVel, r2)) - (a->vel + cross(a->angularVel, r1));
+
+		c->bias = -biasFactor * invDeltaTime * std::min(0.0f, c->penetrationDepth + ALLOWED_PENETRATION);
+		/*c->bias = std::max(c->bias, -dot(b->vel - a->vel, c->normal)) * 0.5f;*/
+		/*c->bias = std::max(c->bias, -dot(relativeVelAtContact, c->normal) * 0.2f);
+		c->bias = std::max(0.0f, c->bias);*/
+
 
 		if (Game::accumulateImpulses)
 		{
@@ -91,9 +115,9 @@ auto Collision::applyImpulse(Body& a, Body& b) -> void {
 
 		// Compute normal impulse
 		// You apply the bias if the objects are moving slowly (relative velocity is small) otherwise this bias is the restitution if they are moving fast (large relative velocity). Also, make sure you only calculate this bias once for every time step, and  not for every iteration of impulses.
-		float velocityAlongNormal = dot(relativeVelAtContact, contact.normal); // Is this the coefficient of restitution.
+		const auto velocityAlongNormal = dot(relativeVelAtContact, contact.normal);
 
-		float normalImpulse = /* (0.1f) * */ contact.invNormalEffectiveMass * (-velocityAlongNormal + contact.bias);
+		auto normalImpulse = contact.invNormalEffectiveMass * (-velocityAlongNormal + contact.bias);
 
 		if (Game::accumulateImpulses) {
 			const auto oldNormalImpluse = contact.accumulatedNormalImpluse;
@@ -228,7 +252,7 @@ auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos
 			return collision;
 		}
 	}
-	// Remember to flip the normal if the arguments are in the other order.
+	// Remember to flip the normal if the arguments are in the opposite order.
 
 	ASSERT_NOT_REACHED();
 	return std::nullopt;
@@ -406,35 +430,45 @@ static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
 	c[1].v = pos + c[1].v * Rot;
 }
 
-// The normal points from A to B
+//auto collide(Vec2 aPos, float aOrientation, Span, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision> {
+//
+//}
+
+//auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision> {
+//	const auto normalsA = Mat2::rotate(aOrientation), normalsB = Mat2::rotate(bOrientation);
+//	const auto halfSizeA = aBox.size / 2.0f, halfSizeB = bBox.size / 2.0f;
+//
+//	const auto vertsA = aBox.getCorners(aPos, aOrientation), vertsB = aBox.getCorners(aPos, aOrientation);
+//	
+//	//if (dot())
+//}
+
 auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision> {
 	// Setup
-	Vec2 hA = 0.5f * aBox.size;
-	Vec2 hB = 0.5f * bBox.size;
+	Vec2 halfSizeA = 0.5f * aBox.size;
+	Vec2 halfSizeB = 0.5f * bBox.size;
 
 	Vec2 posA = aPos;
 	Vec2 posB = bPos;
 
-	Mat2 RotA = Mat2::rotate(aOrientation), RotB = Mat2::rotate(bOrientation);
+	Mat2 rotA = Mat2::rotate(aOrientation), rotB = Mat2::rotate(bOrientation);
+	Mat2 rotAInv = rotA.transposed(), rotBInv = rotB.transposed();
 
-	Mat2 RotAT = RotA.transposed();
-	Mat2 RotBT = RotB.transposed();
+	Vec2 aPosToBPos = posB - posA;
+	Vec2 aPosToBPosInAObjectSpace = aPosToBPos * rotAInv;
+	Vec2 aPosToBPosInBObjectSpace = aPosToBPos * rotBInv;
 
-	Vec2 dp = posB - posA;
-	Vec2 dA = dp * RotAT;
-	Vec2 dB = dp * RotBT;
-
-	Mat2 C = RotAT * RotB;
+	Mat2 C = rotAInv * rotB;
 	Mat2 absC = Abs(C);
 	Mat2 absCT = absC.transposed();
 
 	// Box A faces
-	Vec2 faceA = Abs(dA) - hA - hB * absC;
+	Vec2 faceA = Abs(aPosToBPosInAObjectSpace) - halfSizeA - halfSizeB * absC;
 	if (faceA.x > 0.0f || faceA.y > 0.0f)
 		return std::nullopt;
 
 	// Box B faces
-	Vec2 faceB = Abs(dB) - hA * absCT - hB;
+	Vec2 faceB = Abs(aPosToBPosInBObjectSpace) - halfSizeA * absCT - halfSizeB;
 	if (faceB.x > 0.0f || faceB.y > 0.0f)
 		return std::nullopt;
 
@@ -446,31 +480,31 @@ auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, 
 	// Box A faces
 	axis = FACE_A_X;
 	penetrationDepth = faceA.x;
-	normal = dA.x > 0.0f ? RotA.x() : -RotA.x();
+	normal = aPosToBPosInAObjectSpace.x > 0.0f ? rotA.x() : -rotA.x();
 
 	const float relativeTol = 0.95f;
 	const float absoluteTol = 0.01f;
 
-	if (faceA.y > relativeTol * penetrationDepth + absoluteTol * hA.y)
+	if (faceA.y > relativeTol * penetrationDepth + absoluteTol * halfSizeA.y)
 	{
 		axis = FACE_A_Y;
 		penetrationDepth = faceA.y;
-		normal = dA.y > 0.0f ? RotA.y() : -RotA.y();
+		normal = aPosToBPosInAObjectSpace.y > 0.0f ? rotA.y() : -rotA.y();
 	}
 
 	// Box B faces
-	if (faceB.x > relativeTol * penetrationDepth + absoluteTol * hB.x)
+	if (faceB.x > relativeTol * penetrationDepth + absoluteTol * halfSizeB.x)
 	{
 		axis = FACE_B_X;
 		penetrationDepth = faceB.x;
-		normal = dB.x > 0.0f ? RotB.x() : -RotB.x();
+		normal = aPosToBPosInBObjectSpace.x > 0.0f ? rotB.x() : -rotB.x();
 	}
 
-	if (faceB.y > relativeTol * penetrationDepth + absoluteTol * hB.y)
+	if (faceB.y > relativeTol * penetrationDepth + absoluteTol * halfSizeB.y)
 	{
 		axis = FACE_B_Y;
 		penetrationDepth = faceB.y;
-		normal = dB.y > 0.0f ? RotB.y() : -RotB.y();
+		normal = aPosToBPosInBObjectSpace.y > 0.0f ? rotB.y() : -rotB.y();
 	}
 
 	// Setup clipping plane data based on the separating axis
@@ -485,56 +519,56 @@ auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, 
 	case FACE_A_X:
 	{
 		frontNormal = normal;
-		front = dot(posA, frontNormal) + hA.x;
-		sideNormal = RotA.y();
+		front = dot(posA, frontNormal) + halfSizeA.x;
+		sideNormal = rotA.y();
 		float side = dot(posA, sideNormal);
-		negSide = -side + hA.y;
-		posSide = side + hA.y;
+		negSide = -side + halfSizeA.y;
+		posSide = side + halfSizeA.y;
 		negEdge = EDGE3;
 		posEdge = EDGE1;
-		ComputeIncidentEdge(incidentEdge, hB, posB, RotB, frontNormal);
+		ComputeIncidentEdge(incidentEdge, halfSizeB, posB, rotB, frontNormal);
 	}
 	break;
 
 	case FACE_A_Y:
 	{
 		frontNormal = normal;
-		front = dot(posA, frontNormal) + hA.y;
-		sideNormal = RotA.x();
+		front = dot(posA, frontNormal) + halfSizeA.y;
+		sideNormal = rotA.x();
 		float side = dot(posA, sideNormal);
-		negSide = -side + hA.x;
-		posSide = side + hA.x;
+		negSide = -side + halfSizeA.x;
+		posSide = side + halfSizeA.x;
 		negEdge = EDGE2;
 		posEdge = EDGE4;
-		ComputeIncidentEdge(incidentEdge, hB, posB, RotB, frontNormal);
+		ComputeIncidentEdge(incidentEdge, halfSizeB, posB, rotB, frontNormal);
 	}
 	break;
 
 	case FACE_B_X:
 	{
 		frontNormal = -normal;
-		front = dot(posB, frontNormal) + hB.x;
-		sideNormal = RotB.y();
+		front = dot(posB, frontNormal) + halfSizeB.x;
+		sideNormal = rotB.y();
 		float side = dot(posB, sideNormal);
-		negSide = -side + hB.y;
-		posSide = side + hB.y;
+		negSide = -side + halfSizeB.y;
+		posSide = side + halfSizeB.y;
 		negEdge = EDGE3;
 		posEdge = EDGE1;
-		ComputeIncidentEdge(incidentEdge, hA, posA, RotA, frontNormal);
+		ComputeIncidentEdge(incidentEdge, halfSizeA, posA, rotA, frontNormal);
 	}
 	break;
 
 	case FACE_B_Y:
 	{
 		frontNormal = -normal;
-		front = dot(posB, frontNormal) + hB.y;
-		sideNormal = RotB.x();
+		front = dot(posB, frontNormal) + halfSizeB.y;
+		sideNormal = rotB.x();
 		float side = dot(posB, sideNormal);
-		negSide = -side + hB.x;
-		posSide = side + hB.x;
+		negSide = -side + halfSizeB.x;
+		posSide = side + halfSizeB.x;
 		negEdge = EDGE2;
 		posEdge = EDGE4;
-		ComputeIncidentEdge(incidentEdge, hA, posA, RotA, frontNormal);
+		ComputeIncidentEdge(incidentEdge, halfSizeA, posA, rotA, frontNormal);
 	}
 	break;
 	}

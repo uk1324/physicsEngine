@@ -18,7 +18,7 @@ struct GameMain {
 		GAME,
 		EDITOR,
 	};
-	Scene currentScene = Scene::EDITOR;
+	Scene currentScene = Scene::GAME;
 
 	Demos pixelGames;
 };

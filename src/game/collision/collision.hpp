@@ -21,6 +21,8 @@ union FeaturePair
 
 // Impulse is the change in momentum.
 
+// Resolving velocites instead of positions directly prevents multiple constraints fighting against eachother and only the last one winning if it is impossible to fully resolve all the constraints. If all the contraints can be resolved it shouldn't be that big of an issue. At each step the positional correction would be applied once per constraint (and also the velocity correction, if it is instant, that means setting the velocity along the constrained direction to zero there may be some issues again, I think not sure).  If one constraint got resolved and another get resolved with it then everything is fine, but if one resolving breaks another one then there is an issue. You could try to resolve the constraints multiple times per step, but in many cases this probably wouldn't converge to a nice solution like the velocity constraint. Even if the velocity constraint isn't really solved the it just tries to apply a force to fix it. If positional correction were used then it might jitter back and forth depending on the order in which the constraints are resolved.
+
 // The reason the mass is a matrix is to make it invertible.
 // The jacobian seems to just be the surface normal for linear terms.
 // JV + b = 0 is just a confusing way to write that the relative velocity along some vector (dot) + bias is equal 0. Sometimes certain velocites are ignored.
@@ -36,6 +38,11 @@ union FeaturePair
 // It is the jacobian because it is literally just an array of first order partial derivatives like in the definition.
 
 // There are way more unknows that the expressions. Each expression is a plane equation ax + by = c. Each is solved separately.
+
+struct CollisionManifold {
+
+};
+
 struct ContactPoint {
 	ContactPoint()
 		: accumulatedNormalImpluse{ 0.0f }

@@ -47,6 +47,10 @@ auto Camera::screenSpaceToCameraSpace(Vec2 screenSpacePos) const -> Vec2 {
 	return (screenSpacePos * Vec2{ 1.0f, 1.0f / aspectRatio } / zoom) + pos;
 }
 
+auto Camera::cameraSpaceToScreenSpace(Vec2 cameraSpacePos) const -> Vec2 {
+	return (cameraSpacePos - pos) * zoom * Vec2{ 1.0f, aspectRatio };
+}
+
 auto Camera::heightIfWidthIs(float width) const -> float {
 	return width / aspectRatio;
 }

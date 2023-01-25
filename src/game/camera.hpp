@@ -10,6 +10,7 @@ struct Camera {
 	auto interpolateTo(Vec2 desiredPos, float speed) -> void;
 	auto cameraTransform() const-> Mat3x2;
 	auto screenSpaceToCameraSpace(Vec2 screenSpacePos) const -> Vec2;
+	auto cameraSpaceToScreenSpace(Vec2 cameraSpacePos) const -> Vec2;
 	auto heightIfWidthIs(float width) const -> float;
 	auto height() const -> float;
 	auto width() const -> float;

@@ -83,7 +83,7 @@ public:
 	bool drawTrajectory = false;
 	Vec2 initialVelocity{ 1.0f };
 
-	static bool warmStarting;
+	static bool reusePreviousFrameContactAccumulators;
 	static bool positionCorrection;
 	static bool accumulateImpulses;
 

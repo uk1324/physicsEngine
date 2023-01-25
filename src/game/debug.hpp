@@ -26,6 +26,7 @@ namespace Debug {
 	auto drawBox(Vec2 pos, float orientation, Vec2 size, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawCollider(const Collider& collider, Vec2 pos, float orientation, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawSimplePolygon(Span<const Vec2> vertices, const Vec3& color = DEFAULT_COLOR) -> void;
+	auto drawText(Vec2 pos, const char* text, const Vec3& color = DEFAULT_COLOR, float height = 0.1f) -> void;
 
 	struct Line {
 		Vec2 start;
@@ -62,6 +63,13 @@ namespace Debug {
 		Vec3 color;
 	};
 
+	struct Text {
+		Vec2 pos;
+		const char* text;
+		Vec3 color;
+		float height;
+	};
+
 	static SimplePolygonTriangulator triangulate;
 	extern std::vector<Line> lines;
 	extern std::vector<Circle> circles;
@@ -70,4 +78,5 @@ namespace Debug {
 	extern std::vector<Circle> hollowCircles;
 	extern std::vector<Parabola> parabolas;
 	extern std::vector<Triangle> triangles;
+	extern std::vector<Text> text;
 }

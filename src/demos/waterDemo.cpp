@@ -27,7 +27,6 @@ auto WaterDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 	if ((!paused && frameNumber % 4 == 0) || singleStep) {
 
 		for (i64 y = 1; y < GRID_SIZE.y - 1; y++) {
-
 			for (i64 x = 1; x < GRID_SIZE.x - 1; x++) {
 				auto& cell = cells[x][y];
 				if (cell.isWall)
@@ -42,6 +41,7 @@ auto WaterDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 				}
 			}
 
+			// Separating the left and right flowing into 2 loops to make it as order independed as possible. This still does different things for different directions, but it isn't very visible. And if it is, it doesn't look weird.
 			for (i64 x = GRID_SIZE.x - 2; x > 0; x--) {
 				auto& cell = cells[x][y];
 				if (cell.isWall)
@@ -184,6 +184,7 @@ auto WaterDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 			cell.density = MAX_DENSITY;
 		} else if (Input::isMouseButtonHeld(MouseButton::RIGHT)) {
 			cell.isWall = true;
+			cell.density = 0;
 		} else if (Input::isMouseButtonHeld(MouseButton::MIDDLE)) {
 			cell.isWall = false;
 			cell.density = 0;
@@ -191,6 +192,7 @@ auto WaterDemo::update(Gfx& gfx, Renderer& renderer) -> void {
 			selected = cursorPos;
 		}
 	}
+
 
 	Begin("water");
 	Checkbox("paused", &paused);
@@ -214,9 +216,7 @@ auto WaterDemo::reset() -> void {
 		for (i64 y = 0; y < GRID_SIZE.y; y++) {
 			auto& cell = cells[x][y];
 			cell.density = 0;
-			if (x == 0 || x == GRID_SIZE.x - 1 || y == 0 || y == GRID_SIZE.y - 1) {
-				cell.isWall = true;
-			}
+			cell.isWall = x == 0 || x == GRID_SIZE.x - 1 || y == 0 || y == GRID_SIZE.y - 1;
 		}
 	}
 }

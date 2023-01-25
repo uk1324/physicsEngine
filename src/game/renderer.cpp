@@ -10,6 +10,7 @@
 #define BUILD_DIR "./x64/Debug/"
 
 #include <imgui/imgui.h>
+#include <engine/input.hpp>
 
 Renderer::Renderer(Gfx& gfx) {
 	vsCircle = gfx.vsFromFile(BUILD_DIR L"vsCircle.cso");
@@ -239,6 +240,33 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 	auto makeTransform = [&screenScale, aspectRatio, &cameraTransform](Vec2 translation, float orientation, Vec2 scale) -> Mat3x2 {
 		return Mat3x2::rotate(orientation) * screenScale * Mat3x2::scale(scale) * Mat3x2::translate(Vec2{ translation.x, translation.y * aspectRatio }) * cameraTransform;
 	};
+	const auto transformForPoints = screenScale * cameraTransform;
+
+	auto x = transformForPoints * transformForPoints.inversed();
+
+	auto cameraSpaceToWindowSpace = [&windowSize, &camera](Vec2 p) {
+		p = camera.cameraSpaceToScreenSpace(p);
+		p += Vec2{ 1.0f, -1.0f };
+		p /= 2.0f;
+		p = p.flippedY();
+		p *= windowSize;
+		return p;
+	};
+
+	// Text
+	{
+		auto drawList = ImGui::GetBackgroundDrawList();
+		for (const auto& [pos, text, color, height] : Debug::text) {
+			// Not sure why does it need to be multiplied by 2. It doesn't need to divided by 2 because it is a size and not a position.
+			const auto fontSizeWindowSpace = height / aspectRatio * camera.zoom * windowSize.y * 2.0f;
+
+			// CalcTextSize uses GetFontSize() as the font size so it has to be converted.
+			const auto centerOffset = Vec2{ ImGui::CalcTextSize(text) } / 2.0f * (fontSizeWindowSpace / ImGui::GetFontSize());
+			const auto screenSpacePos = cameraSpaceToWindowSpace(pos) - centerOffset;
+			const auto col = IM_COL32(color.x * 255.0f, color.y * 255.0f, color.z * 255.0f, 255);
+			drawList->AddText(ImGui::GetFont(), fontSizeWindowSpace, screenSpacePos, col, text);
+		}
+	}
 
 	// Dynamic textures
 	{
@@ -287,8 +315,6 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 		const UINT stride{ sizeof(PcVert) }, offset{ 0 };
 		gfx.ctx->IASetVertexBuffers(0, 1, dynamicTriangles.GetAddressOf(), &stride, &offset);
 
-		const auto triangleVertTransform = screenScale * cameraTransform;
-
 		UINT toDraw = 0;
 		D3D11_MAPPED_SUBRESOURCE resource{ 0 };
 		gfx.ctx->Map(dynamicTriangles.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
@@ -296,11 +322,11 @@ auto Renderer::update(Gfx& gfx, Camera& camera, std::optional<Vec2> windowSizeIf
 
 		for (const auto& [triangle, color] : Debug::triangles) {
 			// Clockwise ordered triangles.
-			data[toDraw] = PcVert{ triangle.v[0] * triangleVertTransform, color };
+			data[toDraw] = PcVert{ triangle.v[0] * transformForPoints, color };
 			toDraw++;
-			data[toDraw] = PcVert{ triangle.v[1] * triangleVertTransform, color };
+			data[toDraw] = PcVert{ triangle.v[1] * transformForPoints, color };
 			toDraw++;
-			data[toDraw] = PcVert{ triangle.v[2] * triangleVertTransform, color };
+			data[toDraw] = PcVert{ triangle.v[2] * transformForPoints, color };
 			toDraw++;
 
 			if (toDraw >= DYNAMIC_TRIANGLES_SIZE) {
