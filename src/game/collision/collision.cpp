@@ -510,18 +510,21 @@ static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
 //struct Contact {
 //	Vec2 pos;
 //	float penetration;
+//	i32 edge1, edge2;
 //};
 //
 //static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const ConvexPolygon& b, Vec2 bPos, float bOrientation) -> std::vector<Contact> {
 //	Vec2 min;
 //	Vec2 edge;
 //
+//	std::vector<Contact> c;
+//
 //	auto aS = minSeparation(a, aPos, Mat2::rotate(aOrientation), b, bPos, Mat2::rotate(bOrientation));
 //	if (!aS.has_value())
-//		return;
+//		return c;
 //	auto bS = minSeparation(b, bPos, Mat2::rotate(bOrientation), a, aPos, Mat2::rotate(aOrientation));
 //	if (!bS.has_value())
-//		return;
+//		return c;
 //
 //	const ConvexPolygon* reference;
 //	Mat3x2 referenceTransform;
@@ -532,6 +535,7 @@ static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
 //
 //	Vec2 edgeStart;
 //	Vec2 edgeEnd;
+//	i32 referenceEdgeIndex;
 //
 //	Vec2 referenceFaceMidPoint;
 //	if (aS->separation > bS->separation) {
@@ -546,6 +550,7 @@ static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
 //		incidentRot = Mat2::rotate(bOrientation);
 //		edgeStart = a.verts[aS->edgeIndex] * referenceTransform;
 //		edgeEnd = a.verts[(aS->edgeIndex + 1) % a.verts.size()] * referenceTransform;
+//		referenceEdgeIndex = aS->edgeIndex;
 //	} else {
 //		reference = &b;
 //		incident = &a;
@@ -558,6 +563,7 @@ static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
 //		incidentRot = Mat2::rotate(aOrientation);
 //		edgeStart = b.verts[bS->edgeIndex] * referenceTransform;
 //		edgeEnd = b.verts[(bS->edgeIndex + 1) % b.verts.size()] * referenceTransform;
+//		referenceEdgeIndex = bS->edgeIndex;
 //	}
 //
 //	i32 furthestPointOfIndidentInsideReference = 0;
@@ -624,12 +630,12 @@ static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
 //	Line incidentFaceLine{ edgeStart, edgeEnd };
 //	auto d = signedDistance(incidentFaceLine, cliped.first);
 //	if (d >= 0.0f) {
-//		points.push_back({ cliped.first, d });
+//		points.push_back({ cliped.first, d, referenceEdgeIndex, face });
 //	}
 //
 //	d = signedDistance(incidentFaceLine, cliped.second);
 //	if (d >= 0.0f) {
-//		points.push_back({ cliped.second, d });
+//		points.push_back({ cliped.second, d, referenceEdgeIndex, face });
 //	}
 //}
 

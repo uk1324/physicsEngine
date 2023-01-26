@@ -182,6 +182,9 @@ auto Game::drawUi() -> void {
 		SliderFloat2("initial velocity", initialVelocity.data(), -10.0f, 10.0f);
 	}
 	Checkbox("draw contacts", &drawContacts);
+	if (drawContacts) {
+		Checkbox("scale contact normals", &scaleContactNormals);
+	}
 
 	auto disableGravity = gravity == Vec2{ 0.0f };
 	Checkbox("disableGravity", &disableGravity);
@@ -339,7 +342,8 @@ auto Game::update() -> void {
 		for (const auto& [_, collision] : contacts) {
 			for (i32 i = 0; i < collision.contactCount; i++) {
 				const auto& contact = collision.contacts[i];
-				Debug::drawRay(contact.position, -contact.normal * contact.penetrationDepth, Vec3::RED);
+				const auto scale = scaleContactNormals ? contact.penetrationDepth : 0.1f;
+				Debug::drawRay(contact.position, -contact.normal * scale, Vec3::RED);
 			}
 		}
 	}

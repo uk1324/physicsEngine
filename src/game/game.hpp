@@ -78,6 +78,7 @@ public:
 	bool updatePhysics = true;
 	bool cameraFollow = true;
 	bool drawContacts = false;
+	bool scaleContactNormals = false;
 	bool doASingleStep = false;
 
 	bool drawTrajectory = false;
