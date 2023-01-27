@@ -25,6 +25,10 @@ auto Transform::operator*(const Transform& other) const -> Transform {
 	return Transform{ pos * other.rot + other.pos, rot * other.rot };
 }
 
+auto Transform::angle() const -> float {
+	return atan2(rot.sin, rot.cos);
+}
+
 auto Transform::inversed() const -> Transform {
 	// v * r + p
 	// (v - p) * r.inv()
@@ -36,6 +40,11 @@ auto Transform::inversed() const -> Transform {
 auto Rotation::operator*(const Rotation& other) const -> Rotation {
 	// Complex multiplication.
 	return Rotation{ cos * other.cos - sin * other.sin, cos * other.sin + other.cos * sin };
+}
+
+auto Rotation::operator*=(const Rotation& other) -> Rotation& {
+	*this = *this * other;
+	return *this;
 }
 
 auto Rotation::inversed() const -> Rotation {

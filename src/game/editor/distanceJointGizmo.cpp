@@ -4,6 +4,8 @@
 #include <engine/debug.hpp>
 #include <math/mat2.hpp>
 
+#include <game/body.hpp>
+
 auto DistanceJointGizmo::update(
 	const std::vector<Entity>& selectedEntites, 
 	EditorEntities& entites, 
@@ -51,7 +53,8 @@ auto DistanceJointGizmo::update(
 	if (Input::isMouseButtonUp(MouseButton::LEFT)) {
 		const auto entity = Entity{ .type = EntityType::DistanceJoint, .index = *distanceJointEntityIndex };
 		auto saveAnchorUpdateChanges = [this, &entity, &commands](const Body& body, Vec2 newOffset, usize ptrOffset) -> void {
-			const auto oldOffset = (anchorGrabStartPos - body.pos) * Mat2::rotate(-body.orientation);
+			/*const auto oldOffset = (anchorGrabStartPos - body.transform.pos) * Mat2::rotate(-body.transform.orientation);*/
+			const auto oldOffset = (anchorGrabStartPos - body.transform.pos) * Mat2::rotate(-body.transform.angle());
 			commands.addSetFieldCommand(entity, DISTANCE_JOINT_ANCHOR_EDITOR_OBJECT_SPACE_OFFSET_OFFSET + ptrOffset, &oldOffset, &newOffset, sizeof(anchorGrabStartPos));
 		};
 

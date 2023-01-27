@@ -1,7 +1,8 @@
 #pragma once
 
-#include <game/collision/collision.hpp>
+#include <game/collision.hpp>
 #include <unordered_map>
+#include <game/body.hpp>
 
 struct BodyPair {
 	BodyPair(Body* b1, Body* b2) {

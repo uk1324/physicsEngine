@@ -1,4 +1,4 @@
-#include <game/collision/collision.hpp>
+#include <game/collision.hpp>
 #include <game/game.hpp>
 #include <math/mat2.hpp>
 #include <math/utils.hpp>
@@ -9,6 +9,10 @@
 auto Collision::update(const Collision& newCollision) -> void {
 	if (!Game::reusePreviousFrameContactAccumulators) {
 		*this = newCollision;
+		for (i8 i = 0; i < contactCount; i++) {
+			contacts[i].invNormalEffectiveMass = 0.0f;
+			contacts[i].invTangentEffectiveMass = 0.0f;
+		}
 		return;
 	}
 
@@ -18,10 +22,10 @@ auto Collision::update(const Collision& newCollision) -> void {
 	for (i8 i = 0; i < newCollision.contactCount; i++) {
 		const auto& newContact = newCollision.contacts[i];
 		i8 oldContactSameAsNew = -1;
-		for (int j = 0; j < contactCount; j++) {
+		for (i8 j = 0; j < contactCount; j++) {
 			const auto& oldContact = contacts[j];
-			if (newContact.id.featureOnA == oldContact.id.featureOnA && newContact.id.featureOnAIndex == oldContact.id.featureOnAIndex
-				&& newContact.id.featureOnB == oldContact.id.featureOnB && newContact.id.featureOnBIndex == oldContact.id.featureOnBIndex) {
+			const auto sameFeaturePair = newContact.id.featureOnA == oldContact.id.featureOnA && newContact.id.featureOnAIndex == oldContact.id.featureOnAIndex && newContact.id.featureOnB == oldContact.id.featureOnB && newContact.id.featureOnBIndex == oldContact.id.featureOnBIndex;
+			if (sameFeaturePair) {
 				oldContactSameAsNew = j;
 				break;
 			}
@@ -31,15 +35,10 @@ auto Collision::update(const Collision& newCollision) -> void {
 			auto& contact = mergedContacts[i];
 			const auto& oldContact = contacts[oldContactSameAsNew];
 			contact = newContact;
-			if (Game::reusePreviousFrameContactAccumulators) {
-				contact.accumulatedNormalImpluse = oldContact.accumulatedNormalImpluse;
-				contact.accumulatedTangentImpulse = oldContact.accumulatedTangentImpulse;
-			} else {
-				contact.accumulatedNormalImpluse = 0.0f;
-				contact.accumulatedTangentImpulse = 0.0f;
-			}
+			contact.accumulatedNormalImpluse = oldContact.accumulatedNormalImpluse;
+			contact.accumulatedTangentImpulse = oldContact.accumulatedTangentImpulse;
 		} else {
-			mergedContacts[i] = newCollision.contacts[i];
+			mergedContacts[i] = newContact;
 		}
 	}
 
@@ -50,34 +49,39 @@ auto Collision::update(const Collision& newCollision) -> void {
 }
 
 auto Collision::preStep(Body& a, Body& b, float invDeltaTime) -> void {
-	for (int i = 0; i < contactCount; ++i) {
-		ContactPoint* c = contacts + i;
+	for (i8 i = 0; i < contactCount; i++) {
+		auto& c = contacts[i];
 		
 		// n = normal
 		// cA = contactPosOnA
 		// cB = contactPosOnB = contactPosOnA + n
-		// C(x) = dot(cA - cB, n)
-		// C(x) = dot(pA + rA - (pB + rB), n)
-		// C'(x) = dot(velA - velB, n)
-		// C'(x) = dot((vA + aA * rA) - (vB + aB * rB), n)
+		// C = dot(cA - cB, n)
+		// C = dot(pA + rA - (pB + rB), n)
+		// C' = dot(velA - velB, n)
+		// C' = dot((vA + aA * rA) - (vB + aB * rB), n)
 		// JV + b = 0
 
-		Vec2 r1 = c->position - a.pos;
-		Vec2 r2 = c->position - b.pos;
+		/*Vec2 r1 = c.pos - a.pos;
+		Vec2 r2 = c.pos - b.pos;*/
+
+		/*Vec2 r1 = (c.pos + normal * c.separation) - a.pos;
+		Vec2 r2 = c.pos - b.pos;*/
+		Vec2 r1 = (c.pos + normal * c.separation) - a.transform.pos;
+		Vec2 r2 = c.pos - b.transform.pos;
 
 		// Precompute normal mass, tangent mass, and bias.
 		float rn1 = dot(r1, normal);
 		float rn2 = dot(r2, normal);
 		float kNormal = a.invMass + b.invMass;
 		kNormal += a.invRotationalInertia * (dot(r1, r1) - rn1 * rn1) + b.invRotationalInertia * (dot(r2, r2) - rn2 * rn2);
-		c->invNormalEffectiveMass = 1.0f / kNormal;
+		c.invNormalEffectiveMass = 1.0f / kNormal;
 
 		Vec2 tangent = cross(normal, 1.0f);
 		float rt1 = dot(r1, tangent);
 		float rt2 = dot(r2, tangent);
 		float kTangent = a.invMass + b.invMass;
 		kTangent += a.invRotationalInertia * (dot(r1, r1) - rt1 * rt1) + b.invRotationalInertia * (dot(r2, r2) - rt2 * rt2);
-		c->invTangentEffectiveMass = 1.0f / kTangent;
+		c.invTangentEffectiveMass = 1.0f / kTangent;
 
 		// Baumgarte stabilization bias.
 		// The velocity needed to solve the penetration in a single frame is when bias = 1.
@@ -91,16 +95,16 @@ auto Collision::preStep(Body& a, Body& b, float invDeltaTime) -> void {
 
 		auto relativeVelAtContact = (b.vel + cross(b.angularVel, r2)) - (a.vel + cross(a.angularVel, r1));
 
-		c->bias = -biasFactor * invDeltaTime * std::min(0.0f, c->separation + ALLOWED_PENETRATION);
+		/*c.bias = -biasFactor * invDeltaTime * std::min(0.0f, c.separation + ALLOWED_PENETRATION);*/
+		c.bias = -biasFactor * invDeltaTime * std::min(0.0f, -std::abs(c.separation) + ALLOWED_PENETRATION);
 		/*c->bias = std::max(c->bias, -dot(b->vel - a->vel, c->normal)) * 0.5f;*/
 		/*c->bias = std::max(c->bias, -dot(relativeVelAtContact, c->normal) * 0.2f);
 		c->bias = std::max(0.0f, c->bias);*/
 
 
-		if (Game::accumulateImpulses)
-		{
+		if (Game::accumulateImpulses) {
 			// Apply normal + friction impulse
-			Vec2 P = c->accumulatedNormalImpluse * normal + c->accumulatedTangentImpulse * tangent;
+			Vec2 P = c.accumulatedNormalImpluse * normal + c.accumulatedTangentImpulse * tangent;
 
 			a.vel -= a.invMass * P;
 			a.angularVel -= a.invRotationalInertia * cross(r1, P);
@@ -114,10 +118,12 @@ auto Collision::preStep(Body& a, Body& b, float invDeltaTime) -> void {
 auto Collision::applyImpulse(Body& a, Body& b) -> void {
 	for (i32 i = 0; i < contactCount; i++) {
 		auto& contact = contacts[i];
-		ASSERT(contact.separation <= 0.0f);
+		//ASSERT(contact.separation <= 0.0f);
 
-		const auto r1 = contact.position - a.pos;
-		const auto r2 = contact.position - b.pos;
+		/*const auto r1 = contact.pos - a.pos;
+		const auto r2 = contact.pos - b.pos;*/
+		Vec2 r1 = (contact.pos + normal * contact.separation) - a.transform.pos;
+		Vec2 r2 = contact.pos - b.transform.pos;
 		auto relativeVelAtContact = (b.vel + cross(b.angularVel, r2)) - (a.vel + cross(a.angularVel, r1));
 
 		// Compute normal impulse
@@ -240,9 +246,14 @@ auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos
 {
 #define GET(collider, name, type) const auto name = std::get_if<type>(&collider); name != nullptr
 
+	auto aTransform = Transform{ aPos, aOrientation };
+	auto bTransform = Transform{ bPos, bOrientation };
+
 	if (GET(aCollider, aBox, BoxCollider)) {
 		if (GET(bCollider, bBox, BoxCollider)) {
-			return collide(aPos, aOrientation, *aBox, bPos, bOrientation, *bBox);
+
+			return collide(aTransform, *aBox, bTransform, *bBox);
+			/*return collide(aPos, aOrientation, *aBox, bPos, bOrientation, *bBox);*/
 		} else if (GET(bCollider, bCircle, CircleCollider)) {
 			return collide(aPos, aOrientation, *aBox, bPos, bOrientation, *bCircle);
 		}
@@ -457,7 +468,7 @@ auto collide(const ConvexPolygon& a, const Transform& aTransform, const ConvexPo
 	const auto distanceFromReferenceFace0 = signedDistance(referenceFaceLine, vertsToClip[0].pos);
 	if (distanceFromReferenceFace0 >= 0.0f) {
 		manifold.contacts[manifold.contactCount] = ContactPoint{
-			.position = vertsToClip[0].pos,
+			.pos = vertsToClip[0].pos,
 			.separation = distanceFromReferenceFace0,
 			.id = vertsToClip[0].id,
 		};
@@ -466,7 +477,7 @@ auto collide(const ConvexPolygon& a, const Transform& aTransform, const ConvexPo
 	const auto distanceFromReferenceFace1 = signedDistance(referenceFaceLine, vertsToClip[1].pos);
 	if (distanceFromReferenceFace1 >= 0.0f) {
 		manifold.contacts[manifold.contactCount] = ContactPoint{
-			.position = vertsToClip[1].pos,
+			.pos = vertsToClip[1].pos,
 			.separation = distanceFromReferenceFace1,
 			.id = vertsToClip[1].id,
 		};
@@ -478,21 +489,23 @@ auto collide(const ConvexPolygon& a, const Transform& aTransform, const ConvexPo
 		manifold.normal = -manifold.normal;
 		for (i32 i = 0; i < manifold.contactCount; i++) {
 			auto& point = manifold.contacts[i];
-			/*point.penetration = -std::abs(point.penetration);*/
+
+			point.pos = point.pos - manifold.normal * point.separation;
+			//point.separation = -point.separation;
 			std::swap(point.id.featureOnA, point.id.featureOnB);
 			std::swap(point.id.featureOnAIndex, point.id.featureOnBIndex);
 		}
 	}
 
-	for (i32 i = 0; i < manifold.contactCount; i++) {
+	/*for (i32 i = 0; i < manifold.contactCount; i++) {
 		auto& point = manifold.contacts[i];
 		point.separation = -std::abs(point.separation);
-	}
+	}*/
 
 	return manifold;
 }
 
-auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision> {
+auto collide(const Transform& aTransform, const BoxCollider& aBox, const Transform& bTransform, const BoxCollider& bBox) -> std::optional<Collision> {
 	static ConvexPolygon aShape{ .verts = std::vector<Vec2>(4, Vec2{ 0.0f }), .normals = std::vector<Vec2>(4, Vec2{ 0.0f }) };
 	aShape.verts[3] = aBox.size / 2.0f;
 	aShape.verts[2] = Vec2{ aBox.size.x, -aBox.size.y } / 2.0f;
@@ -506,9 +519,6 @@ auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, 
 
 	aShape.calculateNormals();
 	bShape.calculateNormals();
-
-	Transform aTransform{ aPos, aOrientation };
-	Transform bTransform{ bPos, bOrientation };
 
 	return collide(aShape, aTransform, bShape, bTransform);
 }
@@ -574,10 +584,8 @@ auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 cir
 	p.separation = collision.normal.length() - circle.radius;
 	if (isCenterInsideBox) p.separation = -(collision.normal.length() + circle.radius);
 	collision.normal = collision.normal.normalized();
-	p.position = closestPosOnBox;
-	//p.feature.value = 0;
+	p.pos = closestPosOnBox;
 	p.id = ContactPointId{ .featureOnA = ContactPointFeature::FACE, .featureOnAIndex = 0, .featureOnB = ContactPointFeature::FACE, .featureOnBIndex = 0 };
-	collision.normal = collision.normal;
 
 	return collision;
 }
@@ -596,10 +604,8 @@ auto collide(Vec2 aPos, float, const CircleCollider& a, Vec2 bPos, float, const 
 	collision.normal = normal / distance;
 	p.separation = -(a.radius + b.radius - distance);
 	collision.normal = (distanceSquared == 0.0f) ? Vec2{ 1.0f, 0.0f } : collision.normal.normalized();
-	p.position = aPos + collision.normal * a.radius;
-	/*p.feature.value = 0;*/
+	p.pos = aPos + collision.normal * a.radius;
 	p.id = ContactPointId{ .featureOnA = ContactPointFeature::FACE, .featureOnAIndex = 0, .featureOnB = ContactPointFeature::FACE, .featureOnBIndex = 0 };
-	collision.normal = collision.normal;
 	return collision;
 }
 

@@ -17,7 +17,7 @@ auto colliderToJson(const Collider& collider) -> Json::Value;
 auto jsonToCollider(const Json::Value& json) -> Collider;
 auto displayColliderGui(const Collider& collider) -> void;
 
-struct BodyEditor {
+struct BodyOldEditor {
 	Vec2 pos;
 	float orientation;
 	Vec2 vel;
@@ -29,23 +29,23 @@ struct BodyEditor {
 
 	auto editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void;
 	auto toJson() const -> Json::Value;
-	static auto fromJson(const Json::Value& json) -> BodyEditor;
+	static auto fromJson(const Json::Value& json) -> BodyOldEditor;
 };
 
-static constexpr auto BODY_EDITOR_POS_OFFSET = offsetof(BodyEditor, pos);
-static constexpr auto BODY_EDITOR_ORIENTATION_OFFSET = offsetof(BodyEditor, orientation);
-static constexpr auto BODY_EDITOR_VEL_OFFSET = offsetof(BodyEditor, vel);
-static constexpr auto BODY_EDITOR_ANGULAR_VEL_OFFSET = offsetof(BodyEditor, angularVel);
-static constexpr auto BODY_EDITOR_MASS_OFFSET = offsetof(BodyEditor, mass);
-static constexpr auto BODY_EDITOR_ROTATIONAL_INERTIA_OFFSET = offsetof(BodyEditor, rotationalInertia);
-static constexpr auto BODY_EDITOR_COEFFICIENT_OF_FRICTION_OFFSET = offsetof(BodyEditor, coefficientOfFriction);
-static constexpr auto BODY_EDITOR_COLLIDER_OFFSET = offsetof(BodyEditor, collider);
+static constexpr auto BODY_OLD_EDITOR_POS_OFFSET = offsetof(BodyOldEditor, pos);
+static constexpr auto BODY_OLD_EDITOR_ORIENTATION_OFFSET = offsetof(BodyOldEditor, orientation);
+static constexpr auto BODY_OLD_EDITOR_VEL_OFFSET = offsetof(BodyOldEditor, vel);
+static constexpr auto BODY_OLD_EDITOR_ANGULAR_VEL_OFFSET = offsetof(BodyOldEditor, angularVel);
+static constexpr auto BODY_OLD_EDITOR_MASS_OFFSET = offsetof(BodyOldEditor, mass);
+static constexpr auto BODY_OLD_EDITOR_ROTATIONAL_INERTIA_OFFSET = offsetof(BodyOldEditor, rotationalInertia);
+static constexpr auto BODY_OLD_EDITOR_COEFFICIENT_OF_FRICTION_OFFSET = offsetof(BodyOldEditor, coefficientOfFriction);
+static constexpr auto BODY_OLD_EDITOR_COLLIDER_OFFSET = offsetof(BodyOldEditor, collider);
 
-struct Body : public BodyEditor {
-	Body(Vec2 pos, const Collider& collider, bool isStatic);
-	Body(const BodyEditor& body);
+struct BodyOld : public BodyOldEditor {
+	BodyOld(Vec2 pos, const Collider& collider, bool isStatic);
+	BodyOld(const BodyOldEditor& body);
 	auto updateInvMassAndInertia() -> void;
-	Body();
+	BodyOld();
 	auto isStatic() const -> bool { return invMass == 0.0f; }
 
 	Vec2 force;

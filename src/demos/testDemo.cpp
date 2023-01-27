@@ -1,5 +1,5 @@
 #include <demos/testDemo.hpp>
-#include <game/collision/collision.hpp>
+#include <game/collision.hpp>
 #include <engine/debug.hpp>
 #include <engine/input.hpp>
 #include <math/mat2.hpp>
@@ -10,17 +10,6 @@
 #include <string>
 
 #include <math/utils.hpp>
-
-static auto makeRegularPolygon(i32 sides, float radius) -> ConvexPolygon {
-	ConvexPolygon polygon;
-	const auto angleStep = TAU<float> / sides;
-	for (i32 i = 0; i < sides; i++) {
-		polygon.verts.push_back(Vec2::oriented(angleStep / 2.0f + angleStep * i) * radius);
-	}
-	polygon.calculateNormals();
-	return polygon;
-};
-
 
 auto drawPolygon(const ConvexPolygon& polygon, const Transform& transform) {
 	const auto& [verts, normals] = polygon;
@@ -76,9 +65,11 @@ auto TestDemo::update() -> void {
 
 			auto id = (point.id.featureOnA == ContactPointFeature::FACE ? "f" : "v") + std::to_string(point.id.featureOnAIndex)
 				+ ((point.id.featureOnB == ContactPointFeature::FACE) ? "f" : "v") + std::to_string(point.id.featureOnBIndex);
-			Debug::drawText(point.position + Vec2{ 0.0f, 0.05f }, id.data(), Vec3::GREEN, 0.03f);
-			Debug::drawPoint(point.position, Vec3::RED);
-			Debug::drawRay(point.position, manifold->normal * point.separation, Vec3::GREEN);
+			Debug::drawText(point.pos + Vec2{ 0.0f, 0.05f }, id.data(), Vec3::GREEN, 0.03f);
+			Debug::drawPoint(point.pos, Vec3::RED);
+			Debug::drawRay(point.pos, manifold->normal * point.separation, Vec3::GREEN);
+			//Debug::drawRay(point.pos, manifold->normal, Vec3::GREEN);
+			//Debug::drawPoint(point.pos + manifold->normal * point.separation, Vec3::RED);
 
 		}
 	}

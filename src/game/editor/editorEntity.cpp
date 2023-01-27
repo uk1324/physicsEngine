@@ -1,5 +1,5 @@
 #include <game/editor/editorEntity.hpp>
-#include <game/collision/collision.hpp>
+#include <game/collision.hpp>
 #include <math/mat2.hpp>
 #include <utils/overloaded.hpp>
 
@@ -31,14 +31,14 @@ auto EditorEntities::getDistanceJointLineSegment(const DistanceJointEntityEditor
 
 auto EditorEntities::getPosPointerOffset(const Entity& entity) -> std::optional<usize> {
 	switch (entity.type) {
-	case EntityType::Body: return BODY_EDITOR_POS_OFFSET;
+	case EntityType::Body: return BODY_OLD_EDITOR_POS_OFFSET;
 	default: return std::nullopt;
 	}
 }
 
 auto EditorEntities::getOrientationPointerOffset(const Entity& entity) -> std::optional<usize> {
 	switch (entity.type) {
-	case EntityType::Body: return BODY_EDITOR_ORIENTATION_OFFSET;
+	case EntityType::Body: return BODY_OLD_EDITOR_ORIENTATION_OFFSET;
 	default: return std::nullopt;
 	}
 }
@@ -49,7 +49,7 @@ auto EditorEntities::getFieldPointer(const Entity& entity, usize fieldOffset) ->
 	switch (entity.type) {
 	case EntityType::Body: 
 		ptr = reinterpret_cast<u8*>(&body[entity.index]);
-		if (fieldOffset > sizeof(BodyEditor)) {
+		if (fieldOffset > sizeof(BodyOldEditor)) {
 			ASSERT_NOT_REACHED();
 			return nullptr;
 		}

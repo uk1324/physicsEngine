@@ -19,7 +19,7 @@ private:
 	auto boxScaling(BoxCollider& box, Vec2& boxPos, float boxOrientation, bool uniformScaling, Vec2 cursorPos, float pointRadius, bool selectedEntitiesChanges) -> Result;
 
 	struct Box {
-		const BodyEditor& body;
+		const BodyOldEditor& body;
 		const BoxCollider& box;
 	};
 	static auto isOnlyBoxSelected(const std::vector<Entity> selectedEntities, EditorEntities& entites) -> std::optional<Box>;

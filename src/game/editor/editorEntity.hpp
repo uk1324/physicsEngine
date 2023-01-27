@@ -70,7 +70,7 @@ private:
 };
 
 struct EditorEntities {
-	EditorEntityArray<BodyEditor, EntityType::Body> body;
+	EditorEntityArray<BodyOldEditor, EntityType::Body> body;
 	EditorEntityArray<DistanceJointEntityEditor, EntityType::DistanceJoint> distanceJoint;
 	auto getDistanceJointEndpoints(const DistanceJointEntityEditor& distanceJoint) const -> std::pair<Vec2, Vec2>;
 	auto getDistanceJointLineSegment(const DistanceJointEntityEditor& distanceJoint) const -> LineSegment;

@@ -1,7 +1,7 @@
 #include <game/editor/editor.hpp>
 #include <imgui/imgui.h>
 #include <game/editor/input.hpp>
-#include <game/collision/collision.hpp>
+#include <game/collision.hpp>
 #include <game/levelFormat.hpp>
 #include <engine/debug.hpp>
 #include <engine/time.hpp>
@@ -165,7 +165,7 @@ auto Editor::update() -> void {
 	Begin("entites");
 	auto addBody = [this](Vec2 pos, const Collider& collider) -> void {
 		const auto info = massInfo(collider, DEFAULT_DENSITY);
-		const auto entity = entites.body.add(BodyEditor{
+		const auto entity = entites.body.add(BodyOldEditor{
 			.pos = pos,
 			.orientation = 0.0f,
 			.vel = Vec2{ 0.0f },
@@ -228,8 +228,8 @@ auto Editor::update() -> void {
 
 			auto& body = entites.body[entity.index];
 			constexpr auto newMassAndInertia = std::numeric_limits<float>::infinity();
-			commands.addSetFieldCommand(entity, BODY_EDITOR_MASS_OFFSET, body.mass, newMassAndInertia);
-			commands.addSetFieldCommand(entity, BODY_EDITOR_ROTATIONAL_INERTIA_OFFSET, body.rotationalInertia, newMassAndInertia);
+			commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_MASS_OFFSET, body.mass, newMassAndInertia);
+			commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_ROTATIONAL_INERTIA_OFFSET, body.rotationalInertia, newMassAndInertia);
 			body.mass = newMassAndInertia;
 			body.rotationalInertia = newMassAndInertia;
 		}
@@ -701,7 +701,7 @@ auto Editor::loadLevel(const Json::Value& level) -> void {
 	try {
 		const auto& bodies = level.at("bodies").array();
 		for (const auto& body : bodies) {
-			entites.body.add(BodyEditor::fromJson(body));
+			entites.body.add(BodyOldEditor::fromJson(body));
 		}
 
 		const auto& distanceJoints = level.at("distanceJoints").array();

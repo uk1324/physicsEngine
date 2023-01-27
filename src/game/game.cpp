@@ -1,7 +1,7 @@
 #include <game/game.hpp>
 #include <engine/debug.hpp>
 #include <game/input.hpp>
-#include <game/collision/collision.hpp>
+#include <game/collision.hpp>
 #include <game/distanceJoint.hpp>
 #include <engine/time.hpp>
 #include <engine/window.hpp>
@@ -25,7 +25,6 @@ std::vector<Body> bodies;
 #include <json/Json.hpp>
 #include <fstream>
 
-
 Game::Game() {
 	int height = 14;
 	float boxSize = 1.0f;
@@ -36,13 +35,14 @@ Game::Game() {
 			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
 			bodies.push_back(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });
+			//bodies.push_back(Body{ Vec2{ x, y }, CircleColliderEditor{ boxSize / 2.0f }, false });
 		}
 	}
 	bodies.push_back(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
 
-	/*for (int i = 0; i < 10; i++) {
-		bodies.push_back(Body{ Vec2{ 0.0f, i * 1.05f + 0.5f }, BoxColliderEditor{ Vec2{ 1.0f } }, false });
-	}*/
+	//for (int i = 0; i < 10; i++) {
+	//	bodies.push_back(Body{ Vec2{ 0.0f, i * 1.05f + 0.5f }, BoxColliderEditor{ Vec2{ 1.0f } }, false });
+	//}
 
 	//for (int i = 0; i < 10; i++) {
 	//	bodies.push_back(Body{ Vec2{ 0.0f, i * 1.05f + 0.5f }, CircleColliderEditor{ 0.5f }, false });
@@ -92,7 +92,8 @@ auto doCollision() -> void {
 			BodyPair key{ &a, &b };
 
 			// TODO: Can be made const.
-			if (auto collision = collide(a.pos, a.orientation, a.collider, b.pos, b.orientation, b.collider); collision.has_value()) {
+			/*if (auto collision = collide(a.pos, a.orientation, a.collider, b.pos, b.orientation, b.collider); collision.has_value()) {*/
+			if (auto collision = collide(a.transform.pos, a.transform.angle(), a.collider, b.transform.pos, b.transform.angle(), b.collider); collision.has_value()) {
 				// TODO: Move this into some function or constructor probably when making a better collision system.
 				collision->coefficientOfFriction = sqrt(a.coefficientOfFriction * b.coefficientOfFriction);
 				if (const auto& oldContact = contacts.find(key); oldContact == contacts.end()) {
@@ -137,7 +138,7 @@ auto Game::loadLevel() -> void{
 		vDelete.clear();
 
 		for (const auto& body : bodies) {
-			::bodies.push_back(BodyEditor::fromJson(body));
+			::bodies.push_back(BodyOldEditor::fromJson(body));
 			::bodies.back().coefficientOfFriction = 0.5f;
 		}
 
@@ -226,45 +227,45 @@ auto Game::update() -> void {
 		contacts.clear();
 	}
 
-	static auto level = Json::Value::emptyObject();
-	if (Input::isKeyDown(Keycode::V)) {
-		level = Json::Value::emptyObject();
-		level["bodies"] = Json::Value::emptyArray();
-		auto& bodyList = level["bodies"].array();
-		for (const auto& body : ::bodies) {
-			bodyList.push_back(body.toJson());
-		}
-		std::ofstream file("test.json");
-		//Json::prettyPrint(file, level);
-	}
-	if (Input::isKeyDown(Keycode::B)) {
-		try {
-			contacts.clear();
-			auto& bodies = level.at("bodies").array();
-			std::vector<Body*> toAdd;
-			std::vector<Body*> toRemove;
-			for (auto& body : ::bodies) {
-				toRemove.push_back(&body);
-			}
-			collisionSystem.update(toAdd, toRemove);
-			::bodies.clear();
-			for (const auto& body : bodies) {
-				::bodies.push_back(Body{ BodyEditor::fromJson(body) });
-				::bodies.back().updateInvMassAndInertia();
-			}
-			for (auto& body : ::bodies) {
-				toAdd.push_back(&body);
-			}
-			toRemove.clear();
-			collisionSystem.update(toAdd, toRemove);
-		} catch (const Json::ParsingError&) {
+	//static auto level = Json::Value::emptyObject();
+	//if (Input::isKeyDown(Keycode::V)) {
+	//	level = Json::Value::emptyObject();
+	//	level["bodies"] = Json::Value::emptyArray();
+	//	auto& bodyList = level["bodies"].array();
+	//	for (const auto& body : ::bodies) {
+	//		bodyList.push_back(body.toJson());
+	//	}
+	//	std::ofstream file("test.json");
+	//	//Json::prettyPrint(file, level);
+	//}
+	//if (Input::isKeyDown(Keycode::B)) {
+	//	try {
+	//		contacts.clear();
+	//		auto& bodies = level.at("bodies").array();
+	//		std::vector<Body*> toAdd;
+	//		std::vector<Body*> toRemove;
+	//		for (auto& body : ::bodies) {
+	//			toRemove.push_back(&body);
+	//		}
+	//		collisionSystem.update(toAdd, toRemove);
+	//		::bodies.clear();
+	//		for (const auto& body : bodies) {
+	//			::bodies.push_back(Body{ BodyEditor::fromJson(body) });
+	//			::bodies.back().updateInvMassAndInertia();
+	//		}
+	//		for (auto& body : ::bodies) {
+	//			toAdd.push_back(&body);
+	//		}
+	//		toRemove.clear();
+	//		collisionSystem.update(toAdd, toRemove);
+	//	} catch (const Json::ParsingError&) {
 
-		} catch (const Json::Value::OutOfRangeAccess&) {
+	//	} catch (const Json::Value::OutOfRangeAccess&) {
 
-		} catch (const std::out_of_range&) {
+	//	} catch (const std::out_of_range&) {
 
-		}
-	}
+	//	}
+	//}
 
 	if (drawTrajectory) {
 		Vec2 previous = mousePos;
@@ -285,10 +286,12 @@ auto Game::update() -> void {
 		}
 	}
 	if (Input::isKeyDown(Keycode::U)) {
-		bodies.back().pos = mousePos;
+		/*bodies.back().pos = mousePos;*/
+		bodies.back().transform.pos = mousePos;
 		bodies.back().vel = initialVelocity;
 		bodies.back().angularVel = 1.5f;
-		bodies.back().orientation = 0.0f;
+		/*bodies.back().orientation = 0.0f;*/
+		bodies.back().transform.rot = Rotation{ 0.0f };
 	}
 
 	if (Input::isKeyDown(Keycode::G)) __debugbreak();
@@ -310,9 +313,13 @@ auto Game::update() -> void {
 	static Vec2 selectedGrabPointObjectSpace;
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 		for (auto& body : bodies) {
-			if (contains(mousePos, body.pos, body.orientation, body.collider)) {
+			/*if (contains(mousePos, body.pos, body.orientation, body.collider)) {
 				selected = &body;
 				selectedGrabPointObjectSpace = (mousePos - body.pos) * Mat2::rotate(-body.orientation);
+			}*/
+			if (contains(mousePos, body.transform.pos, body.transform.angle(), body.collider)) {
+				selected = &body;
+				selectedGrabPointObjectSpace = (mousePos - body.transform.pos) * Mat2::rotate(-body.transform.angle());
 			}
 		}
 	}
@@ -321,8 +328,10 @@ auto Game::update() -> void {
 	}
 
 	if (selected != nullptr) {
-		const auto offsetUprightSpace = selectedGrabPointObjectSpace * Mat2::rotate(selected->orientation);
-		const auto fromMouseToObject = mousePos - (selected->pos + offsetUprightSpace);
+		/*const auto offsetUprightSpace = selectedGrabPointObjectSpace * Mat2::rotate(selected->orientation);
+		const auto fromMouseToObject = mousePos - (selected->pos + offsetUprightSpace);*/
+		const auto offsetUprightSpace = selectedGrabPointObjectSpace * Mat2::rotate(selected->transform.angle());
+		const auto fromMouseToObject = mousePos - (selected->transform.pos + offsetUprightSpace);
 		selected->force = -selected->vel / (Time::deltaTime() * 5.0f) * selected->mass;
 		selected->force += fromMouseToObject / pow(Time::deltaTime(), 2.0f) * selected->mass / 10.0f;
 		selected->torque = det(offsetUprightSpace, selected->force);
@@ -336,7 +345,8 @@ auto Game::update() -> void {
 	}
 
 	for (const auto& body : bodies) {
-		Debug::drawCollider(body.collider, body.pos, body.orientation);
+		/*Debug::drawCollider(body.collider, body.pos, body.orientation);*/
+		Debug::drawCollider(body.collider, body.transform.pos, body.transform.angle());
 	}
 
 	if (drawContacts) {
@@ -344,13 +354,14 @@ auto Game::update() -> void {
 			for (i32 i = 0; i < collision.contactCount; i++) {
 				const auto& contact = collision.contacts[i];
 				const auto scale = scaleContactNormals ? contact.separation : 0.1f;
-				Debug::drawRay(contact.position, -collision.normal * scale, Vec3::RED);
+				Debug::drawRay(contact.pos, -collision.normal * scale, Vec3::RED);
 			}
 		}
 	}
 
 	for (const auto& [bodyPair, joint] : joints) {
-		Debug::drawRay(bodyPair.a->pos, (bodyPair.b->pos - bodyPair.a->pos).normalized() * joint.requiredDistance);
+		/*Debug::drawRay(bodyPair.a->pos, (bodyPair.b->pos - bodyPair.a->pos).normalized() * joint.requiredDistance);*/
+		Debug::drawRay(bodyPair.a->transform.pos, (bodyPair.b->transform.pos - bodyPair.a->transform.pos).normalized() * joint.requiredDistance);
 	}
 
 	Renderer::update(camera);
@@ -393,8 +404,9 @@ auto Game::physicsStep() -> void {
 	for (auto& body : bodies) {
 		if (body.isStatic())
 			continue;
-		body.pos += body.vel * Time::deltaTime();
-		body.orientation += body.angularVel * Time::deltaTime();
+		body.transform.pos += body.vel * Time::deltaTime();
+		/*body.orientation += body.angularVel * Time::deltaTime();*/
+		body.transform.rot *= Rotation{ body.angularVel * Time::deltaTime() };
 	}
 }
 

@@ -10,6 +10,7 @@ struct Entity;
 
 #include <math/aabb.hpp>
 #include <math/lineSegment.hpp>
+#include <game/convexPolygonCollider.hpp>
 
 #include <array>
 

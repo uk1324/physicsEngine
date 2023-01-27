@@ -217,7 +217,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\game\collision\collision.cpp">
+    <ClCompile Include="src\game\collision.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -416,6 +416,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\game\convexPolygonCollider.hpp" />
     <ClInclude Include="src\game\body.hpp" />
     <ClInclude Include="src\customImguiWidgets.hpp" />
     <ClInclude Include="src\demos\testDemo.hpp" />
@@ -429,7 +430,7 @@
     <ClInclude Include="src\engine\camera.hpp" />
     <ClInclude Include="src\game\collidersData.hpp" />
     <ClInclude Include="src\game\collisionSystem.hpp" />
-    <ClInclude Include="src\game\collision\collision.hpp" />
+    <ClInclude Include="src\game\collision.hpp" />
     <ClInclude Include="src\game\contact.hpp" />
     <ClInclude Include="src\engine\debug.hpp" />
     <ClInclude Include="src\game\contactConstraint.hpp" />

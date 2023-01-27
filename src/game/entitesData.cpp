@@ -6,7 +6,7 @@
 using namespace ImGui;
 using namespace Json;
 
-auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
+auto BodyOldEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void {
 	TableNextRow();
 	TableSetColumnIndex(0);
 	AlignTextToFramePadding();
@@ -21,7 +21,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivatedAfterEdit()) {
 		dbg(*reinterpret_cast<decltype(pos)*>(inputState.oldSavedData()));
-		commands.addSetFieldCommand(entity, BODY_EDITOR_POS_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_EDITOR_POS_OFFSET), static_cast<u8>(sizeof(pos)));
+		commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_POS_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_OLD_EDITOR_POS_OFFSET), static_cast<u8>(sizeof(pos)));
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
@@ -39,7 +39,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivatedAfterEdit()) {
 		dbg(*reinterpret_cast<decltype(orientation)*>(inputState.oldSavedData()));
-		commands.addSetFieldCommand(entity, BODY_EDITOR_ORIENTATION_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_EDITOR_ORIENTATION_OFFSET), static_cast<u8>(sizeof(orientation)));
+		commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_ORIENTATION_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_OLD_EDITOR_ORIENTATION_OFFSET), static_cast<u8>(sizeof(orientation)));
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
@@ -57,7 +57,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivatedAfterEdit()) {
 		dbg(*reinterpret_cast<decltype(vel)*>(inputState.oldSavedData()));
-		commands.addSetFieldCommand(entity, BODY_EDITOR_VEL_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_EDITOR_VEL_OFFSET), static_cast<u8>(sizeof(vel)));
+		commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_VEL_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_OLD_EDITOR_VEL_OFFSET), static_cast<u8>(sizeof(vel)));
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
@@ -75,7 +75,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivatedAfterEdit()) {
 		dbg(*reinterpret_cast<decltype(angularVel)*>(inputState.oldSavedData()));
-		commands.addSetFieldCommand(entity, BODY_EDITOR_ANGULAR_VEL_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_EDITOR_ANGULAR_VEL_OFFSET), static_cast<u8>(sizeof(angularVel)));
+		commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_ANGULAR_VEL_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_OLD_EDITOR_ANGULAR_VEL_OFFSET), static_cast<u8>(sizeof(angularVel)));
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
@@ -93,7 +93,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivatedAfterEdit()) {
 		dbg(*reinterpret_cast<decltype(mass)*>(inputState.oldSavedData()));
-		commands.addSetFieldCommand(entity, BODY_EDITOR_MASS_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_EDITOR_MASS_OFFSET), static_cast<u8>(sizeof(mass)));
+		commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_MASS_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_OLD_EDITOR_MASS_OFFSET), static_cast<u8>(sizeof(mass)));
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
@@ -111,7 +111,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivatedAfterEdit()) {
 		dbg(*reinterpret_cast<decltype(rotationalInertia)*>(inputState.oldSavedData()));
-		commands.addSetFieldCommand(entity, BODY_EDITOR_ROTATIONAL_INERTIA_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_EDITOR_ROTATIONAL_INERTIA_OFFSET), static_cast<u8>(sizeof(rotationalInertia)));
+		commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_ROTATIONAL_INERTIA_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_OLD_EDITOR_ROTATIONAL_INERTIA_OFFSET), static_cast<u8>(sizeof(rotationalInertia)));
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
@@ -129,7 +129,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	}
 	if (IsItemDeactivatedAfterEdit()) {
 		dbg(*reinterpret_cast<decltype(coefficientOfFriction)*>(inputState.oldSavedData()));
-		commands.addSetFieldCommand(entity, BODY_EDITOR_COEFFICIENT_OF_FRICTION_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_EDITOR_COEFFICIENT_OF_FRICTION_OFFSET), static_cast<u8>(sizeof(coefficientOfFriction)));
+		commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_COEFFICIENT_OF_FRICTION_OFFSET, inputState.oldSavedData(), entites.getFieldPointer(entity, BODY_OLD_EDITOR_COEFFICIENT_OF_FRICTION_OFFSET), static_cast<u8>(sizeof(coefficientOfFriction)));
 	}
 	if (IsItemDeactivated()) { inputState.inputing = false; }
 
@@ -143,7 +143,7 @@ auto BodyEditor::editorGui(EditorGuiState& inputState, EditorEntities& entites, 
 	NextColumn();
 }
 
-auto BodyEditor::toJson() const -> Json::Value {
+auto BodyOldEditor::toJson() const -> Json::Value {
 	auto result = Json::Value::emptyObject();
 	result["pos"] = { { "x", pos.x }, { "y", pos.y } };
 	result["orientation"] = Json::Value(orientation);
@@ -156,8 +156,8 @@ auto BodyEditor::toJson() const -> Json::Value {
 	return result;
 }
 
-auto BodyEditor::fromJson(const Json::Value& json) -> BodyEditor {
-	return BodyEditor{
+auto BodyOldEditor::fromJson(const Json::Value& json) -> BodyOldEditor {
+	return BodyOldEditor{
 		.pos = Vec2{ json.at("pos").at("x").number(), json.at("pos").at("y").number() },
 		.orientation = json.at("orientation").number(),
 		.vel = Vec2{ json.at("vel").at("x").number(), json.at("vel").at("y").number() },

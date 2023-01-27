@@ -9,7 +9,7 @@ auto jsonToCollider(const Json::Value& json) -> Collider;
 auto displayColliderGui(const Collider& collider) -> void;
 ~
 
-Body @Editor {
+BodyOld @Editor {
 	Vec2 pos;
 	angle orientation;
 	Vec2 vel;
@@ -20,10 +20,10 @@ Body @Editor {
 	~Collider~ collider Custom(colliderToJson jsonToCollider displayColliderGui);
 
 	^~
-	Body(Vec2 pos, const Collider& collider, bool isStatic);
-	Body(const BodyEditor& body);
+	BodyOld(Vec2 pos, const Collider& collider, bool isStatic);
+	BodyOld(const BodyOldEditor& body);
 	auto updateInvMassAndInertia() -> void;
-	Body();
+	BodyOld();
 	auto isStatic() const -> bool { return invMass == 0.0f; }
 
 	Vec2 force;

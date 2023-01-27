@@ -2,7 +2,7 @@
 #include <game/editor/commands.hpp>
 #include <engine/debug.hpp>
 #include <game/editor/input.hpp>
-#include <game/collision/collision.hpp>
+#include <game/collision.hpp>
 #include <customImguiWidgets.hpp>
 #include <math/lineSegment.hpp>
 #include <math/mat2.hpp>

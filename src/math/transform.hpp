@@ -7,6 +7,7 @@ struct Rotation {
 	Rotation(float angle);
 
 	auto operator*(const Rotation& other) const -> Rotation;
+	auto operator*=(const Rotation& other) -> Rotation&;
 	auto inversed() const -> Rotation;
 
 	float cos, sin;
@@ -17,6 +18,7 @@ struct Transform {
 	Transform(Vec2 pos, float angle);
 
 	auto operator*(const Transform& other) const -> Transform;
+	auto angle() const -> float;
 	auto inversed() const -> Transform;
 
 	Vec2 pos;

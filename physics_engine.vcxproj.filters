@@ -221,7 +221,7 @@
     <ClCompile Include="src\game\contactConstraint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\collision\collision.cpp">
+    <ClCompile Include="src\game\collision.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -475,7 +475,10 @@
     <ClInclude Include="src\game\contactConstraint.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game\collision\collision.hpp">
+    <ClInclude Include="src\game\collision.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\convexPolygonCollider.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

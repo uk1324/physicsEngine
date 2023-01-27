@@ -20,7 +20,8 @@ auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vect
 			continue;
 
 		auto& node = BvhCollisionSystem::node(nodeIndex);
-		const auto updatedAabb = aabb(body->collider, body->pos, body->orientation);
+		/*const auto updatedAabb = aabb(body->collider, body->transform.pos, body->orientation);*/
+		const auto updatedAabb = aabb(body->collider, body->transform.pos, body->transform.angle());
 		if (!(node.aabb.contains(updatedAabb.min) && node.aabb.contains(updatedAabb.max))) {
 			if (leafNodes.size() == 1) {
 				node.aabb = addMarginToAabb(updatedAabb);
@@ -97,7 +98,8 @@ auto BvhCollisionSystem::raycastHelper(u32 nodeIndex, Vec2 start, Vec2 end) cons
 		return std::nullopt;
 
 	if (node.isLeaf())
-		return ::raycast(start, end, node.body->collider, node.body->pos, node.body->orientation);
+		return ::raycast(start, end, node.body->collider, node.body->transform.pos, node.body->transform.angle());
+		/*return ::raycast(start, end, node.body->collider, node.body->pos, node.body->orientation);*/
 
 	const auto result0 = raycastHelper(node.children[0], start, end);
 	if (!result0.has_value())
@@ -132,7 +134,8 @@ auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB)
 			BodyPair key{ a.body, b.body };
 			ASSERT(a.body != b.body);
 
-			if (auto collision = ::collide(key.a->pos, key.a->orientation, key.a->collider, key.b->pos, key.b->orientation,			key.b->collider); collision.has_value()) {
+			/*if (auto collision = ::collide(key.a->pos, key.a->orientation, key.a->collider, key.b->pos, key.b->orientation,			key.b->collider); collision.has_value()) {*/
+			if (auto collision = ::collide(key.a->transform.pos, key.a->transform.angle(), key.a->collider, key.b->transform.pos, key.b->transform.angle(), key.b->collider); collision.has_value()) {
 				// TODO: Move this into some function or constructor probably when making a better collision system.
 				collision->coefficientOfFriction = sqrt(key.a->coefficientOfFriction * key.b->coefficientOfFriction);
 				collisions[key] = *collision;
@@ -182,7 +185,8 @@ auto BvhCollisionSystem::addMarginToAabb(const Aabb& aabb) -> Aabb {
 auto BvhCollisionSystem::insert(Body& body) -> void {
 
 	auto aabb = [](const Body& body) -> Aabb {
-		const auto aabb = ::aabb(body.collider, body.pos, body.orientation);
+		/*const auto aabb = ::aabb(body.collider, body.pos, body.orientation);*/
+		const auto aabb = ::aabb(body.collider, body.transform.pos, body.transform.angle());
 		return addMarginToAabb(aabb);
 	};
 

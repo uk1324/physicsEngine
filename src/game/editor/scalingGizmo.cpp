@@ -40,8 +40,8 @@ auto ScalingGizmo::update(const std::vector<Entity> selectedEntities, const Aabb
 			const auto& entity = grabStartSelectedEntites[i];
 			if (entity.type == EntityType::Body) {
 				auto& body = entites.body[entity.index];
-				commands.addSetFieldCommand(entity, BODY_EDITOR_POS_OFFSET, selectedEntitesBoxGrabStartPositions[i], body.pos);
-				commands.addSetFieldCommand(entity, BODY_EDITOR_COLLIDER_OFFSET, selectedEntitesBoxGrabStartColliders[i], body.collider);
+				commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_POS_OFFSET, selectedEntitesBoxGrabStartPositions[i], body.pos);
+				commands.addSetFieldCommand(entity, BODY_OLD_EDITOR_COLLIDER_OFFSET, selectedEntitesBoxGrabStartColliders[i], body.collider);
 			}
 		}
 		commands.endMulticommand();

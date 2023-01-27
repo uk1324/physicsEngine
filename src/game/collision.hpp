@@ -6,27 +6,6 @@
 #include <optional>
 #include <variant>
 
-struct ConvexPolygon {
-	// Could store the verts and normal into a vector of structs with edgeBegin and edgeNormal, but that would probably be confusing.
-
-	std::vector<Vec2> verts;
-	// The normal i belong to the face with endpoints verts[i] and verts[(i + 1) % size].
-	std::vector<Vec2> normals;
-
-	auto calculateNormals() -> void {
-		normals.clear();
-		if (verts.size() < 3) {
-			ASSERT_NOT_REACHED();
-			return;
-		}
-
-		for (usize i = 0; i < verts.size() - 1; i++) {
-			normals.push_back((verts[i + 1] - verts[i]).rotBy90deg().normalized());
-		}
-		normals.push_back((verts[0] - verts.back()).rotBy90deg().normalized());
-	}
-};
-
 // Impulse is the change in momentum.
 
 // Resolving velocites instead of positions directly prevents multiple constraints fighting against eachother and only the last one winning if it is impossible to fully resolve all the constraints. If all the contraints can be resolved it shouldn't be that big of an issue. At each step the positional correction would be applied once per constraint (and also the velocity correction, if it is instant, that means setting the velocity along the constrained direction to zero there may be some issues again, I think not sure).  If one constraint got resolved and another get resolved with it then everything is fine, but if one resolving breaks another one then there is an issue. You could try to resolve the constraints multiple times per step, but in many cases this probably wouldn't converge to a nice solution like the velocity constraint. Even if the velocity constraint isn't really solved the it just tries to apply a force to fix it. If positional correction were used then it might jitter back and forth depending on the order in which the constraints are resolved.
@@ -48,6 +27,7 @@ struct ConvexPolygon {
 // There are way more unknows that the expressions. Each expression is a plane equation ax + by = c. Each is solved separately.
 
 #include <math/transform.hpp>
+#include <game/body.hpp>
 
 enum class ContactPointFeature : u8 {
 	FACE, VERTEX
@@ -61,18 +41,19 @@ struct ContactPointId {
 };
 
 struct ContactPoint {
-	Vec2 position;
+	Vec2 pos;
 
 	// Negative if the objects are colliding. So this should always be negative, because the collide function returns nullopt if the objects are not colliding.
 	float separation;
+	ContactPointId id;
 
-	float accumulatedNormalImpluse;
-	float accumulatedTangentImpulse;	
-	float invNormalEffectiveMass, invTangentEffectiveMass;
+	float accumulatedNormalImpluse = 0.0f;
+	float invNormalEffectiveMass = 0.0f;
+	float accumulatedTangentImpulse = 0.0f;
+	float invTangentEffectiveMass = 0.0f;
 
 	// Solving the velocity constraint doesn't solve the position constraint. The bias term is proportional to the positional error so after iterating it the softer velocity constraint solves the position constraint.
-	float bias;
-	ContactPointId id;
+	float bias = 0.0;
 };
 
 struct Collision {
@@ -93,7 +74,7 @@ auto massInfo(const Collider& collider, float density) -> MassInfo;
 auto aabb(const Collider& collider, Vec2 pos, float orientation) -> Aabb;
 
 auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos, float bOrientation, const Collider& bCollider) -> std::optional<Collision>;
-auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision>;
+auto collide(const Transform& aTransform, const BoxCollider& aBox, const Transform& bTransform, const BoxCollider& bBox) -> std::optional<Collision>;
 auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 circlePos, float circleOrientation, const CircleCollider& circle) -> std::optional<Collision>;
 auto collide(Vec2 aPos, float aOrientation, const CircleCollider& a, Vec2 bPos, float bOrientation, const CircleCollider& b) -> std::optional<Collision>;
 auto collide(const ConvexPolygon& a, const Transform& aTransform, const ConvexPolygon& b, const Transform& bTransform)->std::optional<Collision>;
