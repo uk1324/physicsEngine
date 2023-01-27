@@ -3,45 +3,53 @@
 #include <math/mat2.hpp>
 #include <math/utils.hpp>
 #include <algorithm>
+#include <math/transform.hpp>
 
-auto Collision::update(ContactPoint* newContacts, i32 newContactCount) -> void {
+// When a collision between 2 bodies happens and a collision between the same bodies happened on last frame too, the frame accumulators of contacts with the same features are transfered over.
+auto Collision::update(const Collision& newCollision) -> void {
+	if (!Game::reusePreviousFrameContactAccumulators) {
+		*this = newCollision;
+		return;
+	}
+
+	normal = newCollision.normal;
+
 	ContactPoint mergedContacts[2];
-
-	for (i32 i = 0; i < newContactCount; i++)
-	{
-		ContactPoint* cNew = newContacts + i;
-		i32 oldContactSameAsNew = -1;
+	for (i8 i = 0; i < newCollision.contactCount; i++) {
+		const auto& newContact = newCollision.contacts[i];
+		i8 oldContactSameAsNew = -1;
 		for (int j = 0; j < contactCount; j++) {
-			ContactPoint* cOld = contacts + j;
-			if (cNew->feature.value == cOld->feature.value) {
+			const auto& oldContact = contacts[j];
+			if (newContact.id.featureOnA == oldContact.id.featureOnA && newContact.id.featureOnAIndex == oldContact.id.featureOnAIndex
+				&& newContact.id.featureOnB == oldContact.id.featureOnB && newContact.id.featureOnBIndex == oldContact.id.featureOnBIndex) {
 				oldContactSameAsNew = j;
 				break;
 			}
 		}
 
-		if (oldContactSameAsNew > -1) {
-			ContactPoint* c = mergedContacts + i;
-			ContactPoint* old = contacts + oldContactSameAsNew;
-			*c = *cNew;
+		if (oldContactSameAsNew != -1) {
+			auto& contact = mergedContacts[i];
+			const auto& oldContact = contacts[oldContactSameAsNew];
+			contact = newContact;
 			if (Game::reusePreviousFrameContactAccumulators) {
-				c->accumulatedNormalImpluse = old->accumulatedNormalImpluse;
-				c->accumulatedTangentImpulse = old->accumulatedTangentImpulse;
+				contact.accumulatedNormalImpluse = oldContact.accumulatedNormalImpluse;
+				contact.accumulatedTangentImpulse = oldContact.accumulatedTangentImpulse;
 			} else {
-				c->accumulatedNormalImpluse = 0.0f;
-				c->accumulatedTangentImpulse = 0.0f;
+				contact.accumulatedNormalImpluse = 0.0f;
+				contact.accumulatedTangentImpulse = 0.0f;
 			}
 		} else {
-			mergedContacts[i] = newContacts[i];
+			mergedContacts[i] = newCollision.contacts[i];
 		}
 	}
 
-	for (i32 i = 0; i < newContactCount; ++i)
+	for (i32 i = 0; i < newCollision.contactCount; ++i)
 		contacts[i] = mergedContacts[i];
 
-	contactCount = newContactCount;
+	contactCount = newCollision.contactCount;
 }
 
-auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
+auto Collision::preStep(Body& a, Body& b, float invDeltaTime) -> void {
 	for (int i = 0; i < contactCount; ++i) {
 		ContactPoint* c = contacts + i;
 		
@@ -54,21 +62,21 @@ auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 		// C'(x) = dot((vA + aA * rA) - (vB + aB * rB), n)
 		// JV + b = 0
 
-		Vec2 r1 = c->position - a->pos;
-		Vec2 r2 = c->position - b->pos;
+		Vec2 r1 = c->position - a.pos;
+		Vec2 r2 = c->position - b.pos;
 
 		// Precompute normal mass, tangent mass, and bias.
-		float rn1 = dot(r1, c->normal);
-		float rn2 = dot(r2, c->normal);
-		float kNormal = a->invMass + b->invMass;
-		kNormal += a->invRotationalInertia * (dot(r1, r1) - rn1 * rn1) + b->invRotationalInertia * (dot(r2, r2) - rn2 * rn2);
+		float rn1 = dot(r1, normal);
+		float rn2 = dot(r2, normal);
+		float kNormal = a.invMass + b.invMass;
+		kNormal += a.invRotationalInertia * (dot(r1, r1) - rn1 * rn1) + b.invRotationalInertia * (dot(r2, r2) - rn2 * rn2);
 		c->invNormalEffectiveMass = 1.0f / kNormal;
 
-		Vec2 tangent = cross(c->normal, 1.0f);
+		Vec2 tangent = cross(normal, 1.0f);
 		float rt1 = dot(r1, tangent);
 		float rt2 = dot(r2, tangent);
-		float kTangent = a->invMass + b->invMass;
-		kTangent += a->invRotationalInertia * (dot(r1, r1) - rt1 * rt1) + b->invRotationalInertia * (dot(r2, r2) - rt2 * rt2);
+		float kTangent = a.invMass + b.invMass;
+		kTangent += a.invRotationalInertia * (dot(r1, r1) - rt1 * rt1) + b.invRotationalInertia * (dot(r2, r2) - rt2 * rt2);
 		c->invTangentEffectiveMass = 1.0f / kTangent;
 
 		// Baumgarte stabilization bias.
@@ -81,9 +89,9 @@ auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 		// Some penetration is allowed to decrease jitter, especially when multiple objects are stacked on top of eachother. This is sometimes called slop.
 		const auto ALLOWED_PENETRATION = 0.01f;
 
-		auto relativeVelAtContact = (b->vel + cross(b->angularVel, r2)) - (a->vel + cross(a->angularVel, r1));
+		auto relativeVelAtContact = (b.vel + cross(b.angularVel, r2)) - (a.vel + cross(a.angularVel, r1));
 
-		c->bias = -biasFactor * invDeltaTime * std::min(0.0f, c->penetrationDepth + ALLOWED_PENETRATION);
+		c->bias = -biasFactor * invDeltaTime * std::min(0.0f, c->separation + ALLOWED_PENETRATION);
 		/*c->bias = std::max(c->bias, -dot(b->vel - a->vel, c->normal)) * 0.5f;*/
 		/*c->bias = std::max(c->bias, -dot(relativeVelAtContact, c->normal) * 0.2f);
 		c->bias = std::max(0.0f, c->bias);*/
@@ -92,13 +100,13 @@ auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 		if (Game::accumulateImpulses)
 		{
 			// Apply normal + friction impulse
-			Vec2 P = c->accumulatedNormalImpluse * c->normal + c->accumulatedTangentImpulse * tangent;
+			Vec2 P = c->accumulatedNormalImpluse * normal + c->accumulatedTangentImpulse * tangent;
 
-			a->vel -= a->invMass * P;
-			a->angularVel -= a->invRotationalInertia * cross(r1, P);
+			a.vel -= a.invMass * P;
+			a.angularVel -= a.invRotationalInertia * cross(r1, P);
 
-			b->vel += b->invMass * P;
-			b->angularVel += b->invRotationalInertia * cross(r2, P);
+			b.vel += b.invMass * P;
+			b.angularVel += b.invRotationalInertia * cross(r2, P);
 		}
 	}
 }
@@ -106,6 +114,7 @@ auto Collision::preStep(Body* a, Body* b, float invDeltaTime) -> void {
 auto Collision::applyImpulse(Body& a, Body& b) -> void {
 	for (i32 i = 0; i < contactCount; i++) {
 		auto& contact = contacts[i];
+		ASSERT(contact.separation <= 0.0f);
 
 		const auto r1 = contact.position - a.pos;
 		const auto r2 = contact.position - b.pos;
@@ -113,7 +122,7 @@ auto Collision::applyImpulse(Body& a, Body& b) -> void {
 
 		// Compute normal impulse
 		// You apply the bias if the objects are moving slowly (relative velocity is small) otherwise this bias is the restitution if they are moving fast (large relative velocity). Also, make sure you only calculate this bias once for every time step, and  not for every iteration of impulses.
-		const auto velocityAlongNormal = dot(relativeVelAtContact, contact.normal);
+		const auto velocityAlongNormal = dot(relativeVelAtContact, normal);
 
 		auto normalImpulse = contact.invNormalEffectiveMass * (-velocityAlongNormal + contact.bias);
 
@@ -125,7 +134,7 @@ auto Collision::applyImpulse(Body& a, Body& b) -> void {
 			normalImpulse = std::max(normalImpulse, 0.0f);
 		}
 
-		const auto impulseNormal = normalImpulse * contact.normal;
+		const auto impulseNormal = normalImpulse * normal;
 
 		a.vel -= a.invMass * impulseNormal;
 		a.angularVel -= a.invRotationalInertia * cross(r1, impulseNormal);
@@ -135,7 +144,7 @@ auto Collision::applyImpulse(Body& a, Body& b) -> void {
 
 		relativeVelAtContact = b.vel + cross(b.angularVel, r2) - a.vel - cross(a.angularVel, r1);
 
-		Vec2 tangent = cross(contact.normal, 1.0f);
+		Vec2 tangent = cross(normal, 1.0f);
 		float velocityAlongTangent = dot(relativeVelAtContact, tangent);
 		float tangentImpulse = contact.invTangentEffectiveMass * (-velocityAlongTangent);
 
@@ -245,7 +254,8 @@ auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos
 			auto collision = collide(bPos, bOrientation, *bBox, aPos, aOrientation, *aCircle);
 			if (collision.has_value()) {
 				for (auto& contact : collision->contacts)
-					contact.normal = -contact.normal;
+					collision->normal = -collision->normal;
+				collision->normal = -collision->normal;
 			}
 			return collision;
 		}
@@ -265,553 +275,242 @@ auto contains(Vec2 point, Vec2 pos, float orientation, const Collider& collider)
 	);
 }
 
-/*
- Box vertex and edge numbering:
-		^ y
-		|
-		e1
-   v2 ------ v1
-	|        |
- e2 |        | e4  --> x
-	|        |
-   v3 ------ v4
-		e3
-*/
-
-enum Axis
-{
-	FACE_A_X,
-	FACE_A_Y,
-	FACE_B_X,
-	FACE_B_Y
+struct Separation {
+	float separation;
+	i16 edgeIndex;
 };
 
-enum EdgeNumbers
-{
-	NO_EDGE = 0,
-	EDGE1,
-	EDGE2,
-	EDGE3,
-	EDGE4
-};
+// Performs SAT on the shapes a and b. To separate shapes translate shape b by a.normals[edgeIndex] * separation. Returns nullopt if the shapes are already separating.
+static auto minSeparation(const std::vector<Vec2>& aVerts, const std::vector<Vec2>& aNormals, const Transform& aTransform, std::vector<Vec2> bVerts, const Transform& bTransform) -> std::optional<Separation> {
+	// Finds the axis of least separation. The least distance the shapes need to be translated to stop overlapping. For example when you put the a box on to of a box then their shadows fully overlap so the least separation, not the max separation axis / face normal is desired.
+	auto minSeparation = std::numeric_limits<float>::infinity();
+	i16 minSeparationNormalIndex = 0;
 
-struct ClipVertex
-{
-	ClipVertex() { fp.value = 0; }
-	Vec2 v;
-	FeaturePair fp;
-};
+	for (i16 normalIndex = 0; normalIndex < aNormals.size(); normalIndex++) {
+		const auto n = aNormals[normalIndex];
 
-template<typename T> inline void Swap(T& a, T& b)
-{
-	T tmp = a;
-	a = b;
-	b = tmp;
-}
+		// min and max offsets of vertices of a and b along the normal n (the projections onto the normal). 
+		auto minA = std::numeric_limits<float>::infinity();
+		auto maxA = -std::numeric_limits<float>::infinity();
+		auto minB = minA;
+		auto maxB = maxA;
 
-void Flip(FeaturePair& fp)
-{
-	Swap(fp.e.inEdge1, fp.e.inEdge2);
-	Swap(fp.e.outEdge1, fp.e.outEdge2);
-}
-
-int ClipSegmentToLine(ClipVertex vOut[2], ClipVertex vIn[2],
-	const Vec2& normal, float offset, char clipEdge)
-{
-	// Start with no output points
-	int numOut = 0;
-
-	// Calculate the distance of end points to the line
-	float distance0 = dot(normal, vIn[0].v) - offset;
-	float distance1 = dot(normal, vIn[1].v) - offset;
-
-	// If the points are behind the plane
-	if (distance0 <= 0.0f) vOut[numOut++] = vIn[0];
-	if (distance1 <= 0.0f) vOut[numOut++] = vIn[1];
-
-	// If the points are on different sides of the plane
-	if (distance0 * distance1 < 0.0f)
-	{
-		// Find intersection point of edge and plane
-		float interp = distance0 / (distance0 - distance1);
-		vOut[numOut].v = vIn[0].v + interp * (vIn[1].v - vIn[0].v);
-		if (distance0 > 0.0f)
-		{
-			vOut[numOut].fp = vIn[0].fp;
-			vOut[numOut].fp.e.inEdge1 = clipEdge;
-			vOut[numOut].fp.e.inEdge2 = NO_EDGE;
+		for (auto v : aVerts) {
+			const auto d = dot(n, v);
+			if (d < minA) minA = d;
+			if (d > maxA) maxA = d;
 		}
-		else
-		{
-			vOut[numOut].fp = vIn[1].fp;
-			vOut[numOut].fp.e.outEdge1 = clipEdge;
-			vOut[numOut].fp.e.outEdge2 = NO_EDGE;
+
+		const auto bToAObjectSpace = bTransform * aTransform.inversed();
+		for (auto v : bVerts) {
+			// Convert only B into A's object space instead of converting everything into world space to reduce calculations. 
+			v *= bToAObjectSpace;
+			const auto d = dot(n, v);
+			if (d < minB) minB = d;
+			if (d > maxB) maxB = d;
 		}
-		++numOut;
-	}
 
-	return numOut;
-}
-
-inline Vec2 Abs(const Vec2& a)
-{
-	return Vec2(fabsf(a.x), fabsf(a.y));
-}
-
-inline float Sign(float x)
-{
-	return x < 0.0f ? -1.0f : 1.0f;
-}
-
-inline Mat2 Abs(const Mat2& A)
-{
-	return Mat2(Abs(A.x()), Abs(A.y()));
-}
-
-static void ComputeIncidentEdge(ClipVertex c[2], const Vec2& h, const Vec2& pos,
-	const Mat2& Rot, const Vec2& normal)
-{
-	// The normal is from the reference box. Convert it
-	// to the incident boxe's frame and flip sign.
-	Mat2 RotT = Rot.transposed();
-	Vec2 n = -(normal * RotT);
-	Vec2 nAbs = Abs(n);
-
-	if (nAbs.x > nAbs.y)
-	{
-		if (Sign(n.x) > 0.0f)
-		{
-			c[0].v = Vec2(h.x, -h.y);
-			c[0].fp.e.inEdge2 = EDGE3;
-			c[0].fp.e.outEdge2 = EDGE4;
-
-			c[1].v = Vec2(h.x, h.y);
-			c[1].fp.e.inEdge2 = EDGE4;
-			c[1].fp.e.outEdge2 = EDGE1;
-		}
-		else
-		{
-			c[0].v = Vec2(-h.x, h.y);
-			c[0].fp.e.inEdge2 = EDGE1;
-			c[0].fp.e.outEdge2 = EDGE2;
-
-			c[1].v = Vec2(-h.x, -h.y);
-			c[1].fp.e.inEdge2 = EDGE2;
-			c[1].fp.e.outEdge2 = EDGE3;
-		}
-	}
-	else
-	{
-		if (Sign(n.y) > 0.0f)
-		{
-			c[0].v = Vec2(h.x, h.y);
-			c[0].fp.e.inEdge2 = EDGE4;
-			c[0].fp.e.outEdge2 = EDGE1;
-
-			c[1].v = Vec2(-h.x, h.y);
-			c[1].fp.e.inEdge2 = EDGE1;
-			c[1].fp.e.outEdge2 = EDGE2;
-		}
-		else
-		{
-			c[0].v = Vec2(-h.x, -h.y);
-			c[0].fp.e.inEdge2 = EDGE2;
-			c[0].fp.e.outEdge2 = EDGE3;
-
-			c[1].v = Vec2(h.x, -h.y);
-			c[1].fp.e.inEdge2 = EDGE3;
-			c[1].fp.e.outEdge2 = EDGE4;
+		if (const auto projectionsOverlap = minA <= maxB && maxA >= minB) {
+			auto separation = maxA - minB;
+			if (separation < minSeparation) {
+				minSeparation = separation;
+				minSeparationNormalIndex = normalIndex;
+			}
+		} else {
+			// If there is any axis on which the projections don't overlap the shapes don't overlap. To optimize could store this axis and check it first the next frame.
+			return std::nullopt;
 		}
 	}
 
-	c[0].v = pos + c[0].v * Rot;
-	c[1].v = pos + c[1].v * Rot;
+	return Separation{
+		minSeparation,
+		minSeparationNormalIndex
+	};
 }
 
-//struct ConvexPolygon {
-//	std::vector<Vec2> verts;
-//	std::vector<Vec2> normals;
-//
-//	auto calculateNormals() -> void {
-//		if (verts.size() < 3) {
-//			ASSERT_NOT_REACHED();
-//			return;
-//		}
-//
-//		for (usize i = 0; i < verts.size() - 1; i++) {
-//			normals.push_back((verts[i + 1] - verts[i]).rotBy90deg().normalized());
-//		}
-//		normals.push_back((verts[0] - verts.back()).rotBy90deg().normalized());
-//	}
-//};
-//
-//struct Separation {
-//	float separation;
-//	i32 edgeIndex;
-//};
-//
-//static auto minSeparation(const ConvexPolygon& a, Vec2 aPos, const Mat2& aRot, const ConvexPolygon& b, Vec2 bPos, const Mat2& bRot) -> std::optional<Separation> {
-//	auto maxSeparation = -std::numeric_limits<float>::infinity();
-//	i32 maxSeparationNormal = 0;
-//
-//	for (i32 nI = 0; nI < a.normals.size(); nI++) {
-//		auto n = a.normals[nI];
-//		n *= aRot;
-//
-//		auto minA = std::numeric_limits<float>::infinity();
-//		auto maxA = -minA;
-//		auto minB = minA, maxB = maxA;
-//
-//		for (auto v : a.verts) {
-//			v = v * aRot + aPos;
-//			const auto d = dot(n, v);
-//			if (d < minA) {
-//				minA = d;
-//			}
-//			if (d > maxA) {
-//				maxA = d;
-//			}
-//		}
-//
-//		for (auto v : b.verts) {
-//			v = v * bRot + bPos;
-//			const auto d = dot(n, v);
-//			if (d < minB) {
-//				minB = d;
-//			}
-//			if (d > maxB) {
-//				maxB = d;
-//			}
-//		}
-//
-//		if (minA <= maxB && maxA >= minB) {
-//			auto separation = minB - maxA;
-//			if (separation > maxSeparation) {
-//				maxSeparation = separation;
-//				maxSeparationNormal = nI;
-//			}
-//		} else {
-//			auto min = a.normals[nI] * aRot * 0.1f;
-//			auto edge = (a.verts[nI] + a.verts[(nI + 1) % a.verts.size()]) / 2.0f * aRot * 0.1f + aPos;
-//			return std::nullopt;
-//		}
-//	}
-//
-//	return Separation{
-//		maxSeparation,
-//		maxSeparationNormal
-//	};
-//}
-//
-////struct Transform {
-////
-////};
-//
-//struct Contact {
-//	Vec2 pos;
-//	float penetration;
-//	i32 edge1, edge2;
-//};
-//
-//static auto collide(const ConvexPolygon& a, Vec2 aPos, float aOrientation, const ConvexPolygon& b, Vec2 bPos, float bOrientation) -> std::vector<Contact> {
-//	Vec2 min;
-//	Vec2 edge;
-//
-//	std::vector<Contact> c;
-//
-//	auto aS = minSeparation(a, aPos, Mat2::rotate(aOrientation), b, bPos, Mat2::rotate(bOrientation));
-//	if (!aS.has_value())
-//		return c;
-//	auto bS = minSeparation(b, bPos, Mat2::rotate(bOrientation), a, aPos, Mat2::rotate(aOrientation));
-//	if (!bS.has_value())
-//		return c;
-//
-//	const ConvexPolygon* reference;
-//	Mat3x2 referenceTransform;
-//	const ConvexPolygon* incident;
-//	Mat3x2 incidentTransform;
-//	Mat2 incidentRot;
-//	Vec2 normal;
-//
-//	Vec2 edgeStart;
-//	Vec2 edgeEnd;
-//	i32 referenceEdgeIndex;
-//
-//	Vec2 referenceFaceMidPoint;
-//	if (aS->separation > bS->separation) {
-//		reference = &a;
-//		incident = &b;
-//		normal = a.normals[aS->edgeIndex] * Mat2::rotate(aOrientation) * aS->separation;
-//		referenceFaceMidPoint = (a.verts[aS->edgeIndex] + a.verts[(aS->edgeIndex + 1) % a.verts.size()]) / 2.0f * Mat2::rotate(aOrientation) + aPos;
-//		/*min = a.normals[aS->edgeIndex] * Mat2::rotate(aOrientation) * aS->separation;
-//		edge = (a.verts[aS->edgeIndex] + a.verts[(aS->edgeIndex + 1) % a.verts.size()]) / 2.0f * Mat2::rotate(aOrientation) + aPos;*/
-//		referenceTransform = Mat3x2::rotate(aOrientation) * Mat3x2::translate(aPos);
-//		incidentTransform = Mat3x2::rotate(bOrientation) * Mat3x2::translate(bPos);
-//		incidentRot = Mat2::rotate(bOrientation);
-//		edgeStart = a.verts[aS->edgeIndex] * referenceTransform;
-//		edgeEnd = a.verts[(aS->edgeIndex + 1) % a.verts.size()] * referenceTransform;
-//		referenceEdgeIndex = aS->edgeIndex;
-//	} else {
-//		reference = &b;
-//		incident = &a;
-//		normal = b.normals[bS->edgeIndex] * Mat2::rotate(bOrientation) * bS->separation;
-//		referenceFaceMidPoint = (b.verts[bS->edgeIndex] + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos;
-//		/*min = b.normals[bS->edgeIndex] * Mat2::rotate(bOrientation) * bS->separation;
-//		edge = (b.verts[bS->edgeIndex] + b.verts[(bS->edgeIndex + 1) % b.verts.size()]) / 2.0f * Mat2::rotate(bOrientation) + bPos;*/
-//		referenceTransform = Mat3x2::rotate(bOrientation) * Mat3x2::translate(bPos);
-//		incidentTransform = Mat3x2::rotate(aOrientation) * Mat3x2::translate(aPos);
-//		incidentRot = Mat2::rotate(aOrientation);
-//		edgeStart = b.verts[bS->edgeIndex] * referenceTransform;
-//		edgeEnd = b.verts[(bS->edgeIndex + 1) % b.verts.size()] * referenceTransform;
-//		referenceEdgeIndex = bS->edgeIndex;
-//	}
-//
-//	i32 furthestPointOfIndidentInsideReference = 0;
-//	auto maxDistance = -std::numeric_limits<float>::infinity();
-//	for (usize i = 0; i < incident->verts.size(); i++) {
-//		auto d = dot(normal, incident->verts[i] * incidentTransform);
-//		if (d > maxDistance) {
-//			maxDistance = d;
-//			furthestPointOfIndidentInsideReference = i;
-//		}
-//	}
-//
-//	auto getEdges = [](const ConvexPolygon* p, u32 i, const Mat3x2& t) -> std::pair<Vec2, Vec2> {
-//		return { p->verts[i] * t, p->verts[(i + 1) % p->verts.size()] * t };
-//	};
-//
-//
-//	auto face0Index = furthestPointOfIndidentInsideReference;
-//	auto face1Index = (furthestPointOfIndidentInsideReference - 1);
-//	if (face1Index < 0) {
-//		face1Index = incident->normals.size() - 1;
-//	}
-//	auto face0 = incident->normals[face0Index] * incidentRot;
-//	auto face1 = incident->normals[face1Index] * incidentRot;
-//
-//	i32 face;
-//	if (dot(normal, face0) > dot(normal, face1)) {
-//		face = face0Index;
-//	} else {
-//		face = face1Index;
-//	}
-//
-//	auto incidentEdges = getEdges(incident, face, incidentTransform);
-//
-//	Line lineA{ edgeStart, edgeStart + normal };
-//	Line lineB{ edgeEnd, edgeEnd - normal };
-//
-//	auto clipPoints = [](const std::pair<Vec2, Vec2>& points, const Line& line) -> std::pair<Vec2, Vec2> {
-//		auto clipPoint = [](Vec2 p, const Line& line, const Line& edgeLine) -> Vec2 {
-//			auto distanceFromLine = signedDistance(line, p);
-//			if (distanceFromLine > 0.0f) {
-//				auto x = line.intersection(edgeLine);
-//				if (!x.has_value()) {
-//					//Debug::drawPoint(Vec2{ 0.0f }, Vec3::GREEN);
-//				}
-//
-//				return *x;
-//			}
-//			return p;
-//		};
-//
-//		Line edgeLine{ points.first, points.second };
-//
-//		return {
-//			clipPoint(points.first, line, edgeLine),
-//			clipPoint(points.second, line, edgeLine)
-//		};
-//	};
-//
-//	auto cliped = clipPoints(incidentEdges, lineA);
-//	cliped = clipPoints(cliped, lineB);
-//
-//	std::vector<Contact> points;
-//	Line incidentFaceLine{ edgeStart, edgeEnd };
-//	auto d = signedDistance(incidentFaceLine, cliped.first);
-//	if (d >= 0.0f) {
-//		points.push_back({ cliped.first, d, referenceEdgeIndex, face });
-//	}
-//
-//	d = signedDistance(incidentFaceLine, cliped.second);
-//	if (d >= 0.0f) {
-//		points.push_back({ cliped.second, d, referenceEdgeIndex, face });
-//	}
-//}
+struct Contact {
+	Vec2 pos;
+	float penetration;
+};
+
+// The computed contact manifold tries to approximate the contact points at which the collision started. These points are only an approximation.
+// This code often uses face indices as vertex indices, this is explained in ConvexPolygon.
+auto collide(const ConvexPolygon& a, const Transform& aTransform, const ConvexPolygon& b, const Transform& bTransform) -> std::optional<Collision> {
+	// minSeparation() only checks the normals of the first arguments so both shapes have to be tested.
+	const auto aSeparation = minSeparation(a.verts, a.normals, aTransform, b.verts, bTransform);
+	if (!aSeparation.has_value())
+		return std::nullopt;
+
+	const auto bSeparation = minSeparation(b.verts, b.normals, bTransform, a.verts, aTransform);
+	if (!bSeparation.has_value())
+		return std::nullopt;
+
+	const ConvexPolygon* reference;
+	const Transform* referenceTransform;
+	const ConvexPolygon* incident;
+	const Transform* incidentTransform;
+	i16 referenceFaceIndex;
+
+	if (aSeparation->separation < bSeparation->separation) {
+		reference = &a;
+		incident = &b;
+		referenceTransform = &aTransform;
+		incidentTransform = &bTransform;
+		referenceFaceIndex = aSeparation->edgeIndex;
+	} else {
+		reference = &b;
+		incident = &a;
+		referenceTransform = &bTransform;
+		incidentTransform = &aTransform;
+		referenceFaceIndex = bSeparation->edgeIndex;
+	}
+
+	const auto normal = reference->normals[referenceFaceIndex] * referenceTransform->rot;
+	i16 furthestVertOfIndidentInsideReference = 0;
+	auto maxDistance = std::numeric_limits<float>::infinity();
+	for (i16 i = 0; i < incident->verts.size(); i++) {
+		const auto d = dot(normal, incident->verts[i] * *incidentTransform);
+		// Using less than because the normal points towards the shape so the get the furthest point inside you need to find the smallest value of the projection.
+		if (d < maxDistance) {
+			maxDistance = d;
+			furthestVertOfIndidentInsideReference = i;
+		}
+	}
+
+	const auto face0Index = furthestVertOfIndidentInsideReference;
+	const auto face1Index = static_cast<i16>(furthestVertOfIndidentInsideReference - 1 < 0
+		? static_cast<i16>(incident->normals.size()) - 1
+		: furthestVertOfIndidentInsideReference - 1);
+	const auto face0Normal = incident->normals[face0Index] * incidentTransform->rot;
+	const auto face1Normal = incident->normals[face1Index] * incidentTransform->rot;
+
+	i16 incidentFace;
+	// Choose incident face to be the face that is the most parallel to the reference face.
+	if (dot(normal, face0Normal) < dot(normal, face1Normal)) {
+		incidentFace = face0Index;
+	} else {
+		incidentFace = face1Index;
+	}
+
+	struct ClipVert {
+		ContactPointId id;
+		Vec2 pos;
+	};
+
+	const auto incidentFirstVertIndex = incidentFace;
+	const auto incidentSecondVertIndex = static_cast<i16>(incidentFace + 1 >= static_cast<i16>(incident->verts.size()) ? 0 : incidentFace + 1);
+	ClipVert vertsToClip[2]{
+		{
+			.id = {
+				.featureOnA = ContactPointFeature::FACE, .featureOnAIndex = referenceFaceIndex,
+				.featureOnB = ContactPointFeature::VERTEX, .featureOnBIndex = incidentFirstVertIndex
+			},
+			.pos = incident->verts[incidentFirstVertIndex] * *incidentTransform
+		},
+		{
+			.id = {
+				.featureOnA = ContactPointFeature::FACE, .featureOnAIndex = referenceFaceIndex,
+				.featureOnB = ContactPointFeature::VERTEX, .featureOnBIndex = incidentSecondVertIndex
+			},
+			.pos = incident->verts[incidentSecondVertIndex] * *incidentTransform
+		}
+	};
+
+	auto clipPoints = [&](ClipVert verts[2], const Line& line, i16 aVertIndex) -> void {
+		auto clipPoint = [&](ClipVert vert, const Line& line, const Line& edgeLine, i16 aVertIndex) -> ClipVert {
+			auto distanceFromLine = signedDistance(line, vert.pos);
+			if (distanceFromLine > 0.0f) {
+				const auto intersection = line.intersection(edgeLine);
+				if (intersection.has_value()) {
+					vert.pos = *intersection;
+					vert.id.featureOnA = ContactPointFeature::VERTEX;
+					vert.id.featureOnAIndex = aVertIndex;
+					vert.id.featureOnB = ContactPointFeature::FACE;
+					vert.id.featureOnBIndex = incidentFace;
+				}
+			}
+			return vert;
+		};
+
+		Line edgeLine{ verts[0].pos, verts[1].pos };
+
+		verts[0] = clipPoint(verts[0], line, edgeLine, aVertIndex);
+		verts[1] = clipPoint(verts[1], line, edgeLine, aVertIndex);
+	};
+
+	const auto referenceFaceEndPoint0 = reference->verts[referenceFaceIndex] * *referenceTransform;
+	const auto referenceFaceEndPoint1 = reference->verts[referenceFaceIndex + 1 >= static_cast<i16>(reference->verts.size()) ? 0 : referenceFaceIndex + 1] * *referenceTransform;
+
+	// The normals are flipped to make the positive half space of the line inside the reference face segment.
+	Line lineA{ referenceFaceEndPoint0, referenceFaceEndPoint0 - normal };
+	clipPoints(vertsToClip, lineA, referenceFaceIndex);
+	Line lineB{ referenceFaceEndPoint1, referenceFaceEndPoint1 + normal };
+	clipPoints(vertsToClip, lineB, referenceFaceIndex + 1 >= static_cast<i16>(reference->verts.size()) ? 0 : referenceFaceIndex + 1);
+
+	Collision manifold;
+	manifold.normal = normal;
+	manifold.contactCount = 0;
+	std::vector<Vec2> points;
+	Line referenceFaceLine{ referenceFaceEndPoint0, referenceFaceEndPoint1 };
+
+	// Remove all the contacts that lie outside the reference shape. On the negative half space of the reference face.
+	const auto distanceFromReferenceFace0 = signedDistance(referenceFaceLine, vertsToClip[0].pos);
+	if (distanceFromReferenceFace0 >= 0.0f) {
+		manifold.contacts[manifold.contactCount] = ContactPoint{
+			.position = vertsToClip[0].pos,
+			.separation = distanceFromReferenceFace0,
+			.id = vertsToClip[0].id,
+		};
+		manifold.contactCount++;
+	}
+	const auto distanceFromReferenceFace1 = signedDistance(referenceFaceLine, vertsToClip[1].pos);
+	if (distanceFromReferenceFace1 >= 0.0f) {
+		manifold.contacts[manifold.contactCount] = ContactPoint{
+			.position = vertsToClip[1].pos,
+			.separation = distanceFromReferenceFace1,
+			.id = vertsToClip[1].id,
+		};
+		manifold.contactCount++;
+	}
+
+	// All the previous code assuemes that a is the reference shape. If that is not true the features have to be swapped.
+	if (const auto swap = reference == &b) {
+		manifold.normal = -manifold.normal;
+		for (i32 i = 0; i < manifold.contactCount; i++) {
+			auto& point = manifold.contacts[i];
+			/*point.penetration = -std::abs(point.penetration);*/
+			std::swap(point.id.featureOnA, point.id.featureOnB);
+			std::swap(point.id.featureOnAIndex, point.id.featureOnBIndex);
+		}
+	}
+
+	for (i32 i = 0; i < manifold.contactCount; i++) {
+		auto& point = manifold.contacts[i];
+		point.separation = -std::abs(point.separation);
+	}
+
+	return manifold;
+}
 
 auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision> {
-	// Setup
-	Vec2 halfSizeA = 0.5f * aBox.size;
-	Vec2 halfSizeB = 0.5f * bBox.size;
+	static ConvexPolygon aShape{ .verts = std::vector<Vec2>(4, Vec2{ 0.0f }), .normals = std::vector<Vec2>(4, Vec2{ 0.0f }) };
+	aShape.verts[3] = aBox.size / 2.0f;
+	aShape.verts[2] = Vec2{ aBox.size.x, -aBox.size.y } / 2.0f;
+	aShape.verts[1] = -aBox.size / 2.0f;
+	aShape.verts[0] = Vec2{ -aBox.size.x, aBox.size.y } / 2.0f;
+	static ConvexPolygon bShape{ .verts = std::vector<Vec2>(4, Vec2{ 0.0f }), .normals = std::vector<Vec2>(4, Vec2{ 0.0f }) };
+	bShape.verts[3] = bBox.size / 2.0f;
+	bShape.verts[2] = Vec2{ bBox.size.x, -bBox.size.y } / 2.0f;
+	bShape.verts[1] = -bBox.size / 2.0f;
+	bShape.verts[0] = Vec2{ -bBox.size.x, bBox.size.y } / 2.0f;
 
-	Vec2 posA = aPos;
-	Vec2 posB = bPos;
+	aShape.calculateNormals();
+	bShape.calculateNormals();
 
-	Mat2 rotA = Mat2::rotate(aOrientation), rotB = Mat2::rotate(bOrientation);
-	Mat2 rotAInv = rotA.transposed(), rotBInv = rotB.transposed();
+	Transform aTransform{ aPos, aOrientation };
+	Transform bTransform{ bPos, bOrientation };
 
-	Vec2 aPosToBPos = posB - posA;
-	Vec2 aPosToBPosInAObjectSpace = aPosToBPos * rotAInv;
-	Vec2 aPosToBPosInBObjectSpace = aPosToBPos * rotBInv;
-
-	Mat2 C = rotAInv * rotB;
-	Mat2 absC = Abs(C);
-	Mat2 absCT = absC.transposed();
-
-	// Box A faces
-	Vec2 faceA = Abs(aPosToBPosInAObjectSpace) - halfSizeA - halfSizeB * absC;
-	if (faceA.x > 0.0f || faceA.y > 0.0f)
-		return std::nullopt;
-
-	// Box B faces
-	Vec2 faceB = Abs(aPosToBPosInBObjectSpace) - halfSizeA * absCT - halfSizeB;
-	if (faceB.x > 0.0f || faceB.y > 0.0f)
-		return std::nullopt;
-
-	// Find best axis
-	Axis axis;
-	float penetrationDepth;
-	Vec2 normal;
-
-	// Box A faces
-	axis = FACE_A_X;
-	penetrationDepth = faceA.x;
-	normal = aPosToBPosInAObjectSpace.x > 0.0f ? rotA.x() : -rotA.x();
-
-	const float relativeTol = 0.95f;
-	const float absoluteTol = 0.01f;
-
-	if (faceA.y > relativeTol * penetrationDepth + absoluteTol * halfSizeA.y)
-	{
-		axis = FACE_A_Y;
-		penetrationDepth = faceA.y;
-		normal = aPosToBPosInAObjectSpace.y > 0.0f ? rotA.y() : -rotA.y();
-	}
-
-	// Box B faces
-	if (faceB.x > relativeTol * penetrationDepth + absoluteTol * halfSizeB.x)
-	{
-		axis = FACE_B_X;
-		penetrationDepth = faceB.x;
-		normal = aPosToBPosInBObjectSpace.x > 0.0f ? rotB.x() : -rotB.x();
-	}
-
-	if (faceB.y > relativeTol * penetrationDepth + absoluteTol * halfSizeB.y)
-	{
-		axis = FACE_B_Y;
-		penetrationDepth = faceB.y;
-		normal = aPosToBPosInBObjectSpace.y > 0.0f ? rotB.y() : -rotB.y();
-	}
-
-	// Setup clipping plane data based on the separating axis
-	Vec2 frontNormal, sideNormal;
-	ClipVertex incidentEdge[2];
-	float front, negSide, posSide;
-	char negEdge, posEdge;
-
-	// Compute the clipping lines and the line segment to be clipped.
-	switch (axis)
-	{
-	case FACE_A_X:
-	{
-		frontNormal = normal;
-		front = dot(posA, frontNormal) + halfSizeA.x;
-		sideNormal = rotA.y();
-		float side = dot(posA, sideNormal);
-		negSide = -side + halfSizeA.y;
-		posSide = side + halfSizeA.y;
-		negEdge = EDGE3;
-		posEdge = EDGE1;
-		ComputeIncidentEdge(incidentEdge, halfSizeB, posB, rotB, frontNormal);
-	}
-	break;
-
-	case FACE_A_Y:
-	{
-		frontNormal = normal;
-		front = dot(posA, frontNormal) + halfSizeA.y;
-		sideNormal = rotA.x();
-		float side = dot(posA, sideNormal);
-		negSide = -side + halfSizeA.x;
-		posSide = side + halfSizeA.x;
-		negEdge = EDGE2;
-		posEdge = EDGE4;
-		ComputeIncidentEdge(incidentEdge, halfSizeB, posB, rotB, frontNormal);
-	}
-	break;
-
-	case FACE_B_X:
-	{
-		frontNormal = -normal;
-		front = dot(posB, frontNormal) + halfSizeB.x;
-		sideNormal = rotB.y();
-		float side = dot(posB, sideNormal);
-		negSide = -side + halfSizeB.y;
-		posSide = side + halfSizeB.y;
-		negEdge = EDGE3;
-		posEdge = EDGE1;
-		ComputeIncidentEdge(incidentEdge, halfSizeA, posA, rotA, frontNormal);
-	}
-	break;
-
-	case FACE_B_Y:
-	{
-		frontNormal = -normal;
-		front = dot(posB, frontNormal) + halfSizeB.y;
-		sideNormal = rotB.x();
-		float side = dot(posB, sideNormal);
-		negSide = -side + halfSizeB.x;
-		posSide = side + halfSizeB.x;
-		negEdge = EDGE2;
-		posEdge = EDGE4;
-		ComputeIncidentEdge(incidentEdge, halfSizeA, posA, rotA, frontNormal);
-	}
-	break;
-	}
-
-	// clip other face with 5 box planes (1 face plane, 4 edge planes)
-
-	ClipVertex clipPoints1[2];
-	ClipVertex clipPoints2[2];
-	int np;
-
-	// Clip to box side 1
-	np = ClipSegmentToLine(clipPoints1, incidentEdge, -sideNormal, negSide, negEdge);
-
-	if (np < 2)
-		return std::nullopt;
-
-	// Clip to negative box side 1
-	np = ClipSegmentToLine(clipPoints2, clipPoints1, sideNormal, posSide, posEdge);
-
-	if (np < 2)
-		return std::nullopt;
-
-	// Now clipPoints2 contains the clipping points.
-	// Due to roundoff, it is possible that clipping removes all points.
-
-	Collision collision;
-
-	int numContacts = 0;
-	for (int i = 0; i < 2; ++i)
-	{
-		float penetrationDepth = dot(frontNormal, clipPoints2[i].v) - front;
-
-		if (penetrationDepth <= 0)
-		{
-			collision.contacts[numContacts].penetrationDepth = penetrationDepth;
-			collision.contacts[numContacts].normal = normal;
-			// slide contact point onto reference face (easy to cull)
-			collision.contacts[numContacts].position = clipPoints2[i].v - penetrationDepth * frontNormal;
-			collision.contacts[numContacts].feature = clipPoints2[i].fp;
-			if (axis == FACE_B_X || axis == FACE_B_Y)
-				Flip(collision.contacts[numContacts].feature);
-			++numContacts;
-		}
-	}
-
-	collision.contactCount = numContacts;
-	return collision;
+	return collide(aShape, aTransform, bShape, bTransform);
 }
 
 // Another way to do this that would work is to do the same thing if the center is inside the box else calculate the seperation vector by calculating the distance from the sides of the box to the center. The length would then be circle.radius - v.length().
@@ -871,12 +570,14 @@ auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 cir
 
 	auto& p = collision.contacts[0];
 	collision.contactCount = 1;
-	p.normal = normal;
-	p.penetrationDepth = p.normal.length() - circle.radius;
-	if (isCenterInsideBox) p.penetrationDepth = -(p.normal.length() + circle.radius);
-	p.normal = p.normal.normalized();
+	collision.normal = normal;
+	p.separation = collision.normal.length() - circle.radius;
+	if (isCenterInsideBox) p.separation = -(collision.normal.length() + circle.radius);
+	collision.normal = collision.normal.normalized();
 	p.position = closestPosOnBox;
-	p.feature.value = 0;
+	//p.feature.value = 0;
+	p.id = ContactPointId{ .featureOnA = ContactPointFeature::FACE, .featureOnAIndex = 0, .featureOnB = ContactPointFeature::FACE, .featureOnBIndex = 0 };
+	collision.normal = collision.normal;
 
 	return collision;
 }
@@ -892,11 +593,13 @@ auto collide(Vec2 aPos, float, const CircleCollider& a, Vec2 bPos, float, const 
 	auto& p = collision.contacts[0];
 	collision.contactCount = 1;
 	const auto distance = sqrt(distanceSquared);
-	p.normal = normal / distance;
-	p.penetrationDepth = -(a.radius + b.radius - distance);
-	p.normal = (distanceSquared == 0.0f) ? Vec2{ 1.0f, 0.0f } : p.normal.normalized();
-	p.position = aPos + p.normal * a.radius;
-	p.feature.value = 0;
+	collision.normal = normal / distance;
+	p.separation = -(a.radius + b.radius - distance);
+	collision.normal = (distanceSquared == 0.0f) ? Vec2{ 1.0f, 0.0f } : collision.normal.normalized();
+	p.position = aPos + collision.normal * a.radius;
+	/*p.feature.value = 0;*/
+	p.id = ContactPointId{ .featureOnA = ContactPointFeature::FACE, .featureOnAIndex = 0, .featureOnB = ContactPointFeature::FACE, .featureOnBIndex = 0 };
+	collision.normal = collision.normal;
 	return collision;
 }
 

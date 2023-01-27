@@ -229,6 +229,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\game\contactConstraint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\game\editor\commands.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -412,6 +416,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\game\body.hpp" />
     <ClInclude Include="src\customImguiWidgets.hpp" />
     <ClInclude Include="src\demos\testDemo.hpp" />
     <ClInclude Include="src\demos\triangulationDemo.hpp" />
@@ -427,6 +432,7 @@
     <ClInclude Include="src\game\collision\collision.hpp" />
     <ClInclude Include="src\game\contact.hpp" />
     <ClInclude Include="src\engine\debug.hpp" />
+    <ClInclude Include="src\game\contactConstraint.hpp" />
     <ClInclude Include="src\game\editor\commands.hpp" />
     <ClInclude Include="src\game\editor\distanceJointGizmo.hpp" />
     <ClInclude Include="src\game\editor\editor.hpp" />

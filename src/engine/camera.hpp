@@ -16,6 +16,7 @@ struct Camera {
 	auto width() const -> float;
 	auto setWidth(float width) -> void;
 	auto cursorPos() const -> Vec2;
+	auto scrollOnCursorPos() -> void;
 
 	Vec2 pos;
 	float zoom;

@@ -3,6 +3,7 @@
 #include <math/aabb.hpp>
 #include <engine/window.hpp>
 #include <engine/input.hpp>
+#include <engine/time.hpp>
 
 Camera::Camera(Vec2 pos, float zoom)
 	: pos{ pos }
@@ -41,6 +42,18 @@ auto Camera::setWidth(float width) -> void {
 
 auto Camera::cursorPos() const -> Vec2 {
 	return screenSpaceToCameraSpace(Input::cursorPos());
+}
+
+auto Camera::scrollOnCursorPos() -> void {
+	if (const auto scroll = Input::scrollDelta(); scroll != 0.0f) {
+		const auto cursorPosBeforeScroll = cursorPos();
+		const auto scrollSpeed = 15.0f * abs(scroll);
+		const auto scrollIncrement = pow(scrollSpeed, Time::deltaTime());
+		if (scroll > 0.0f) zoom *= scrollIncrement;
+		else zoom /= scrollIncrement;
+
+		pos -= (cursorPos() - cursorPosBeforeScroll);
+	}
 }
 
 auto Camera::screenSpaceToCameraSpace(Vec2 screenSpacePos) const -> Vec2 {

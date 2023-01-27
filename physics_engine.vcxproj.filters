@@ -62,9 +62,6 @@
     <ClCompile Include="src\game\body.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\collision\collision.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\math\aabb.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -221,6 +218,12 @@
     <ClCompile Include="src\math\transform.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\contactConstraint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\collision\collision.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -293,9 +296,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\utils\staticVec.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\collision\collision.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\aabb.hpp">
@@ -467,6 +467,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\math\transform.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\body.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\contactConstraint.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\collision\collision.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

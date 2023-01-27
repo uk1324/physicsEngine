@@ -1,4 +1,4 @@
-#include <game/entitesData.hpp>
+#include <game/body.hpp>
 #include <game/collision/collision.hpp>
 #include <math/vec2.hpp>
 #include <numeric>

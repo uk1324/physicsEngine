@@ -6,18 +6,26 @@
 #include <optional>
 #include <variant>
 
-union FeaturePair
-{
-	struct Edges
-	{
-		char inEdge1;
-		char outEdge1;
-		char inEdge2;
-		char outEdge2;
-	} e;
-	int value;
-};
+struct ConvexPolygon {
+	// Could store the verts and normal into a vector of structs with edgeBegin and edgeNormal, but that would probably be confusing.
 
+	std::vector<Vec2> verts;
+	// The normal i belong to the face with endpoints verts[i] and verts[(i + 1) % size].
+	std::vector<Vec2> normals;
+
+	auto calculateNormals() -> void {
+		normals.clear();
+		if (verts.size() < 3) {
+			ASSERT_NOT_REACHED();
+			return;
+		}
+
+		for (usize i = 0; i < verts.size() - 1; i++) {
+			normals.push_back((verts[i + 1] - verts[i]).rotBy90deg().normalized());
+		}
+		normals.push_back((verts[0] - verts.back()).rotBy90deg().normalized());
+	}
+};
 
 // Impulse is the change in momentum.
 
@@ -39,26 +47,24 @@ union FeaturePair
 
 // There are way more unknows that the expressions. Each expression is a plane equation ax + by = c. Each is solved separately.
 
-struct CollisionManifold {
+#include <math/transform.hpp>
 
+enum class ContactPointFeature : u8 {
+	FACE, VERTEX
+};
+
+struct ContactPointId {
+	ContactPointFeature featureOnA;
+	i16 featureOnAIndex;
+	ContactPointFeature featureOnB;
+	i16 featureOnBIndex;
 };
 
 struct ContactPoint {
-	ContactPoint()
-		: accumulatedNormalImpluse{ 0.0f }
-		, accumulatedTangentImpulse{ 0.0f }
-		, penetrationDepth{ 0.0f }
-		, invNormalEffectiveMass{ 0.0f }
-		, bias{ 0.0f }
-		, invTangentEffectiveMass{ 0.0f }
-		, feature{ 0 } {}
-
 	Vec2 position;
-	// From body1 to body2
-	Vec2 normal;
 
-	// Seperating distance along normal. Can be negative.
-	float penetrationDepth;
+	// Negative if the objects are colliding. So this should always be negative, because the collide function returns nullopt if the objects are not colliding.
+	float separation;
 
 	float accumulatedNormalImpluse;
 	float accumulatedTangentImpulse;	
@@ -66,22 +72,19 @@ struct ContactPoint {
 
 	// Solving the velocity constraint doesn't solve the position constraint. The bias term is proportional to the positional error so after iterating it the softer velocity constraint solves the position constraint.
 	float bias;
-	FeaturePair feature;
+	ContactPointId id;
 };
 
 struct Collision {
-	Collision() 
-		: contactCount{ 0 }
-		, coefficientOfFriction{ 0.0f } {}
-
-	auto update(ContactPoint* contacts, i32 numContacts) -> void;
-
-	auto preStep(Body* a, Body* b, float invDeltaTime) -> void;
+	auto update(const Collision& newCollision) -> void;
+	auto preStep(Body& a, Body& b, float invDeltaTime) -> void;
 	auto applyImpulse(Body& a, Body& b) -> void;
 
-	static constexpr i32 MAX_CONTACT_COUNT = 2;
-	ContactPoint contacts[MAX_CONTACT_COUNT];
-	i32 contactCount;
+	// SAT with clipping can return at most 2 contactPoints. I don't think there is a case when a convex shape would need more than 2 contact points. There is either face vs face, face vs vertex or vertex vs vertex.
+	ContactPoint contacts[2];
+	i8 contactCount;
+	// Points from body A to body B.
+	Vec2 normal;
 
 	float coefficientOfFriction;
 };
@@ -90,12 +93,12 @@ auto massInfo(const Collider& collider, float density) -> MassInfo;
 auto aabb(const Collider& collider, Vec2 pos, float orientation) -> Aabb;
 
 auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos, float bOrientation, const Collider& bCollider) -> std::optional<Collision>;
-auto contains(Vec2 point, Vec2 pos, float orientation, const Collider& collider) -> bool;
-
 auto collide(Vec2 aPos, float aOrientation, const BoxCollider& aBox, Vec2 bPos, float bOrientation, const BoxCollider& bBox) -> std::optional<Collision>;
 auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 circlePos, float circleOrientation, const CircleCollider& circle) -> std::optional<Collision>;
 auto collide(Vec2 aPos, float aOrientation, const CircleCollider& a, Vec2 bPos, float bOrientation, const CircleCollider& b) -> std::optional<Collision>;
+auto collide(const ConvexPolygon& a, const Transform& aTransform, const ConvexPolygon& b, const Transform& bTransform)->std::optional<Collision>;
 
+auto contains(Vec2 point, Vec2 pos, float orientation, const Collider& collider) -> bool;
 auto contains(Vec2 point, Vec2 pos, float orientation, const BoxCollider& box) -> bool;
 auto contains(Vec2 point, Vec2 pos, float orientation, const CircleCollider& circle) -> bool;
 
@@ -110,5 +113,4 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, 
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult>;
 
 // For intersection tests could just use collide.
-
 auto aabbContains(const Aabb& aabb, const Collider& collider, Vec2 pos, float orientation) -> bool;

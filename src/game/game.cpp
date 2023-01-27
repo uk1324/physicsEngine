@@ -98,7 +98,8 @@ auto doCollision() -> void {
 				if (const auto& oldContact = contacts.find(key); oldContact == contacts.end()) {
 					contacts[key] = *collision;
 				} else {
-					oldContact->second.update(collision->contacts, collision->contactCount);
+					/*oldContact->second.update(collision->contacts, collision->contactCount, collision->normal);*/
+					oldContact->second.update(*collision);
 				}
 			} else {
 				contacts.erase(key);
@@ -210,9 +211,9 @@ auto Game::update() -> void {
 		if (Input::isKeyHeld(Keycode::LEFT)) dir.x -= 1.0f;
 		camera.pos += dir.normalized() * Time::deltaTime() / camera.zoom;
 	}
-
 	if (Input::isKeyHeld(Keycode::J)) camera.zoom *= pow(3.0f, Time::deltaTime());
 	if (Input::isKeyHeld(Keycode::K)) camera.zoom /= pow(3.0f, Time::deltaTime());
+	camera.scrollOnCursorPos();
 
 	// For positions not not lag behind the camera has to be updated first.
 	const auto mousePos = camera.screenSpaceToCameraSpace(Input::cursorPos());
@@ -342,8 +343,8 @@ auto Game::update() -> void {
 		for (const auto& [_, collision] : contacts) {
 			for (i32 i = 0; i < collision.contactCount; i++) {
 				const auto& contact = collision.contacts[i];
-				const auto scale = scaleContactNormals ? contact.penetrationDepth : 0.1f;
-				Debug::drawRay(contact.position, -contact.normal * scale, Vec3::RED);
+				const auto scale = scaleContactNormals ? contact.separation : 0.1f;
+				Debug::drawRay(contact.position, -collision.normal * scale, Vec3::RED);
 			}
 		}
 	}
@@ -373,7 +374,7 @@ auto Game::physicsStep() -> void {
 	const auto invDeltaTime = 1.0f / Time::deltaTime();
 
 	for (auto& [key, contact] : contacts) {
-		contact.preStep(key.a, key.b, invDeltaTime);
+		contact.preStep(*key.a, *key.b, invDeltaTime);
 	}
 
 	for (auto& [key, joint] : joints) {
