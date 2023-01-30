@@ -2,7 +2,9 @@
 
 #include <utils/int.hpp>
 #include <math/aabb.hpp>
+#include <game/ent.hpp>
 #include <game/collisionSystem.hpp>
+
 #include <vector>
 
 struct CollisionSystemProfile {
@@ -15,7 +17,10 @@ class BvhCollisionSystem {
 public:
 	BvhCollisionSystem();
 
-	auto update(const std::vector<Body*>& toAdd, const std::vector<Body*>& toRemove) -> void;
+private:
+	std::vector<u32> nodesToRemove;
+public:
+	auto update() -> void;
 	auto reset() -> void;
 	auto detectCollisions(CollisionMap& collisions) -> void;
 
@@ -33,19 +38,19 @@ private:
 	struct Node {
 		u32 parent;
 		u32 children[2];
-		Body* body;
+		BodyId body;
 		Aabb aabb;
 		bool childrenCrossChecked;
 		auto isLeaf() const -> bool { return children[0] == NULL_NODE; }
 	};
 
-	auto insert(Body& body) -> void;
+	auto insert(BodyId bodyId) -> void;
 	auto insertHelper(u32 parentNode, u32 nodeToInsert) -> u32;
 
 	auto removeLeafNode(u32 nodeToRemove) -> void;
 
 	u32 rootNode;
-	std::unordered_map<const Body*, u32> leafNodes;
+	std::vector<u32> leafNodes;
 
 	static constexpr auto NULL_NODE = std::numeric_limits<u32>::max();
 	auto allocateNode() -> u32;
@@ -55,10 +60,8 @@ private:
 	auto debugPrint(u32 rootNodeIndex) -> void;
 	auto debugPrintHelper(u32 rootNodeIndex, i32 depth) -> void;
 	auto debugDrawAabbs(u32 rootNodeIndex, i32 depth = 0) -> void;
-	// For removing based on entity could store a map<Entity*, Node*>
 
-	// Storing array of leaf nodes for removal.
-	// Handles can get invalidated on a allocate call. Could create a class with an overloaded opeartor->, but it would need to store the instance of the class inside it.
+	// Handles can get invalidated on a allocate call. Could create a class with an overloaded opeartor->, but it would need to store the instance of the collision system inside it.
 	std::vector<Node> nodes;
 	std::vector<u32> freeNodes;
 };

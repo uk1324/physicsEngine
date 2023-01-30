@@ -51,6 +51,10 @@ auto Rotation::inversed() const -> Rotation {
 	return Rotation{ cos, -sin };
 }
 
+auto Rotation::toMatrix() const -> Mat2 {
+	return Mat2{ Vec2{ cos, sin }, Vec2{ -sin, cos } };
+}
+
 auto operator*(const Vec2& v, const Rotation& rot) -> Vec2 {
 	return v.x * Vec2{ rot.cos, rot.sin } + v.y * Vec2{ -rot.sin, rot.cos };
 }

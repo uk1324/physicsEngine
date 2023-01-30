@@ -5,6 +5,7 @@
 #include <optional>
 #include <game/entitesData.hpp>
 #include <math/transform.hpp>
+#include <game/entityArray.hpp>
 
 using Collider = std::variant<BoxCollider, CircleCollider>;
 
@@ -31,3 +32,5 @@ struct Body {
 	auto toJson() const->Json::Value;
 	static auto fromJson(const Json::Value& json)->BodyEditor;*/
 };
+
+using BodyId = EntityArray<Body>::Id;

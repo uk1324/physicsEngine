@@ -61,8 +61,8 @@ auto Collision::preStep(Body& a, Body& b, float invDeltaTime) -> void {
 		// C' = dot((vA + aA * rA) - (vB + aB * rB), n)
 		// JV + b = 0
 
-		/*Vec2 r1 = c.pos - a.pos;
-		Vec2 r2 = c.pos - b.pos;*/
+		//Vec2 r1 = c.pos - a.transform.pos;
+		//Vec2 r2 = c.pos - b.transform.pos;
 
 		/*Vec2 r1 = (c.pos + normal * c.separation) - a.pos;
 		Vec2 r2 = c.pos - b.pos;*/
@@ -120,8 +120,8 @@ auto Collision::applyImpulse(Body& a, Body& b) -> void {
 		auto& contact = contacts[i];
 		//ASSERT(contact.separation <= 0.0f);
 
-		/*const auto r1 = contact.pos - a.pos;
-		const auto r2 = contact.pos - b.pos;*/
+		/*const auto r1 = contact.pos - a.transform.pos;
+		const auto r2 = contact.pos - b.transform.pos;*/
 		Vec2 r1 = (contact.pos + normal * contact.separation) - a.transform.pos;
 		Vec2 r2 = contact.pos - b.transform.pos;
 		auto relativeVelAtContact = (b.vel + cross(b.angularVel, r2)) - (a.vel + cross(a.angularVel, r1));
@@ -184,8 +184,8 @@ auto BoxCollider::massInfo(float density) const -> MassInfo {
 	};
 }
 
-auto BoxCollider::aabb(Vec2 pos, float orientation) const -> Aabb {
-	const auto corners = getCorners(pos, orientation);
+auto BoxCollider::aabb(const Transform& transform) const -> Aabb {
+	const auto corners = getCorners(transform.pos, transform.angle());
 	return Aabb::fromPoints(Span{ corners.data(), corners.size() });
 }
 
@@ -218,8 +218,8 @@ auto CircleCollider::massInfo(float density) const -> MassInfo {
 	};
 }
 
-auto CircleCollider::aabb(Vec2 pos, float) const -> Aabb {
-	return Aabb{ pos + Vec2{ -radius }, pos + Vec2{ radius } };
+auto CircleCollider::aabb(const Transform& transform) const -> Aabb {
+	return Aabb{ transform.pos + Vec2{ -radius }, transform.pos + Vec2{ radius } };
 }
 
 // If there is a std::visit error check if the function is const.
@@ -233,21 +233,18 @@ auto massInfo(const Collider& collider, float density) -> MassInfo {
 	);
 }
 
-auto aabb(const Collider& collider, Vec2 pos, float orientation) -> Aabb {
+auto aabb(const Collider& collider, const Transform& transform) -> Aabb {
 	return std::visit(
-		[&pos, &orientation](auto&& collider) -> Aabb {
-			return collider.aabb(pos, orientation);
+		[&transform](auto&& collider) -> Aabb {
+			return collider.aabb(transform);
 		},
 		collider
 	);
 }
 
-auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos, float bOrientation, const Collider& bCollider) -> std::optional<Collision>
+auto collide(const Transform& aTransform, const Collider& aCollider, const Transform& bTransform, const Collider& bCollider) -> std::optional<Collision>
 {
 #define GET(collider, name, type) const auto name = std::get_if<type>(&collider); name != nullptr
-
-	auto aTransform = Transform{ aPos, aOrientation };
-	auto bTransform = Transform{ bPos, bOrientation };
 
 	if (GET(aCollider, aBox, BoxCollider)) {
 		if (GET(bCollider, bBox, BoxCollider)) {
@@ -255,17 +252,15 @@ auto collide(Vec2 aPos, float aOrientation, const Collider& aCollider, Vec2 bPos
 			return collide(aTransform, *aBox, bTransform, *bBox);
 			/*return collide(aPos, aOrientation, *aBox, bPos, bOrientation, *bBox);*/
 		} else if (GET(bCollider, bCircle, CircleCollider)) {
-			return collide(aPos, aOrientation, *aBox, bPos, bOrientation, *bCircle);
+			return collide(aTransform, *aBox, bTransform, *bCircle);
 		}
 	} else if (GET(aCollider, aCircle, CircleCollider)) {
 		if (GET(bCollider, bCircle, CircleCollider)) {
-			return collide(aPos, aOrientation, *aCircle, bPos, bOrientation, *bCircle);
+			return collide(aTransform, *aCircle, bTransform, *bCircle);
 		}
 		if (GET(bCollider, bBox, BoxCollider)) {
-			auto collision = collide(bPos, bOrientation, *bBox, aPos, aOrientation, *aCircle);
+			auto collision = collide(bTransform, *bBox, aTransform, *aCircle);
 			if (collision.has_value()) {
-				for (auto& contact : collision->contacts)
-					collision->normal = -collision->normal;
 				collision->normal = -collision->normal;
 			}
 			return collision;
@@ -529,7 +524,10 @@ auto collide(const Transform& aTransform, const BoxCollider& aBox, const Transfo
 //	std::max(0.0f, abs(alongX) - boxHalfSize.x) * -sign(alongX),
 //	std::max(0.0f, abs(alongY) - boxHalfSize.y) * -sign(alongY)
 //};
-auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 circlePos, float, const CircleCollider& circle) -> std::optional<Collision> {
+auto collide(const Transform& aTransform, const BoxCollider& box, const Transform& bTransform, const CircleCollider& circle) -> std::optional<Collision> {
+	auto boxOrientation = aTransform.angle();
+	auto boxPos = aTransform.pos;
+	auto circlePos = bTransform.pos;
 	const auto boxRotationInverse = Mat2::rotate(-boxOrientation);
 	const auto boxHalfSize = box.size / 2.0f;
 	Collision collision;
@@ -590,7 +588,9 @@ auto collide(Vec2 boxPos, float boxOrientation, const BoxCollider& box, Vec2 cir
 	return collision;
 }
 
-auto collide(Vec2 aPos, float, const CircleCollider& a, Vec2 bPos, float, const CircleCollider& b) -> std::optional<Collision> {
+auto collide(const Transform& aTransform, const CircleCollider& a, const Transform& bTransform, const CircleCollider& b) -> std::optional<Collision> {
+	const auto aPos = aTransform.pos;
+	const auto bPos = bTransform.pos;
 	const auto normal = bPos - aPos;
 	const auto distanceSquared = normal.lengthSq();
 	if (distanceSquared > pow(a.radius + b.radius, 2.0f)) {
@@ -632,16 +632,18 @@ auto contains(Vec2 point, Vec2 pos, float, const CircleCollider& circle) -> bool
 // What is a good way to destroy an enity if it was hit? Could store a data void* inside each body that would point to the entity.
 // TODO: Could pass a class with a callback interface that would determine whether a body should be ignored or not. This is faster than just returning and doing the raycast again from the previous hit ignoring the body that was just hit.
 // To ignore a list of bodies is storing a std::set a good option?
-auto raycast(Vec2 rayBegin, Vec2 rayEnd, const Collider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult> {
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const Collider& collider, const Transform& transform) -> std::optional<RaycastResult> {
 	return std::visit(
-		[&rayBegin, &rayEnd, &pos, &orientation](auto&& collider) -> std::optional<RaycastResult> {
-			return raycast(rayBegin, rayEnd, collider, pos, orientation);
+		[&rayBegin, &rayEnd, &transform](auto&& collider) -> std::optional<RaycastResult> {
+			return raycast(rayBegin, rayEnd, collider, transform);
 		},
 		collider
 	);
 }
 
-auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, float orientation) -> std::optional<RaycastResult> {
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, const Transform& transform) -> std::optional<RaycastResult> {
+	const auto pos = transform.pos;
+	const auto orientation = transform.angle();
 	// @Performance: is it better to rotate the positions or dot them with the normals. Is this equivalent?
 	const auto halfSize = collider.size / 2.0f;
 	const auto rotation = Mat2::rotate(orientation);
@@ -682,7 +684,8 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, Vec2 pos, 
 	};
 }
 
-auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 pos, float) -> std::optional<RaycastResult> {
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, const Transform& transform) -> std::optional<RaycastResult> {
+	const auto pos = transform.pos;
 	const auto start = rayBegin - pos;
 	const auto dir = rayEnd - rayBegin;
 	const auto 
@@ -714,7 +717,7 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, Vec2 po
 auto aabbContains(const Aabb& aabb, const Collider& collider, Vec2 pos, float orientation) -> bool {
 	return std::visit(
 		[&](auto&& collider) -> bool {
-			return aabb.contains(collider.aabb(pos, orientation));
+			return aabb.contains(collider.aabb(Transform{ pos, orientation }));
 		},
 		collider
 	);

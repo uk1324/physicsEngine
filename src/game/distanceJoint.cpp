@@ -1,24 +1,28 @@
 #include <game/distanceJoint.hpp>
-#include <game/entitesData.hpp>
+#include <game/ent.hpp>
 #include <math/utils.hpp>
-#include <game/body.hpp>
 
-auto DistanceJoint::preStep(Body&, Body&, float invDeltaTime) -> void {
+auto DistanceJoint::preStep(float invDeltaTime) -> void {
 	bias = invDeltaTime;
 }
 
 // Don't know what a correct pendulum should look like. Car keys that were left in the ignition were oscillating back and forth for around 3 minutes and if no one interrupted them, they would have continuted for a bit longer. The car keys were connected by a circle so the friction is should probably different from this kind of joint.
-auto DistanceJoint::applyImpluse(Body& a, Body& b) -> void {
-	const auto bToA = a.transform.pos - b.transform.pos;
+auto DistanceJoint::applyImpluse() -> void {
+	auto a = ent.body.get(bodyA);
+	ASSERT(a.has_value());
+	auto b = ent.body.get(bodyB);
+	ASSERT(b.has_value());
+
+	const auto bToA = a->transform.pos - b->transform.pos;
 	const auto distanceAb = bToA.length();
 	const auto distanceToFix = distanceAb - requiredDistance;
-	auto relativeVel = b.vel - a.vel;
+	auto relativeVel = b->vel - a->vel;
 
 	Vec2 r1{ 0.0f }, r2{ 0.0f };
 	float rn1 = 0.0f;
 	float rn2 = 0.0f;
-	float kNormal = a.invMass + b.invMass;
-	kNormal += a.invRotationalInertia * (dot(r1, r1) - rn1 * rn1) + b.invRotationalInertia * (dot(r2, r2) - rn2 * rn2);
+	float kNormal = a->invMass + b->invMass;
+	kNormal += a->invRotationalInertia * (dot(r1, r1) - rn1 * rn1) + b->invRotationalInertia * (dot(r2, r2) - rn2 * rn2);
 
 	const auto n = bToA.normalized();
 	float vn = dot(relativeVel, n);
@@ -35,10 +39,10 @@ auto DistanceJoint::applyImpluse(Body& a, Body& b) -> void {
 	/*float dPn = (distanceToFix - vn) / kNormal;*/
 	//float dPn = (distanceToFix * bias - vn) / kNormal;
 
-	a.vel -= dPn * n * a.invMass;
-	b.vel += dPn * n * b.invMass;
+	a->vel -= dPn * n * a->invMass;
+	b->vel += dPn * n * b->invMass;
 
-	relativeVel = b.vel - a.vel;
+	relativeVel = b->vel - a->vel;
 	Vec2 tangent = n.rotBy90deg();
 
 
@@ -77,9 +81,9 @@ auto DistanceJoint::applyImpluse(Body& a, Body& b) -> void {
 
 	Vec2 Pt = dPt * tangent;
 
-	a.vel -= a.invMass * Pt;
-	a.angularVel -= a.invRotationalInertia * det(r1, Pt);
+	a->vel -= a->invMass * Pt;
+	a->angularVel -= a->invRotationalInertia * det(r1, Pt);
 
-	b.vel += b.invMass * Pt;
-	b.angularVel += b.invRotationalInertia * det(r2, Pt);
+	b->vel += b->invMass * Pt;
+	b->angularVel += b->invRotationalInertia * det(r2, Pt);
 }

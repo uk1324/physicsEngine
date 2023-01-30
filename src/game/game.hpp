@@ -67,16 +67,18 @@ public:
 	auto update() -> void;
 	auto physicsStep() -> void;
 
-	Vec2* controlledValue = nullptr;
-	Vec2* followedPos = nullptr;
+	CollisionMap contacts;
 
 	Camera camera;
 
 	Vec2 gravity{ 0.0f };
 	float angularDamping = 0.98f;
 
+	std::optional<BodyId> selected;
+	Vec2 selectedGrabPointObjectSpace;
+
+
 	bool updatePhysics = true;
-	bool cameraFollow = true;
 	bool drawContacts = false;
 	bool scaleContactNormals = false;
 	bool doASingleStep = false;

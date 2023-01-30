@@ -188,9 +188,6 @@
     <ClCompile Include="src\demos\waterDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\contact.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\demos\testDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -222,6 +219,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game\collision.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\ent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -445,9 +445,6 @@
     <ClInclude Include="src\demos\waterDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game\contact.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\demos\testDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -479,6 +476,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\convexPolygonCollider.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\entityArray.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\ent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

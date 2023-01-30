@@ -6,22 +6,35 @@ BvhCollisionSystem::BvhCollisionSystem()
 	: rootNode{ NULL_NODE }
 {}
 
-auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vector<Body*>& toRemove) -> void {
-	for (const auto& body : toRemove) {
-		const auto node = leafNodes[body];
-		removeLeafNode(node);
-		freeNode(node);
-		leafNodes.erase(body);
+auto BvhCollisionSystem::update() -> void {
+	nodesToRemove.clear();
+	for (const auto nodeIndex : leafNodes) {
+		if (!ent.body.isAlive(node(nodeIndex).body)) {
+			nodesToRemove.push_back(nodeIndex);
+		}
 	}
 
-	for (const auto& [body, nodeIndex] : leafNodes) {
-		// TODO: Add sleeping flag for bodies that haven't moved and check it here.
+	for (const auto& node : nodesToRemove) {
+		removeLeafNode(node);
+		freeNode(node);
+		// @Performance: Order doesn't matter so could use swap and pop.
+		std::erase(freeNodes, node);
+	}
+
+	for (const auto& nodeIndex : leafNodes) {
+		auto& node = BvhCollisionSystem::node(nodeIndex);
+
+		const auto& body = ent.body.get(node.body);
+		if (!body.has_value()) {
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+		// @Performance Add sleeping flag for bodies that haven't moved and check it here.
 		if (body->isStatic())
 			continue;
 
-		auto& node = BvhCollisionSystem::node(nodeIndex);
 		/*const auto updatedAabb = aabb(body->collider, body->transform.pos, body->orientation);*/
-		const auto updatedAabb = aabb(body->collider, body->transform.pos, body->transform.angle());
+		const auto updatedAabb = aabb(body->collider, body->transform);
 		if (!(node.aabb.contains(updatedAabb.min) && node.aabb.contains(updatedAabb.max))) {
 			if (leafNodes.size() == 1) {
 				node.aabb = addMarginToAabb(updatedAabb);
@@ -33,10 +46,18 @@ auto BvhCollisionSystem::update(const std::vector<Body*>& toAdd, const std::vect
 			
 		}
 	}
-	
-	for (const auto body : toAdd) {
-		ASSERT(leafNodes.find(body) == leafNodes.end());
-		insert(*body);
+
+	for (const auto bodyId : ent.body.entitiesAddedLastFrame()) {
+		const auto& body = ent.body.get(bodyId);
+		if (!body.has_value()) {
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+		if (std::find_if(leafNodes.begin(), leafNodes.end(), [&](u32 n) { return node(n).body == bodyId; }) != leafNodes.end()) {
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+		insert(bodyId);
 	}
 
 }
@@ -78,7 +99,6 @@ auto BvhCollisionSystem::detectCollisions(CollisionMap& collisions) -> void {
 		if (oldCollision == collisions.end()) {
 			collisions[newCollisionKey] = newCollision;
 		} else {
-			/*oldCollision->second.update(newCollision.contacts, newCollision.contactCount, newCollision.normal);*/
 			oldCollision->second.update(newCollision);
 		}
 	}
@@ -97,9 +117,14 @@ auto BvhCollisionSystem::raycastHelper(u32 nodeIndex, Vec2 start, Vec2 end) cons
 	if (!node.aabb.rayHits(start, end))
 		return std::nullopt;
 
-	if (node.isLeaf())
-		return ::raycast(start, end, node.body->collider, node.body->transform.pos, node.body->transform.angle());
-		/*return ::raycast(start, end, node.body->collider, node.body->pos, node.body->orientation);*/
+	if (node.isLeaf()) {
+		const auto& body = ent.body.get(node.body);
+		if (!body.has_value()) {
+			ASSERT_NOT_REACHED();
+			return std::nullopt;
+		}
+		return ::raycast(start, end, body->collider, body->transform);
+	}
 
 	const auto result0 = raycastHelper(node.children[0], start, end);
 	if (!result0.has_value())
@@ -125,17 +150,23 @@ auto BvhCollisionSystem::clearCrossedFlag(u32 nodeIndex) -> void {
 auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB) -> void {
 	auto& a = node(nodeA);
 	auto& b = node(nodeB);
+
 	if (a.isLeaf() && b.isLeaf()) {
-		if (a.body->isStatic() && b.body->isStatic())
+		auto aBody = ent.body.get(a.body);
+		auto bBody = ent.body.get(b.body);
+		if (!aBody.has_value() || !bBody.has_value()) {
+			ASSERT_NOT_REACHED();
+			return;
+
+		}
+		if (aBody->isStatic() && bBody->isStatic())
 			return;
 
 		if (a.aabb.collides(b.aabb)) {
 
-			BodyPair key{ a.body, b.body };
-			ASSERT(a.body != b.body);
+			BodyPair key{ &*aBody, &*bBody };
 
-			/*if (auto collision = ::collide(key.a->pos, key.a->orientation, key.a->collider, key.b->pos, key.b->orientation,			key.b->collider); collision.has_value()) {*/
-			if (auto collision = ::collide(key.a->transform.pos, key.a->transform.angle(), key.a->collider, key.b->transform.pos, key.b->transform.angle(), key.b->collider); collision.has_value()) {
+			if (auto collision = ::collide(key.a->transform, key.a->collider, key.b->transform, key.b->collider); collision.has_value()) {
 				// TODO: Move this into some function or constructor probably when making a better collision system.
 				collision->coefficientOfFriction = sqrt(key.a->coefficientOfFriction * key.b->coefficientOfFriction);
 				collisions[key] = *collision;
@@ -182,34 +213,40 @@ auto BvhCollisionSystem::addMarginToAabb(const Aabb& aabb) -> Aabb {
 	return Aabb{ aabb.min - Vec2{ AABB_MARGIN }, aabb.max + Vec2{ AABB_MARGIN } };
 }
 
-auto BvhCollisionSystem::insert(Body& body) -> void {
+auto BvhCollisionSystem::insert(BodyId bodyId) -> void {
 
 	auto aabb = [](const Body& body) -> Aabb {
-		/*const auto aabb = ::aabb(body.collider, body.pos, body.orientation);*/
-		const auto aabb = ::aabb(body.collider, body.transform.pos, body.transform.angle());
+		const auto aabb = ::aabb(body.collider, body.transform);
 		return addMarginToAabb(aabb);
 	};
+
+	const auto& body = ent.body.get(bodyId);
+
+	if (!body.has_value()) {
+		ASSERT_NOT_REACHED();
+		return;
+	}
 
 	if (rootNode == NULL_NODE) {
 		rootNode = allocateNode();
 		auto& root = node(rootNode);
 		root = {
 			.parent = NULL_NODE,
-			.body = &body,
-			.aabb = aabb(body),
+			.body = bodyId,
+			.aabb = aabb(*body),
 		};
-		leafNodes[&body] = rootNode;
+		leafNodes.push_back(rootNode);
 		root.children[0] = NULL_NODE;
 		
 	} else {
 		const auto newNode = allocateNode();
 		node(newNode) = {
 			.children = 0,
-			.body = &body,
-			.aabb = aabb(body),
+			.body = bodyId,
+			.aabb = aabb(*body),
 		};
 		node(newNode).children[0] = NULL_NODE;
-		leafNodes[&body] = newNode;
+		leafNodes.push_back(newNode);
 		rootNode = insertHelper(rootNode, newNode);
 	}
 }

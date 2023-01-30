@@ -1,15 +1,17 @@
 #pragma once
 
-#include <math/vec2.hpp>
-
-struct Body;
+#include <game/body.hpp>
 
 struct DistanceJoint {
-	Vec2 posOnA, posOnB;
+	BodyId bodyA, bodyB;
 	float requiredDistance;
+	Vec2 posOnA, posOnB;
 
 	float bias;
 
-	auto preStep(Body& a, Body& b, float invDeltaTime) -> void;
-	auto applyImpluse(Body& a, Body& b) -> void;
+	auto preStep(float invDeltaTime) -> void;
+	auto applyImpluse() -> void;
 };
+
+using DistanceJointId = EntityArray<DistanceJoint>::Id;
+

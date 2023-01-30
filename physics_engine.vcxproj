@@ -221,10 +221,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\game\contact.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="src\engine\debug.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -258,6 +254,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\game\editor\selectedEntityGizmo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\ent.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -431,7 +431,6 @@
     <ClInclude Include="src\game\collidersData.hpp" />
     <ClInclude Include="src\game\collisionSystem.hpp" />
     <ClInclude Include="src\game\collision.hpp" />
-    <ClInclude Include="src\game\contact.hpp" />
     <ClInclude Include="src\engine\debug.hpp" />
     <ClInclude Include="src\game\contactConstraint.hpp" />
     <ClInclude Include="src\game\editor\commands.hpp" />
@@ -442,6 +441,8 @@
     <ClInclude Include="src\game\editor\input.hpp" />
     <ClInclude Include="src\game\editor\scalingGizmo.hpp" />
     <ClInclude Include="src\game\editor\selectedEntityGizmo.hpp" />
+    <ClInclude Include="src\game\ent.hpp" />
+    <ClInclude Include="src\game\entityArray.hpp" />
     <ClInclude Include="src\game\entitesData.hpp" />
     <ClInclude Include="src\game\game.hpp" />
     <ClInclude Include="src\game\gameMain.hpp" />

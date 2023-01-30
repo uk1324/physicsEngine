@@ -1,5 +1,6 @@
 ~
 #include <math/aabb.hpp>
+#include <math/transform.hpp>
 #include <math/lineSegment.hpp>
 #include <game/convexPolygonCollider.hpp>
 
@@ -17,7 +18,7 @@ CircleCollider @Editor {
 	^~
 	CircleCollider(const CircleColliderEditor& circle);
 	auto massInfo(float density) const -> MassInfo;
-	auto aabb(Vec2 pos, float orientation) const -> Aabb;
+	auto aabb(const Transform& transform) const -> Aabb;
 	~
 }
 
@@ -29,7 +30,7 @@ BoxCollider @Editor {
 	// @Performance: Could have an update method on a collider that would update things that are often used like the rotation matrix.
 	// @Performance: Maybe store halfSize and not size because it is used more often.
 	auto massInfo(float density) const -> MassInfo;
-	auto aabb(Vec2 pos, float orientation) const -> Aabb;
+	auto aabb(const Transform& transform) const -> Aabb;
 
 	auto getCorners(Vec2 pos, float orientation) const -> std::array<Vec2, 4>;
 	auto getEdges(Vec2 pos, float orientation) const -> std::array<LineSegment, 4>;

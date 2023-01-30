@@ -126,7 +126,7 @@ auto EditorEntities::getAabb(const Entity& entity) -> std::optional<Aabb> {
 	switch (entity.type) {
 	case EntityType::Body: {
 		const auto& bodyEntity = body[entity.index];
-		return aabb(bodyEntity.collider, bodyEntity.pos, bodyEntity.orientation);
+		return aabb(bodyEntity.collider, Transform{ bodyEntity.pos, bodyEntity.orientation });
 	}
 	default: return std::nullopt;
 	}

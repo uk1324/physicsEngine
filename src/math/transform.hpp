@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math/vec2.hpp>
+#include <math/mat2.hpp>
 
 struct Rotation {
 	Rotation(float cos, float sin);
@@ -9,6 +10,7 @@ struct Rotation {
 	auto operator*(const Rotation& other) const -> Rotation;
 	auto operator*=(const Rotation& other) -> Rotation&;
 	auto inversed() const -> Rotation;
+	auto toMatrix() const -> Mat2;
 
 	float cos, sin;
 };
