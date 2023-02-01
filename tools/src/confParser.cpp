@@ -194,6 +194,8 @@ auto Parser::parse(std::string_view text) -> std::optional<DataFile> {
 					while (!isAtEnd && currentToken.type != TokenType::LEFT_BRACE) {
 						if (matchIdentifier("ImGui")) {
 							properties.push_back(StructPropertyType::IM_GUI);
+						} else if (matchIdentifier("Serialize")) {
+							properties.push_back(StructPropertyType::SERIALIZABLE);
 						} else if (matchIdentifier("Editor")) {
 							properties.push_back(StructPropertyType::IM_GUI);
 							properties.push_back(StructPropertyType::SERIALIZABLE);
@@ -235,11 +237,10 @@ auto Parser::parse(std::string_view text) -> std::optional<DataFile> {
 							};
 
 							if (propertyName == "Custom") {
-								const auto args = parseArgs(3);
+								const auto args = parseArgs(2);
 								FieldProperty property{ .type = FieldPropertyType::CUSTOM };
 								property.customSerializeFn = args[0];
 								property.customDeserializeFn = args[1];
-								property.customGuiFn = args[2];
 								fieldProperties.push_back(property);
 							} else {
 								std::cerr << "invalid property '" << propertyName << "' ignored";
@@ -286,8 +287,13 @@ auto Parser::fieldType() -> FieldType {
 		}
 		expect(TokenType::MORE_THAN);
 		return type;
-	}
-	else {
+	} else if (matchIdentifier("vector")) {
+		expect(TokenType::LESS_THAN);
+		FieldType type{ FieldTypeType::VARIANT };
+		new (&type.vectorType) std::vector<FieldType>{ fieldType() };
+		expect(TokenType::MORE_THAN);
+		return type;
+	} else {
 		std::cerr << "expected type\n";
 		throw Error{};
 	}

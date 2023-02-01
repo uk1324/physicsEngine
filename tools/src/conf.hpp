@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace Data {
 
@@ -14,8 +15,6 @@ struct FieldProperty {
 	FieldPropertyType type;
 	std::string_view customSerializeFn;
 	std::string_view customDeserializeFn;
-	std::string_view customGuiFn;
-	//bool serializeFnIsMethod;
 };
 
 enum class FieldTypeType {
@@ -26,6 +25,7 @@ enum class FieldTypeType {
 	CPP,
 	ANGLE,
 	VARIANT,
+	VECTOR,
 };
 
 struct FieldType {
@@ -38,6 +38,7 @@ struct FieldType {
 	union {
 		std::string_view cpp;
 		std::vector<FieldType> variant;
+		std::unique_ptr<FieldType> vectorType;
 	};
 };
 

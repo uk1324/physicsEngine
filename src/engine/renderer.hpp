@@ -5,6 +5,10 @@
 
 struct DynamicTexture : ImageRgba {
 	DynamicTexture(Vec2T<i64> size);
+	DynamicTexture(const DynamicTexture&) = delete;
+	auto operator=(const DynamicTexture&) -> void = delete;
+	DynamicTexture(DynamicTexture&& other) noexcept;
+	auto operator=(DynamicTexture&& other) noexcept;
 	~DynamicTexture();
 	u64 textureHandle;
 };

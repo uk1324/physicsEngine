@@ -5,6 +5,7 @@
 #include <engine/debug.hpp>
 #include <math/utils.hpp>
 #include <math/aabb.hpp>
+#include <customImguiWidgets.hpp>
 
 #include <imgui/imgui.h>
 using namespace ImGui;

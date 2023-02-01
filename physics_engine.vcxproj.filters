@@ -16,8 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="src\game\entites.data" />
-    <None Include="src\game\colliders.data" />
+    <None Include="src\game\levelFormat\level.data" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\gfx\gfx.cpp">
@@ -95,12 +94,6 @@
     <ClCompile Include="src\game\distanceJoint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\entitesData.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\game\collidersData.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="thirdParty\json\JsonParser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -110,40 +103,13 @@
     <ClCompile Include="thirdParty\json\JsonValue.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\entites.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\game\editor\editor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\game\gameMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\math\lineSegment.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game\editor\editorEntity.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\game\editor\commands.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\game\editor\editorGuiState.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\math\utils.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\game\editor\selectedEntityGizmo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\game\editor\distanceJointGizmo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\game\levelFormat.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\game\editor\scalingGizmo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="thirdParty\stb_image\stb_image.cpp">
@@ -222,6 +188,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game\ent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\convexPolygonCollider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\collider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\levelFormat\levelData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\levelFormat\level.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demos\marchingSquares.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -337,12 +318,6 @@
     <ClInclude Include="src\game\distanceJoint.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game\entitesData.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\collidersData.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="thirdParty\json\Json.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -358,40 +333,10 @@
     <ClInclude Include="src\utils\overloaded.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game\editor\editor.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\game\gameMain.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\game\editor\input.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\math\lineSegment.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\editor\editorEntity.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\utils\typeInfo.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\editor\commands.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\editor\editorGuiState.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\editor\selectedEntityGizmo.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\editor\distanceJointGizmo.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\levelFormat.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\game\editor\scalingGizmo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\utils\refOptional.hpp">
@@ -484,6 +429,15 @@
     <ClInclude Include="src\game\ent.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\game\collider.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\levelFormat\levelData.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\marchingSquares.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\engine\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />
@@ -503,7 +457,5 @@
   <ItemGroup>
     <Text Include="src\txt.txt" />
     <Text Include="src\todo.txt" />
-    <Text Include="src\game\editor\editorGuis.txt" />
-    <Text Include="src\game\editor\editorNotes.txt" />
   </ItemGroup>
 </Project>

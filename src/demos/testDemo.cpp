@@ -51,14 +51,14 @@ auto TestDemo::update() -> void {
 	End();
 	
 	Transform aTransform{ camera.cursorPos(), aOrientation };
-	auto a = makeRegularPolygon(aVertexCount, aSize);
+	auto a = ConvexPolygon::regular(aVertexCount, aSize);
 
 	Transform bTransform{ Vec2{ 0.3f, 0.2f }, 0.0f };
-	auto b = makeRegularPolygon(bVertexCount, bSize);
+	auto b = ConvexPolygon::regular(bVertexCount, bSize);
 
 	drawPolygon(a, aTransform);
 	drawPolygon(b, bTransform);
-	auto manifold = collide(a, aTransform, b, bTransform);
+	auto manifold = collide(aTransform, a, bTransform, b);
 	if (manifold.has_value()) {
 		for (i32 i = 0; i < manifold->contactCount; i++) {
 			const auto& point = manifold->contacts[i];

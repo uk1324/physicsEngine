@@ -11,11 +11,12 @@ template<typename Entity>
 struct EntityArray {
 	struct Id {
 		friend EntityArray;
-		Id() : index{ 0xCDCDCDCD }, version{ 0xCDCDCDCD } {}
+		Id() : index_{ 0xCDCDCDCD }, version{ 0xCDCDCDCD } {}
 		auto operator==(const Id&) const -> bool = default;
+		auto index() const -> i32;
 	private:
-		Id(u32 index, u32 version) : index{ index }, version{ version } {}
-		u32 index;
+		Id(u32 index, u32 version) : index_{ index }, version{ version } {}
+		u32 index_;
 		u32 version;
 	};
 
@@ -45,11 +46,11 @@ struct EntityArray {
 
 	auto begin() -> Iterator;
 	auto end() -> Iterator;
-private:
 	std::vector<Entity> entities;
 	std::vector<u32> entityVersions;
 	// Could use a set instead of entityIsFree and freeEntities, but it would probably be slower. Don't want to do a red-black tree search for each iterator increment.
 	std::vector<bool> entityIsFree;
+private:
 
 	std::vector<u32> freeEntities;
 	// To make pooling more efficient could make a templated function that wouold reset the state of an object. So for example if the type stored a vector it would just clear it instead of calling the constructor, which would cause a reallocation.
@@ -74,36 +75,36 @@ auto EntityArray<Entity>::update() -> void {
 	entitiesAddedThisFrame.clear();
 
 	for (const auto id : entitiesToRemove) {
-		if (id.index >= entities.size()) {
+		if (id.index_ >= entities.size()) {
 			ASSERT_NOT_REACHED();
 			return;
 		}
 
-		if (id.version != entityVersions[id.index]) {
+		if (id.version != entityVersions[id.index_]) {
 			// Should double free be an error?
 			ASSERT_NOT_REACHED();
 			return;
 		}
 
-		freeEntities.push_back(id.index);
-		entityVersions[id.index]++;
-		entityIsFree[id.index] = true;
+		freeEntities.push_back(id.index_);
+		entityVersions[id.index_]++;
+		entityIsFree[id.index_] = true;
 	}
 	entitiesToRemove.clear();
 }
 
 template<typename Entity>
 auto EntityArray<Entity>::get(const Id& id) -> std::optional<Entity&> {
-	if (id.index >= entities.size()) {
+	if (id.index_ >= entities.size()) {
 		ASSERT_NOT_REACHED();
 		return std::nullopt;
 	}
 
-	if (id.version != entityVersions[id.index]) {
+	if (id.version != entityVersions[id.index_]) {
 		return std::nullopt;
 	}
 
-	return entities[id.index];
+	return entities[id.index_];
 }
 
 template<typename Entity>
@@ -133,7 +134,7 @@ auto EntityArray<Entity>::create(Entity&& entity) -> Pair {
 	}
 
 	entitiesAddedThisFrame.push_back(id);
-	return { id, entities[id.index] };
+	return { id, entities[id.index_] };
 }
 
 template<typename Entity>
@@ -207,4 +208,9 @@ auto EntityArray<Entity>::Iterator::operator->() -> Entity* {
 template<typename Entity>
 auto EntityArray<Entity>::Iterator::operator*() -> Pair {
 	return Pair{ Id{ index, array.entityVersions[index] }, array.entities[index] };
+}
+
+template<typename Entity>
+auto EntityArray<Entity>::Id::index() const -> i32 {
+	return index_;
 }

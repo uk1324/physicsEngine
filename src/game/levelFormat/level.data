@@ -1,0 +1,43 @@
+~
+#include <variant>
+~
+
+LevelBox @Serialize {
+	Vec2 size;
+}
+
+LevelCircle @Serialize {
+	float radius;
+}
+
+~
+struct LevelConvexPolygon {
+	std::vector<Vec2> verts;
+
+	auto toJson() const -> Json::Value;
+	static auto fromJson(const Json::Value& json) -> LevelConvexPolygon;
+};
+~
+
+~
+using LevelCollider = std::variant<LevelBox, LevelCircle, LevelConvexPolygon>;
+auto levelColliderToJson(const LevelCollider& collider) -> Json::Value;
+auto levelColliderFromJson(const Json::Value& collider) -> LevelCollider;
+~
+
+LevelBody @Serialize {
+	Vec2 pos;
+	float orientation;
+	Vec2 vel;
+	float angularVel;
+	float mass;
+	float rotationalInertia;
+	float coefficientOfFriction;
+	~LevelCollider~ collider Custom(levelColliderToJson levelColliderFromJson);
+}
+
+LevelDistanceJoint @Serialize {
+	i32 bodyAIndex;
+	i32 bodyBIndex;
+	float distance;
+}

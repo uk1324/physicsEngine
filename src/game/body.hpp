@@ -1,18 +1,12 @@
 #pragma once
 
-#include <game/collidersData.hpp>
-#include <variant>
-#include <optional>
-#include <game/entitesData.hpp>
 #include <math/transform.hpp>
 #include <game/entityArray.hpp>
-
-using Collider = std::variant<BoxCollider, CircleCollider>;
+#include <game/collider.hpp>
 
 struct Body {
 	Body();
 	Body(Vec2 pos, const Collider& collider, bool isStatic);
-	Body(const BodyOldEditor& body);
 	auto updateInvMassAndInertia() -> void;
 	auto isStatic() const -> bool;
 
@@ -27,10 +21,6 @@ struct Body {
 	float torque;
 	float invMass;
 	float invRotationalInertia;
-
-	/*auto editorGui(EditorGuiState& inputState, EditorEntities& entites, const Entity& entity, Commands& commands) -> void;
-	auto toJson() const->Json::Value;
-	static auto fromJson(const Json::Value& json)->BodyEditor;*/
 };
 
 using BodyId = EntityArray<Body>::Id;

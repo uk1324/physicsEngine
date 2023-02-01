@@ -61,6 +61,20 @@ DynamicTexture::DynamicTexture(Vec2T<i64> size)
 	: ImageRgba{ size }
 	, textureHandle{ Renderer::createDynamicTexture(size) } {}
 
+DynamicTexture::DynamicTexture(DynamicTexture&& other) noexcept 
+	: ImageRgba{ other }
+	, textureHandle{ other.textureHandle }{
+	other.textureHandle = 0;
+}
+
+auto DynamicTexture::operator=(DynamicTexture&& other) noexcept {
+	ImageRgba::operator=(std::move(other));
+	textureHandle = other.textureHandle;
+	other.textureHandle = 0;
+}
+
 DynamicTexture::~DynamicTexture() {
-	Renderer::destroyDynamicTexture(textureHandle);
+	if (textureHandle != 0) {
+		Renderer::destroyDynamicTexture(textureHandle);
+	}
 }

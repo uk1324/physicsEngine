@@ -2,6 +2,7 @@
 
 #include <game/bvhCollisionSystem.hpp>
 #include <engine/camera.hpp>
+#include <json/JsonValue.hpp>
 
 // TODO: Replay system. Mouse position would need to be either saved in world space or later transformed by the camera transform. Could store 2 camera transforms one for the actual camera and the replay camera.
 
@@ -62,7 +63,8 @@ public:
 	Game();
 
 	auto detectCollisions() -> void;
-	auto loadLevel() -> void;
+	auto saveLevel() const -> Json::Value;
+	auto loadLevel(const Json::Value& level) -> void;
 	auto drawUi() -> void;
 	auto update() -> void;
 	auto physicsStep() -> void;
@@ -77,6 +79,7 @@ public:
 	std::optional<BodyId> selected;
 	Vec2 selectedGrabPointObjectSpace;
 
+	std::optional<Vec2> grabStart;
 
 	bool updatePhysics = true;
 	bool drawContacts = false;

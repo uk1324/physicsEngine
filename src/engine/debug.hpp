@@ -4,8 +4,8 @@
 #include <math/vec2.hpp>
 #include <math/vec3.hpp>
 #include <math/triangulate.hpp>
+#include <game/collider.hpp>
 #include <utils/span.hpp>
-#include <game/entitesData.hpp>
 #include <vector>
 
 namespace Debug {

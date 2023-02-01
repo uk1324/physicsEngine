@@ -174,8 +174,6 @@ auto Collision::applyImpulse(Body& a, Body& b) -> void {
 	}
 }
 
-BoxCollider::BoxCollider(const BoxColliderEditor& box) : BoxColliderEditor{ box } {}
-
 auto BoxCollider::massInfo(float density) const -> MassInfo {
 	const auto mass = size.x * size.y * density;
 	return MassInfo{
@@ -183,45 +181,6 @@ auto BoxCollider::massInfo(float density) const -> MassInfo {
 		.rotationalInertia = mass * pow(size.x, 2.0f) * pow(size.y, 2.0f) / 12.0f
 	};
 }
-
-auto BoxCollider::aabb(const Transform& transform) const -> Aabb {
-	const auto corners = getCorners(transform.pos, transform.angle());
-	return Aabb::fromPoints(Span{ corners.data(), corners.size() });
-}
-
-auto BoxCollider::getCorners(Vec2 pos, float orientation) const -> std::array<Vec2, 4> {
-	const auto normals = Mat2::rotate(orientation);
-	const auto cornerDir = normals.x() * (size.x / 2.0f) + normals.y() * (size.y / 2.0f);
-	return { pos + cornerDir, pos + cornerDir - normals.x() * size.x, pos - cornerDir, pos - cornerDir + normals.x() * size.x };
-}
-
-auto BoxCollider::getEdges(Vec2 pos, float orientation) const -> std::array<LineSegment, 4> {
-	// @Performance Could do this by translating line segments.
-	/*const auto normals = Mat2::rotate(orientation);
-	LineSegment{ Line{ normals.x(),  } }*/
-	const auto corners = getCorners(pos, orientation);
-	return {
-		LineSegment{ corners[0], corners[1] },
-		LineSegment{ corners[1], corners[2] },
-		LineSegment{ corners[2], corners[3] },
-		LineSegment{ corners[3], corners[0] }
-	};
-}
-
-CircleCollider::CircleCollider(const CircleColliderEditor& circle) : CircleColliderEditor{ circle } {}
-
-auto CircleCollider::massInfo(float density) const -> MassInfo {
-	const auto mass = TAU<float> * pow(radius, 2.0f) * density;
-	return MassInfo{
-		.mass = mass,
-		.rotationalInertia = mass * pow(radius, 2.0f) / 2.0f
-	};
-}
-
-auto CircleCollider::aabb(const Transform& transform) const -> Aabb {
-	return Aabb{ transform.pos + Vec2{ -radius }, transform.pos + Vec2{ radius } };
-}
-
 // If there is a std::visit error check if the function is const.
 
 auto massInfo(const Collider& collider, float density) -> MassInfo {
@@ -248,22 +207,39 @@ auto collide(const Transform& aTransform, const Collider& aCollider, const Trans
 
 	if (GET(aCollider, aBox, BoxCollider)) {
 		if (GET(bCollider, bBox, BoxCollider)) {
-
 			return collide(aTransform, *aBox, bTransform, *bBox);
-			/*return collide(aPos, aOrientation, *aBox, bPos, bOrientation, *bBox);*/
 		} else if (GET(bCollider, bCircle, CircleCollider)) {
 			return collide(aTransform, *aBox, bTransform, *bCircle);
+		} else if (GET(bCollider, bPoly, ConvexPolygon)) {
+			static ConvexPolygon aShape{ .verts = std::vector<Vec2>(4, Vec2{ 0.0f }), .normals = std::vector<Vec2>(4, Vec2{ 0.0f }) };
+			aShape.verts[3] = aBox->size / 2.0f;
+			aShape.verts[2] = Vec2{ aBox->size.x, -aBox->size.y } / 2.0f;
+			aShape.verts[1] = -aBox->size / 2.0f;
+			aShape.verts[0] = Vec2{ -aBox->size.x, aBox->size.y } / 2.0f;
+			aShape.calculateNormals();
+			return collide(aTransform, aShape, bTransform, *bPoly);
 		}
 	} else if (GET(aCollider, aCircle, CircleCollider)) {
 		if (GET(bCollider, bCircle, CircleCollider)) {
 			return collide(aTransform, *aCircle, bTransform, *bCircle);
-		}
-		if (GET(bCollider, bBox, BoxCollider)) {
+		} else if (GET(bCollider, bBox, BoxCollider)) {
 			auto collision = collide(bTransform, *bBox, aTransform, *aCircle);
 			if (collision.has_value()) {
 				collision->normal = -collision->normal;
 			}
 			return collision;
+		}
+	} else if (GET(aCollider, aPoly, ConvexPolygon)) {
+		if (GET(bCollider, bPoly, ConvexPolygon)) {
+			return collide(aTransform, *aPoly, bTransform, *bPoly);
+		} else if (GET(bCollider, bBox, BoxCollider)) {
+			static ConvexPolygon bShape{ .verts = std::vector<Vec2>(4, Vec2{ 0.0f }), .normals = std::vector<Vec2>(4, Vec2{ 0.0f }) };
+			bShape.verts[3] = bBox->size / 2.0f;
+			bShape.verts[2] = Vec2{ bBox->size.x, -bBox->size.y } / 2.0f;
+			bShape.verts[1] = -bBox->size / 2.0f;
+			bShape.verts[0] = Vec2{ -bBox->size.x, bBox->size.y } / 2.0f;
+			bShape.calculateNormals();
+			return collide(aTransform, *aPoly, bTransform, bShape);
 		}
 	}
 	// Remember to flip the normal if the arguments are in the opposite order.
@@ -287,7 +263,7 @@ struct Separation {
 };
 
 // Performs SAT on the shapes a and b. To separate shapes translate shape b by a.normals[edgeIndex] * separation. Returns nullopt if the shapes are already separating.
-static auto minSeparation(const std::vector<Vec2>& aVerts, const std::vector<Vec2>& aNormals, const Transform& aTransform, std::vector<Vec2> bVerts, const Transform& bTransform) -> std::optional<Separation> {
+static auto minSeparation(const std::vector<Vec2>& aVerts, const std::vector<Vec2>& aNormals, const Transform& aTransform, const std::vector<Vec2>& bVerts, const Transform& bTransform) -> std::optional<Separation> {
 	// Finds the axis of least separation. The least distance the shapes need to be translated to stop overlapping. For example when you put the a box on to of a box then their shadows fully overlap so the least separation, not the max separation axis / face normal is desired.
 	auto minSeparation = std::numeric_limits<float>::infinity();
 	i16 minSeparationNormalIndex = 0;
@@ -341,7 +317,7 @@ struct Contact {
 
 // The computed contact manifold tries to approximate the contact points at which the collision started. These points are only an approximation.
 // This code often uses face indices as vertex indices, this is explained in ConvexPolygon.
-auto collide(const ConvexPolygon& a, const Transform& aTransform, const ConvexPolygon& b, const Transform& bTransform) -> std::optional<Collision> {
+auto collide(const Transform& aTransform, const ConvexPolygon& a, const Transform& bTransform, const ConvexPolygon& b) -> std::optional<Collision> {
 	// minSeparation() only checks the normals of the first arguments so both shapes have to be tested.
 	const auto aSeparation = minSeparation(a.verts, a.normals, aTransform, b.verts, bTransform);
 	if (!aSeparation.has_value())
@@ -515,7 +491,7 @@ auto collide(const Transform& aTransform, const BoxCollider& aBox, const Transfo
 	aShape.calculateNormals();
 	bShape.calculateNormals();
 
-	return collide(aShape, aTransform, bShape, bTransform);
+	return collide(aTransform, aShape, bTransform, bShape);
 }
 
 // Another way to do this that would work is to do the same thing if the center is inside the box else calculate the seperation vector by calculating the distance from the sides of the box to the center. The length would then be circle.radius - v.length().
@@ -629,6 +605,23 @@ auto contains(Vec2 point, Vec2 pos, float, const CircleCollider& circle) -> bool
 	return (point - pos).lengthSq() <= circle.radius;
 }
 
+#include <engine/debug.hpp>
+
+auto contains(Vec2 point, Vec2 pos, float orientation, const ConvexPolygon& convexPolygon) -> bool {
+	const Transform transform{ pos, orientation };
+	for (i32 i = 0; i < convexPolygon.verts.size(); i++) {
+		auto next = i + 1;
+		if (next >= convexPolygon.verts.size()) {
+			next = 0;
+		}
+		const Line line{ convexPolygon.verts[i] * transform, convexPolygon.verts[next] * transform };
+		if (signedDistance(line, point) < 0.0f) {
+			return false;
+		}
+	}
+	return true;
+}
+
 // What is a good way to destroy an enity if it was hit? Could store a data void* inside each body that would point to the entity.
 // TODO: Could pass a class with a callback interface that would determine whether a body should be ignored or not. This is faster than just returning and doing the raycast again from the previous hit ignoring the body that was just hit.
 // To ignore a list of bodies is storing a std::set a good option?
@@ -711,6 +704,10 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, const T
 		.t = t,
 		.normal = (hitPoint - pos).normalized()
 	};
+}
+
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const ConvexPolygon& collider, const Transform& transform) -> std::optional<RaycastResult> {
+	return std::nullopt;
 }
 
 // An aabb contains a shape if it contains it's aabb, because if an aabb contains a shape <=> it contains the points on it most in the -x, x, -y and y directions (which just means the aabb of the shape) and vice-versa.

@@ -52,7 +52,7 @@ auto Debug::drawLines(Span<const Vec2> lines, const Vec3& color) -> void {
 		return;
 
 	for (usize i = 1; i < lines.size() - 1; i++)
-		drawLine(lines[i], lines[i + 1]);
+		drawLine(lines[i], lines[i + 1], color);
 	drawLine(lines.back(), lines[0], color);
 }
 
@@ -87,6 +87,16 @@ auto Debug::drawBox(Vec2 pos, float orientation, Vec2 size, const Vec3& color) -
 auto Debug::drawCollider(const Collider& collider, Vec2 pos, float orientation, const Vec3& color) -> void {
 	if (const auto box = std::get_if<BoxCollider>(&collider)) Debug::drawBox(pos, orientation, box->size, color);
 	else if (const auto circle = std::get_if<CircleCollider>(&collider)) Debug::drawCircleCollider(pos, circle->radius, orientation, color);
+	else if (const auto poly = std::get_if<ConvexPolygon>(&collider)) {
+		const Transform transform{ pos, orientation };
+		for (i32 i = 0; i < poly->verts.size(); i++) {
+			auto next = i + 1;
+			if (next >= poly->verts.size()) {
+				next = 0;
+			}
+			Debug::drawLine(poly->verts[i] * transform, poly->verts[next] * transform, color);
+		}
+	}
 	else ASSERT_NOT_REACHED();
 }
 

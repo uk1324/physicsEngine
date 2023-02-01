@@ -2,7 +2,6 @@
 
 #include <math/vec2.hpp>
 #include <math/aabb.hpp>
-#include <game/entitesData.hpp>
 #include <optional>
 #include <variant>
 
@@ -70,18 +69,16 @@ struct Collision {
 	float coefficientOfFriction;
 };
 
-auto massInfo(const Collider& collider, float density) -> MassInfo;
-auto aabb(const Collider& collider, const Transform& transform) -> Aabb;
-
 auto collide(const Transform& aTransform, const Collider& aCollider, const Transform& bTransform, const Collider& bCollider) -> std::optional<Collision>;
 auto collide(const Transform& aTransform, const BoxCollider& aBox, const Transform& bTransform, const BoxCollider& bBox) -> std::optional<Collision>;
 auto collide(const Transform& aTransform, const BoxCollider& box, const Transform& bTransform, const CircleCollider& circle) -> std::optional<Collision>;
 auto collide(const Transform& aTransform, const CircleCollider& a, const Transform& bTransform, const CircleCollider& b)-> std::optional<Collision>;
-auto collide(const ConvexPolygon& a, const Transform& aTransform, const ConvexPolygon& b, const Transform& bTransform)->std::optional<Collision>;
+auto collide(const Transform& aTransform, const ConvexPolygon& a, const Transform& bTransform, const ConvexPolygon& b) -> std::optional<Collision>;
 
 auto contains(Vec2 point, Vec2 pos, float orientation, const Collider& collider) -> bool;
 auto contains(Vec2 point, Vec2 pos, float orientation, const BoxCollider& box) -> bool;
 auto contains(Vec2 point, Vec2 pos, float orientation, const CircleCollider& circle) -> bool;
+auto contains(Vec2 point, Vec2 pos, float orientation, const ConvexPolygon& convexPolygon) -> bool;
 
 struct RaycastResult {
 	float t;
@@ -92,6 +89,7 @@ struct RaycastResult {
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const Collider& collider, const Transform& transform) -> std::optional<RaycastResult>;
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const BoxCollider& collider, const Transform& transform) -> std::optional<RaycastResult>;
 auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, const Transform& transform) -> std::optional<RaycastResult>;
+auto raycast(Vec2 rayBegin, Vec2 rayEnd, const ConvexPolygon& collider, const Transform& transform) -> std::optional<RaycastResult>;
 
 // For intersection tests could just use collide.
 auto aabbContains(const Aabb& aabb, const Collider& collider, Vec2 pos, float orientation) -> bool;

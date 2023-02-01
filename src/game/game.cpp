@@ -6,10 +6,11 @@
 #include <engine/time.hpp>
 #include <engine/window.hpp>
 #include <math/utils.hpp>
-#include <math/mat2.hpp>
 #include <engine/renderer.hpp>
 #include <imgui/imgui.h>
 #include <game/ent.hpp>
+#include <game/levelFormat/levelData.hpp>
+#include <utils/overloaded.hpp>
 
 // spatial hashing / bucketing
 // inactive flag on objects
@@ -24,24 +25,48 @@
 #include <fstream>
 
 Game::Game() {
-	int height = 10;
+	int height = 15;
 	float boxSize = 1.0f;
 	float gapSize = 0.1f;
 	for (int i = 1; i < height + 1; i++) {
+		std::vector<BodyId> bodies;
 		for (int j = 0; j < i; j++) {
 			float y = (height + 1 - i) * (boxSize + gapSize);
 			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
-			ent.body.create(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });
+			/*ent.body.create(Body{ Vec2{ x, y }, BoxColliderEditor{ Vec2{ boxSize } }, false });*/
+			//ent.body.create(Body{ Vec2{ x, y }, CircleColliderEditor{ 0.5f }, false });
+
+			//ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(3, 0.5f), false });
+
+			float radius = 0.7f;
+			if (i == height) {
+				auto gon = ConvexPolygon::regular(6, radius);
+				gon.verts.pop_back();
+				gon.calculateNormals();
+				const auto& [id, b] = ent.body.create(Body{ Vec2{ x, y }, gon, false });
+				bodies.push_back(id);
+				b.transform.rot *= Rotation{ -TAU<float> / 6.0f };
+			} else {
+				const auto& [id, _] = ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(6, radius), false });
+				bodies.push_back(id);
+			}
+		}
+
+		if (i == height) {
+			for (int j = 0; j < bodies.size() - 1; j++) {
+				ent.distanceJoint.create(DistanceJoint{ bodies[j], bodies[j + 1], boxSize + boxSize / 4.0f });
+			}
 		}
 	}
-	ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxColliderEditor{ Vec2{ 100.0f } }, true });
+	ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
 
 	camera.zoom = 0.125f / 2.0f;
 	camera.pos = Vec2{ 0.0f, 6.0f };
 
 	Window::maximize();
-	gravity = Vec2{ 0.0f, -10.0f };
+	/*gravity = Vec2{ 0.0f, -10.0f };*/
+	gravity = Vec2{ 0.0f, 0.0f };
 }
 
 auto Game::detectCollisions() -> void {
@@ -49,41 +74,92 @@ auto Game::detectCollisions() -> void {
 	collisionSystem.detectCollisions(contacts);
 }
 
-auto Game::loadLevel() -> void{
-	std::stringstream buffer;
+auto Game::saveLevel() const -> Json::Value {
+	auto level = Json::Value::emptyObject();
+
+	std::unordered_map<i32, i32> oldBodyIndexToNewIndex;
+
 	{
-		std::ifstream level("./levels/test");
-		buffer << level.rdbuf();
-	}
-	try {
-		collisionSystem.reset();
-		ent.reset();
+		level["bodies"] = Json::Value::emptyArray();
+		auto& bodies = level["bodies"].array();
+		for (const auto& [id, body] : ent.body) {
+			const auto newIndex = static_cast<i32>(bodies.size());
+			oldBodyIndexToNewIndex[id.index()] = newIndex;
 
-		const auto level = Json::parse(buffer.str());
+			auto colliderToLevelCollider = [](const Collider& collider) -> LevelCollider {
+				return std::visit(overloaded{
+					[](const CircleCollider& c) -> LevelCollider { return LevelCircle{ .radius = c.radius }; },
+					[](const BoxCollider& c) -> LevelCollider { return LevelBox{ .size = c.size }; },
+					[](const ConvexPolygon& c) -> LevelCollider { return LevelConvexPolygon{ .verts = c.verts }; },
+				}, collider);
+			};
 
-		const auto& bodies = level.at("bodies").array();
-		for (const auto& bodyJson : bodies) {
-			const auto& [_, body] = ent.body.create(BodyOldEditor::fromJson(bodyJson));
-			body.coefficientOfFriction = 0.5f;
+			bodies.push_back(LevelBody{
+				.pos = body.transform.pos,
+				.orientation = body.transform.angle(),
+				.vel = body.vel,
+				.angularVel = body.angularVel,
+				.mass = body.mass,
+				.rotationalInertia = body.rotationalInertia,
+				.coefficientOfFriction = body.coefficientOfFriction,
+				.collider = colliderToLevelCollider(body.collider)
+			}.toJson());
 		}
-
-		const auto& distanceJoints = level.at("distanceJoints").array();
-		for (const auto& jointJson : distanceJoints) {
-			const auto joint = DistanceJointEntityEditor::fromJson(jointJson);
-			auto a = ent.body.validate(joint.anchorA.body);
-			auto b = ent.body.validate(joint.anchorB.body);
-
-			if (!a.has_value() || !b.has_value()) {
-				dbg("failed to load level");
-				return;
-			}
-			ent.distanceJoint.create(DistanceJoint{ *a, *b, joint.distance });
-		}
-
-	} catch (const Json::ParsingError&) {
-		dbg("failed to load level");
 	}
+
+	{
+		level["distanceJoints"] = Json::Value::emptyArray();
+		auto& joints = level["bodies"].array();
+		for (const auto& [id, joint] : ent.distanceJoint) {
+			joints.push_back(LevelDistanceJoint{
+				.bodyAIndex = joint.bodyA.index(),
+				.bodyBIndex = joint.bodyA.index(),
+				.distance = joint.requiredDistance
+			}.toJson());
+		}
+	}
+	return level;
 }
+
+auto Game::loadLevel(const Json::Value& level) -> void
+{
+}
+
+//auto Game::loadLevel() -> void{
+//	std::stringstream buffer;
+//	{
+//		std::ifstream level("./levels/test");
+//		buffer << level.rdbuf();
+//	}
+//	try {
+//		collisionSystem.reset();
+//		ent.reset();
+//
+//		const auto level = Json::parse(buffer.str());
+//
+//		const auto& bodies = level.at("bodies").array();
+//		for (const auto& bodyJson : bodies) {
+//			const auto& [_, body] = ent.body.create(BodyOldEditor::fromJson(bodyJson));
+//			body.coefficientOfFriction = 0.5f;
+//		}
+//
+//		const auto& distanceJoints = level.at("distanceJoints").array();
+//		for (const auto& jointJson : distanceJoints) {
+//			const auto joint = DistanceJointEntityEditor::fromJson(jointJson);
+//			auto a = ent.body.validate(joint.anchorA.body);
+//			auto b = ent.body.validate(joint.anchorB.body);
+//
+//			if (!a.has_value() || !b.has_value()) {
+//				dbg("failed to load level");
+//				return;
+//			}
+//			ent.distanceJoint.create(DistanceJoint{ *a, *b, joint.distance });
+//		}
+//
+//	} catch (const Json::ParsingError&) {
+//		dbg("failed to load level");
+//	}
+//}
 
 auto Game::drawUi() -> void {
 	using namespace ImGui;
@@ -151,7 +227,7 @@ auto Game::update() -> void {
 		}
 	}
 	if (Input::isKeyDown(Keycode::U)) {
-		const auto& [_, body] = ent.body.create(Body{ mousePos, BoxColliderEditor{ Vec2{ 1.0f } }, false });
+		const auto& [_, body] = ent.body.create(Body{ mousePos, BoxCollider{ Vec2{ 1.0f } }, false });
 		body.vel = initialVelocity;
 		body.angularVel = 1.5f;
 		body.transform.rot = Rotation{ 0.0f };
@@ -172,6 +248,16 @@ auto Game::update() -> void {
 	}
 	if (Input::isMouseButtonUp(MouseButton::LEFT)) {
 		selected = std::nullopt;
+	}
+
+	if (Input::isMouseButtonDown(MouseButton::RIGHT)) {
+		grabStart = mousePos;
+	}
+
+	if (grabStart.has_value() && Input::isMouseButtonUp(MouseButton::RIGHT)) {
+		const auto size = (mousePos - *grabStart).applied(abs);
+		const auto pos = (mousePos + *grabStart) / 2.0f;
+		ent.body.create(Body{ pos, BoxCollider{ size }, 0.0f });
 	}
 
 	if (selected.has_value()) {

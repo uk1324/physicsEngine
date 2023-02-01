@@ -6,7 +6,8 @@ auto Demos::update() -> void {
 	//pixelPhysics.update();
 	//triangulationDemo.update();
 	//fourierTransformDemo.update();
+	marchingSquares.update();
 	//eulerianFluid.update();
 	//waterDemo.update();
-	testDemo.update();
+	//testDemo.update();
 }

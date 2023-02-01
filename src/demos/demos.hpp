@@ -6,6 +6,7 @@
 #include <demos/triangulationDemo.hpp>
 #include <demos/waterDemo.hpp>
 #include <demos/testDemo.hpp>
+#include <demos/marchingSquares.hpp>
 
 struct Demos {
 	auto update() -> void;
@@ -16,4 +17,5 @@ struct Demos {
 	TriangulationDemo triangulationDemo;
 	WaterDemo waterDemo;
 	TestDemo testDemo;
+	MarchingSquares marchingSquares;
 };

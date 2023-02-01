@@ -5,7 +5,12 @@
 #include <imgui/imgui.h>
 #include <winUtils.hpp>
 
+#ifdef _DEBUG
 #define BUILD_DIR "./x64/Debug/"
+#else
+#define BUILD_DIR "./x64/Release/"
+#endif
+
 
 Dx11Renderer::Dx11Renderer(Gfx& gfx)
 	: gfx{ gfx } {
@@ -181,7 +186,7 @@ Dx11Renderer::Dx11Renderer(Gfx& gfx)
 
 	{
 		D3D11_SAMPLER_DESC samplerDesc{
-			.Filter = D3D11_FILTER_MAXIMUM_MIN_MAG_MIP_POINT,
+			.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT,
 			.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP,
 			.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP,
 			.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP,
