@@ -9,4 +9,5 @@ struct Triangle {
 	auto clockwiseContains(Vec2 p) const -> bool;*/
 	auto contains(Vec2 p) const -> bool;
 	auto isClockwise() const -> bool;
+	auto area() -> bool;
 };

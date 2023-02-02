@@ -12,11 +12,15 @@ struct MarchingSquares {
 
 
 	auto marchingSquares() -> void;
-
-	int i = 0;
-	bool paused = true;
+	/*int i = 1616;*/
+	//int i = 3253;
+	//int i = 3281;
+	int i = 3286;
+	bool asd = false;
+	bool paused = false;
+	std::vector<bool> visited;
 	SimplePolygonTriangulator triangulate;
 	DynamicTexture texture;
+	std::vector<Vec2> starts;
 	std::vector<std::vector<Vec2>> vertices;
-	std::vector<std::pair<Vec2, Vec2>> lines;
 };
