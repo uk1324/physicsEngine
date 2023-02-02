@@ -2,7 +2,11 @@
 
 // https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
 auto SimplePolygonTriangulator::operator()(Span<const Vec2> vertices) -> const std::vector<Triangle>& {
-	ASSERT(vertices.size() >= 3);
+	if (vertices.size() < 3) {
+		ASSERT_NOT_REACHED();
+		result.clear();
+		return result;
+	}
 
 	// Formula for signed area explained here https://gamemath.com/book/geomprims.html - 9.6.2 Area of a Triangle
 	auto twiceTheSignedArea = 0.0f;

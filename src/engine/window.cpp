@@ -16,6 +16,9 @@ static bool resizedOnThisFrame;
 static bool running_;
 static int exitCode_;
 
+static const DWORD windowStyle = WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU | WS_SIZEBOX;
+
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 static auto WINAPI windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT {
@@ -93,7 +96,6 @@ auto Window::init(const char* title, Vec2 size) -> void {
 	// The arrow with busy circle cursor is displayed at start probably because in debug mode some DLLs need to be loaded. It doesn't happen when lauching without the debugger.
 	CHECK_WIN_ZERO(RegisterClassEx(&windowsClassInfo));
 
-	const DWORD windowStyle = WS_CAPTION | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU | WS_SIZEBOX;
 	const auto left = 0;
 	const auto top = 0;
 	RECT windowRect{
@@ -150,6 +152,23 @@ auto Window::hWnd() -> void* {
 	return hWnd_;
 }
 
+auto Window::setSize(Vec2 size) -> void {
+	const auto left = 0;
+	const auto top = 0;
+	RECT windowRect{
+		.left = 0,
+		.top = 0,
+		.right = left + static_cast<LONG>(size.x),
+		.bottom = top + static_cast<LONG>(size.y)
+	};
+	// Adjust the size so the client region (no title bar or any other bars) has the desired size.
+	CHECK_WIN_BOOL(AdjustWindowRect(&windowRect, windowStyle, FALSE));
+
+	CHECK_WIN_BOOL(SetWindowPos(hWnd_, nullptr, -1, -1, windowRect.right - windowRect.left, windowRect.bottom - windowRect.top, SWP_NOMOVE));
+	minimize();
+	PostMessage(hWnd_, WM_SYSCOMMAND, SC_RESTORE, 0);
+}
+
 auto Window::size() -> const Vec2& {
 	return size_;
 }
@@ -172,4 +191,8 @@ auto Window::exitCode() -> int {
 
 auto Window::maximize() -> void {
 	PostMessage(hWnd_, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+}
+
+auto Window::minimize() -> void {
+	PostMessage(hWnd_, WM_SYSCOMMAND, SC_MINIMIZE, 0);
 }
