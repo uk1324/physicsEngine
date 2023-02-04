@@ -3,18 +3,78 @@
 #include <engine/window.hpp>
 #include <imgui/imgui.h>
 
+//#define PATH "C:/Users/user/Desktop/bin/"
+#define PATH "C:/Users/user/Downloads/ffmpeg-5.1.2-essentials_build/ffmpeg-5.1.2-essentials_build/bin/"
+
 MarchingSquares::MarchingSquares()
 	: texture{ []() {
-		const auto image = ImageRgba::fromFile("C:/Users/user/Desktop/bad.png");
-		DynamicTexture texture{ image->size() / 4 };
+		const auto image = ImageRgba::fromFile(PATH "out1.png");
+		DynamicTexture texture{ image->size() };
 		if (image.has_value()) {
 			texture.copyAndResize(*image);
 		}
 		return texture;
 	}() } {
 
+	Window::setSize(Vec2{ texture.size() * 3 });
 	/*vertices.clear();
 	marchingSquares();*/
+}
+
+auto get(const std::vector<Vec2>& v, i64 index) -> Vec2 {
+	if (index < 0) {
+		index = v.size() - 1;
+	} else if (index >= v.size()) {
+		index = 0;
+	}
+	return v[index];
+}
+
+std::vector<Vec2> dp(std::vector<Vec2> polyline, double max) {
+	int size = polyline.size();
+	/*auto first = polyline[0];
+	auto last = polyline[size - 1];*/
+	auto first = polyline[0];
+	auto last = get(polyline, size - 1);
+
+	double maxDistance = -std::numeric_limits<float>::infinity();
+	int maxVertex;
+	for (int i = 1; i < size - 1; i++) {
+		/*auto v = polyline.get(i);*/
+		auto v = polyline[i];
+		// get the distance from v to the line created by first/last
+		/*double d = distance(v, LineSegment{ first, last });*/
+		double d = distance(LineSegment{ first, last }.line, v);
+		if (d > maxDistance) {
+			maxDistance = d;
+			maxVertex = i;
+		}
+	}
+
+	if (maxDistance >= max) {
+		// subdivide
+		/*std::vector<Vec2> one = dp(polyline.sublist(0, maxVertex + 1));
+		std::vector<Vec2> two = dp(polyline.sublist(maxVertex, size));*/
+		std::vector<Vec2> one = dp(std::vector<Vec2>(polyline.begin() + 0, polyline.begin() + maxVertex + 1), max);
+		std::vector<Vec2> two = dp(std::vector<Vec2>(polyline.begin() + maxVertex, polyline.begin() + size), max);
+		//std::vector<Vec2> two = dp(polyline.sublist(maxVertex, size));
+		// rejoin the two (TODO without repeating the middle point)
+		std::vector<Vec2> simplified;
+		simplified.insert(simplified.end(), one.begin(), one.end());
+		simplified.insert(simplified.end(), two.begin(), two.end());
+		/*simplified.addAll(one);
+		simplified.addAll(two);*/
+		return simplified;
+	}
+	else {
+		// return only the first/last vertices
+		std::vector<Vec2> simplified;
+		/*simplified.add(first);
+		simplified.add(last);*/
+		simplified.push_back(first);
+		simplified.push_back(last);
+		return simplified;
+	}
 }
 
 int pnpoly(const std::vector<Vec2>& vert, Vec2 test)
@@ -29,6 +89,7 @@ int pnpoly(const std::vector<Vec2>& vert, Vec2 test)
 }
 
 #include <engine/frameAllocator.hpp>
+#include <set>
 #include <engine/input.hpp>
 
 auto MarchingSquares::update() -> void {
@@ -41,12 +102,17 @@ auto MarchingSquares::update() -> void {
 		camera.setWidth(gridSize.y * camera.aspectRatio);
 	}
 
-	//Renderer::drawDynamicTexture(gridCenter, gridSize.y, texture);
+	static bool outline = false;
+	//ImGui::Checkbox("outline", &outline);
+	if (outline) {
+		Renderer::drawDynamicTexture(gridCenter, gridSize.y, texture);
+	}
 
 	if (Input::isKeyDown(Keycode::A))
 		paused = !paused;
 
-	auto image = ImageRgba::fromFile(frameAllocator.format("C:/Users/user/Downloads/ffmpeg-5.1.2-essentials_build/ffmpeg-5.1.2-essentials_build/bin/out%d.png", i / 2).data());
+	//auto image = ImageRgba::fromFile(frameAllocator.format(PATH "out%d.png", i / 2).data());
+	auto image = ImageRgba::fromFile(frameAllocator.format(PATH "out%d.png", i).data());
 	if (paused)
 		i++;
 
@@ -62,31 +128,58 @@ auto MarchingSquares::update() -> void {
 		vertices.clear();
 		texture.copyAndResize(*image);
 		marchingSquares();
+		auto screen = Renderer::screenshot();
+		screen.saveToFile(frameAllocator.format("C:/Users/user/Downloads/ffmpeg-5.1.2-essentials_build/ffmpeg-5.1.2-essentials_build/bad/out%d.jpg", i - 1).data());
 	}
+
+
+	//for (int i = 0; i )
+
+	//srand(0);
+	//for (auto& v : vertices) {
+	//	for (auto& a : v) {
+	//		a += Vec2(rand() / float(RAND_MAX) * 1.0f, rand() / float(RAND_MAX) * 1.0f);
+	//	}
+	//}
+	//for (auto& v : vertices) {
+	//	std::vector<int> toRem;
+	//	/*for (int i = v.size() - 1; i >= 0; i--) {
+	//		for (int j = v.size() - 1; j >= 0; j--) {*/
+	//	std::set<std::pair<int, int>> tested;
+	//	for (int i = 0; i < v.size(); i++) {
+	//		for (int j = 0; j < v.size(); j++) {
+	//			std::pair<int, int> id;
+	//			if (i < j) {
+	//				id = { i, j };
+	//			}
+	//			else {
+	//				id = { j, i };
+	//			}
+	//			if (tested.find(id) != tested.end())
+	//				continue;
+
+	//			if (i == j)
+	//				continue;
+	//			tested.insert(id);
+
+	//			if (distance(v[i], v[j]) < 2.0f) {
+	//				toRem.push_back(j);
+	//				//v.erase(v.begin() + j);
+	//			}
+	//		}
+	//	}
+
+	//	std::sort(toRem.begin(), toRem.end());
+	//	for (int i = toRem.size() - 1; i > 0; i--) {
+	//		if (toRem[i] >= v.size())
+	//			continue;
+	//		v.erase(v.begin() + toRem[i]);
+	//	}
+	//}
 
 	for (int i = vertices.size() - 1; i >= 0; i--) {
 		if (vertices[i].size() < 3) {
 			vertices.erase(vertices.begin() + i);
-		}
-	}
-
-	for (auto& v : vertices) {
-		for (int i = v.size() - 1; i >= 0; i--) {
-			for (int j = v.size() - 1; j >= 0; j--) {
-				if (i == j)
-					continue;
-
-				if (distance(v[i], v[j]) < 0.05f) {
-					v.erase(v.begin() + j);
-				}
-			}
-		}
-	}
-
-	srand(0);
-	for (auto& v : vertices) {
-		for (auto& a : v) {
-			a += Vec2(rand() / float(RAND_MAX), rand() / float(RAND_MAX));
 		}
 	}
 
@@ -106,7 +199,120 @@ auto MarchingSquares::update() -> void {
 		return twiceTheSignedArea > 0.0f;
 	};
 
-	/*for (int i = 0; i < vertices.size(); i++) {*/
+	//for (int i = vertices.size() - 1; i >= 0; i--) {
+	//	if (isClockWise(vertices[i]))
+	//		continue;
+
+	//	int outsideShape;
+	//	for (int j = 0; j < vertices.size(); j++) {
+	//		if (i == j)
+	//			continue;
+
+	//		if (!isClockWise(vertices[j]))
+	//			continue;
+
+	//		for (int a = 0; a < vertices[i].size(); a++) {
+	//			if (!pnpoly(vertices[j], vertices[i][a])) {
+	//				goto next;
+	//			}
+	//		}
+	//		outsideShape = j;
+	//		goto found;
+
+	//		next:
+	//		int x = 5;
+	//	}
+	//	goto end;
+	//found:
+	//	//Debug::drawLine(vertices[outsideShape][0], vertices[i][0], Vec3::BLUE);
+	//	auto& inside = vertices[i];
+	//	auto& outside = vertices[outsideShape];
+
+	//	auto intersectsShape = [](std::vector<Vec2> shape, const LineSegment& line) -> bool {
+	//		for (int i = 0; i < shape.size(); i++) {
+	//			auto next = i + 1;
+	//			if (next >= shape.size()) {
+	//				next = 0;
+	//			}
+	//			LineSegment l{ shape[i], shape[next] };
+	//			auto endpoints = line.getCorners();
+	//			auto lendpoints = l.getCorners();
+	//			if (auto p = line.intersection(l); p.has_value()) {
+	//				if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f
+	//					&& distance(*p, lendpoints[0]) > 0.15f && distance(*p, lendpoints[1]) > 0.15f) {
+	//					return true;
+	//				}
+	//				/*if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f) {
+	//					return true;
+	//				}*/
+	//				//return true;
+	//			}
+	//			else {
+	//				//Debug::drawLine(endpoints[0], endpoints[1]);
+	//			}
+	//		}
+	//		return false;
+	//	};
+
+	//	int foundInside, foundOutside;
+	//	bool foundLine = false;
+	//	for (int i = 0; i < inside.size(); i++) {
+	//		for (int j = 0; j < outside.size(); j++) {
+	//			auto dir = (outside[j] - inside[i]).normalized();
+	//			LineSegment segment{ inside[i], outside[j]};
+	//			/*LineSegment segment{ inside[i] - dir * 0.05f, outside[j] + dir * 0.05f };*/
+	//			if (!intersectsShape(inside, segment) && !intersectsShape(outside, segment)) {
+	//				foundInside = i;
+	//				foundOutside = j;
+	//				foundLine = true;
+	//				goto foundLineLabel;
+	//			}
+	//			//Debug::drawLine(outside[j], inside[i], Vec3::RED);
+	//		}
+	//	}
+	//	goto end;
+	//	foundLineLabel:
+	//	if (foundLine) {
+	//		//Debug::drawLine(inside[foundInside], outside[foundOutside], Vec3::BLUE);
+	//		//ImGui::Checkbox("asd", &asd);
+	//		asd = true;
+	//		if (asd) {
+	//			const auto cutPoint = inside[foundInside];
+	//			const auto cutPointOutside = outside[foundOutside];
+	//			std::rotate(inside.begin(), inside.begin() + foundInside, inside.end());
+	//			//std::reverse(inside.begin(), inside.end());
+	//			/*auto next = foundOutside + 1;
+	//			if (next >= outside.size()) {
+	//				next = 0;
+	//			}*/
+	//			auto k = foundOutside + 1;
+	//			if (k >= outside.size()) {
+	//				k = 0;
+	//			}
+	//			outside.insert(outside.begin() + k, inside.begin(), inside.end());
+	//			auto h = foundOutside + inside.size();
+	//			if (h >= outside.size()) {
+	//				h = 0;
+	//			}
+	//			//Debug::drawPoint(outside[h]);
+	//			outside.insert(outside.begin() + h + 1, cutPoint);
+	//			outside.insert(outside.begin() + h + 2, cutPointOutside);
+	//			/*outside.insert(outside.begin() + foundOutside + inside.size() + 2, outside[foundOutside]);*/
+	//			/*outside.insert(outside.begin() + foundOutside + inside.size() + 2, inside.back());*/
+	//			/*outside.insert(outside.begin() + foundOutside + inside.size() + 1, cutPoint);
+	//			outside.insert(outside.begin() + foundOutside + inside.size() + 2, cutPointOutside);*/
+	//			//Debug::drawPoint(cutPoint);
+	//			vertices.erase(vertices.begin() + i);
+	//		}
+	//	}
+	//}
+	//end:
+	//int x = 5;
+
+
+
+
+
 	for (int i = vertices.size() - 1; i >= 0; i--) {
 		if (isClockWise(vertices[i]))
 			continue;
@@ -133,6 +339,8 @@ auto MarchingSquares::update() -> void {
 		goto end;
 	found:
 		//Debug::drawLine(vertices[outsideShape][0], vertices[i][0], Vec3::BLUE);
+		auto insideIndex = i;
+		auto outsideIndex = outsideShape;
 		auto& inside = vertices[i];
 		auto& outside = vertices[outsideShape];
 
@@ -146,14 +354,48 @@ auto MarchingSquares::update() -> void {
 				auto endpoints = line.getCorners();
 				auto lendpoints = l.getCorners();
 				if (auto p = line.intersection(l); p.has_value()) {
-					/*if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f
+					if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f
 						&& distance(*p, lendpoints[0]) > 0.15f && distance(*p, lendpoints[1]) > 0.15f) {
 						return true;
-					}*/
+					}
 					/*if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f) {
 						return true;
 					}*/
-					return true;
+					//return true;
+				}
+				else {
+					//Debug::drawLine(endpoints[0], endpoints[1]);
+				}
+			}
+			return false;
+		};
+
+		auto intersectsShape2 = [](std::vector<Vec2> shape, const LineSegment& line) -> bool {
+			for (int i = 0; i < shape.size(); i++) {
+				auto next = i + 1;
+				if (next >= shape.size()) {
+					next = 0;
+				}
+				auto previous = i - 1;
+				if (previous < 0) {
+					previous = shape.size() - 1;
+				}
+				//srand(0);
+				//LineSegment l{ shape[i] + Vec2{ (rand() / (float)RAND_MAX) }, shape[next] + Vec2{ (rand() / (float)RAND_MAX) } };
+				LineSegment l{ shape[previous], shape[next] };
+				auto endpoints = line.getCorners();
+				auto lendpoints = l.getCorners();
+				if (auto p = line.intersection(l); p.has_value()) {
+					if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f
+						&& distance(*p, lendpoints[0]) > 0.15f && distance(*p, lendpoints[1]) > 0.15f) {
+						return true;
+					}
+					/*if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f) {
+						return true;
+					}*/
+					//return true;
+				} else {
+					//Debug::drawLine(endpoints[0], endpoints[1]);
 				}
 			}
 			return false;
@@ -161,24 +403,41 @@ auto MarchingSquares::update() -> void {
 
 		int foundInside, foundOutside;
 		bool foundLine = false;
+		float minDistance = std::numeric_limits<float>::infinity();
 		for (int i = 0; i < inside.size(); i++) {
 			for (int j = 0; j < outside.size(); j++) {
 				auto dir = (outside[j] - inside[i]).normalized();
-				LineSegment segment{ inside[i], outside[j]};
+				LineSegment segment{ inside[i], outside[j] };
 				/*LineSegment segment{ inside[i] - dir * 0.05f, outside[j] + dir * 0.05f };*/
+				const auto dist = distance(inside[i], outside[j]);
+				if (dist > minDistance) {
+					continue;
+				}
 				if (!intersectsShape(inside, segment) && !intersectsShape(outside, segment)) {
+					auto intersectsSomeOtherShape = false;
+					for (int k = 0; k < vertices.size(); k++) {
+						if (k == insideIndex || k == outsideIndex) {
+							continue;
+						}
+
+						if (intersectsShape2(vertices[k], segment)) {
+							intersectsSomeOtherShape = true;
+							break;
+						}
+					}
+					if (intersectsSomeOtherShape) {
+						continue;
+					}
+					minDistance = dist;
 					foundInside = i;
 					foundOutside = j;
 					foundLine = true;
-					goto foundLineLabel;
 				}
 				//Debug::drawLine(outside[j], inside[i], Vec3::RED);
 			}
 		}
-		goto end;
-		foundLineLabel:
 		if (foundLine) {
-			Debug::drawLine(inside[foundInside], outside[foundOutside], Vec3::BLUE);
+			//Debug::drawLine(inside[foundInside], outside[foundOutside], Vec3::BLUE);
 			//ImGui::Checkbox("asd", &asd);
 			asd = true;
 			if (asd) {
@@ -214,44 +473,112 @@ auto MarchingSquares::update() -> void {
 	end:
 	int x = 5;
 
-	static int index = 0;
-		//ImGui::SliderInt("index", &index, 0, lines.size() - 1);
-		if (Input::isKeyDown(Keycode::A)) {
-			index -= 1;
+	static bool doDp = true;
+	//ImGui::Checkbox("doDp", &doDp);
+	static float max = 1.5f;
+	//ImGui::InputFloat("max", &max);
+	if (doDp) {
+		for (auto& lines : vertices) {
+			lines = dp(lines, max);
 		}
-		if (Input::isKeyDown(Keycode::D)) {
-			index += 1;
+	}
+
+	for (auto& v : vertices) {
+		std::vector<Vec2> r;
+		for (int i = 0; i < v.size(); i++) {
+			auto a = get(v, i);
+			auto b = get(v, i + 1);
+			if (distance(a, b) > 2.5f) {
+				r.push_back(a);
+			}
 		}
+
+		v = r;
+	}
+
+	auto doubleArea = [](const std::vector<Vec2>& lines) -> float {
+		if (lines.size() <= 2) {
+			return 0.0f;
+		}
+		auto twiceTheSignedArea = 0.0f;
+		auto f = [](Vec2 a, Vec2 b) {
+			return (b.x - a.x) * (b.y + a.y);
+		};
+		twiceTheSignedArea += f(lines[0], lines[1]);
+		for (usize i = 1; i < lines.size() - 1; i++) {
+			twiceTheSignedArea += f(lines[i], lines[i + 1]);
+		}
+		twiceTheSignedArea += f(lines[lines.size() - 1], lines[0]);
+		return twiceTheSignedArea;
+	};
+
+	for (int i = 0; i < 1; i++) {
+		for (auto& v : vertices) {
+			if (v.size() >= 3) {
+				std::vector<usize> toRem;
+				for (int i = 0; i < v.size(); i++) {
+					auto next = i + 1;
+					if (next >= v.size()) {
+						next = 0;
+					}
+					auto previous = i - 1;
+					if (previous < 0) {
+						previous = v.size() - 1;
+					}
+					auto l0 = v[previous] - v[i];
+					auto l1 = v[next] - v[i];
+					float asfd = abs(det(l0, l1));
+					if (asfd <= 0.0f) {
+						toRem.push_back(i);
+					}
+				}
+				std::sort(toRem.begin(), toRem.end());
+				for (int i = toRem.size() - 1; i >= 0; i--) {
+					v.erase(v.begin() + toRem[i]);
+				}
+			}
+		}
+	}
+
+
+
+
+
+
+
+
+	for (auto& v : vertices) {
+		std::vector<Vec2> r;
+		for (int i = 0; i < v.size(); i++) {
+			auto a = get(v, i);
+			auto b = get(v, i + 1);
+			if (distance(a, b) > 2.5f) {
+				r.push_back(a);
+			}
+		}
+
+		v = r;
+	}
 
 	static bool testa = false;
-	ImGui::Checkbox("testa", &testa);
+	//ImGui::Checkbox("testa", &testa);
 	for (const auto& lines : vertices) {
-		//ImGui::TextWrapped("%zu", lines.size());
-		
-
 		Vec3 color = Vec3::RED;
 		if (isClockWise(lines)) {
 			color = Vec3::GREEN;
 		}
-
-		static int taa = 0;
-		ImGui::SliderInt("test", &taa, 0, lines.size() - 1);
-		auto vv = lines;
-		std::rotate(vv.begin(), vv.begin() + taa, vv.end());
+		if (abs(doubleArea(lines)) < 0.01f) {
+			color = Vec3{ 255, 255, 0 } / 255.0f;
+		}
 
 		if (testa) {
 			Debug::drawLines(lines, color);
-			Debug::drawPoint(lines[index]);
 		} else {
-			/*const auto& triangles = triangulate(lines);*/
-			//static int tb = 0;
-			const auto& triangles = triangulate(vv);
-			/*ImGui::SliderInt("tb", &tb, 0, triangles.size() - 1);
-			for (int i = 0; i < tb; i++) {
-				Debug::drawLines(triangles[i].v, Vec3::WHITE);
-			}*/
-			for (const auto& tri : triangles) {
-				Debug::drawLines(tri.v, Vec3::WHITE);
+			if (isClockWise(lines)) {
+				const auto& triangles = triangulate(lines);
+				for (const auto& tri : triangles) {
+					Debug::drawLines(tri.v, Vec3::WHITE);
+				}
 			}
 		}
 
@@ -489,19 +816,22 @@ auto MarchingSquares::marchingSquares() -> void {
 				//ASSERT_NOT_REACHED();
 				goto end;
 				break;
-			}
-
-			
+			}			
 			
 			/*verts.push_back(Vec2{ current } + Vec2{ 1.0f });
 			if (previousMove == move) {
 				verts.pop_back();
 			}*/
-			if (previousMove == move) {
+			/*if (previousMove == move) {
 				verts.pop_back();
-			}
-			verts.push_back(Vec2{ current } + Vec2{ 1.0f });
+			}*/
 			
+			/*Vec2 m{ 0.0f };
+			if (v == 8) {
+				m = Vec2{ 0.0f, 0.5f };
+			}*/
+			verts.push_back(Vec2{ current } + Vec2{ 1.0f } + Vec2{ move } / 2.0f);
+
 			current += move;
 			setVisited(current.x, current.y);
 			/*setVisited(current.x + 1, current.y);
@@ -518,71 +848,68 @@ auto MarchingSquares::marchingSquares() -> void {
 	}
 endend:
 	int x = 5;
-	for (int i = 0; i < 30; i++) {
-		for (auto& v : vertices) {
-			if (v.size() >= 3) {
-				std::vector<usize> toRem;
-				for (int i = 0; i < v.size(); i++) {
-					auto next = i + 1;
-					if (next >= v.size()) {
-						next = 0;
-					}
-					auto previous = i - 1;
-					if (previous < 0) {
-						previous = v.size() - 1;
-					}
-					/*if (dot(v[previous] - v[i], v[next] - v[i]) == 0.0f && det(v[previous] - v[i], v[next] - v[i]) < 0) {
-						toRem.push_back(i);
-					}*/
-					if (dot(v[previous] - v[i], v[next] - v[i]) == 0.0f) {
-						toRem.push_back(i);
-					}
-				}
-				std::sort(toRem.begin(), toRem.end());
-				for (int i = toRem.size() - 1; i > 0; i--) {
-					v.erase(v.begin() + toRem[i]);
-				}
-			}
-		}
-	}
+	//for (int i = 0; i < 15; i++) {
+	//	for (auto& v : vertices) {
+	//		if (v.size() >= 3) {
+	//			std::vector<usize> toRem;
+	//			for (int i = 0; i < v.size(); i++) {
+	//				auto next = i + 1;
+	//				if (next >= v.size()) {
+	//					next = 0;
+	//				}
+	//				auto previous = i - 1;
+	//				if (previous < 0) {
+	//					previous = v.size() - 1;
+	//				}
+	//				/*if (dot(v[previous] - v[i], v[next] - v[i]) == 0.0f && det(v[previous] - v[i], v[next] - v[i]) < 0) {
+	//					toRem.push_back(i);
+	//				}*/
+	//				if (abs(dot(v[previous] - v[i], v[next] - v[i])) < 0.05f) {
+	//					toRem.push_back(i);
+	//				}
+	//			}
+	//			std::sort(toRem.begin(), toRem.end());
+	//			for (int i = toRem.size() - 1; i > 0; i--) {
+	//				v.erase(v.begin() + toRem[i]);
+	//			}
+	//		}
+	//	}
+	//}
 	//static bool t = false;
 	//ImGui::Begin("tt");
 	//ImGui::Checkbox("t", &t);
 	//ImGui::End();
 	//t = false;
-	//if (t) {
-	//	for (int i = 0; i < 2; i++) {
-	//		for (auto& v : vertices) {
-	//			if (v.size() >= 3) {
-	//				std::vector<usize> toRem;
-	//				for (int i = 0; i < v.size(); i++) {
-	//					auto next = i + 1;
-	//					if (next >= v.size()) {
-	//						next = 0;
-	//					}
-	//					auto previous = i - 1;
-	//					if (previous < 0) {
-	//						previous = v.size() - 1;
-	//					}
-	//					/*if (dot(v[previous] - v[i], v[next] - v[i]) == 0.0f && det(v[previous] - v[i], v[next] - v[i]) < 0) {
-	//						toRem.push_back(i);
-	//					}*/
-	//					auto x = abs(dot((v[previous] - v[i]).normalized(), (v[i] - v[next]).normalized()));
-	//					//Debug::drawText(v[i], frameAllocator.format("%g", x).data(), Vec3::GREEN, 3.0f);
-	//					/*if (abs(dot(v[previous] - v[i], v[i] - v[next])) < 0.4f) {
-	//						toRem.push_back(i);
-	//					}*/
-	//					if (abs(x - 1.0f) < 0.2f) {
-	//						toRem.push_back(i);
-	//					}
+	//for (int i = 0; i < 1; i++) {
+	//	for (auto& v : vertices) {
+	//		if (v.size() >= 3) {
+	//			std::vector<usize> toRem;
+	//			for (int i = 0; i < v.size(); i++) {
+	//				auto next = i + 1;
+	//				if (next >= v.size()) {
+	//					next = 0;
 	//				}
-	//				std::sort(toRem.begin(), toRem.end());
-	//				for (int i = toRem.size() - 1; i > 0; i--) {
-	//					v.erase(v.begin() + toRem[i]);
+	//				auto previous = i - 1;
+	//				if (previous < 0) {
+	//					previous = v.size() - 1;
 	//				}
+	//				/*if (dot(v[previous] - v[i], v[next] - v[i]) == 0.0f && det(v[previous] - v[i], v[next] - v[i]) < 0) {
+	//					toRem.push_back(i);
+	//				}*/
+	//				auto x = abs(dot((v[previous] - v[i]).normalized(), (v[i] - v[next]).normalized()));
+	//				//Debug::drawText(v[i], frameAllocator.format("%g", x).data(), Vec3::GREEN, 3.0f);
+	//				/*if (abs(dot(v[previous] - v[i], v[i] - v[next])) < 0.4f) {
+	//					toRem.push_back(i);
+	//				}*/
+	//				if (abs(x - 1.0f) < 0.2f) {
+	//					toRem.push_back(i);
+	//				}
+	//			}
+	//			std::sort(toRem.begin(), toRem.end());
+	//			for (int i = toRem.size() - 1; i > 0; i--) {
+	//				v.erase(v.begin() + toRem[i]);
 	//			}
 	//		}
 	//	}
 	//}
-	//int x = 5;
 }

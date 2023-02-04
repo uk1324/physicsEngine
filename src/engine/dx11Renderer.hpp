@@ -15,6 +15,7 @@ public:
 
 	auto createDynamicTextureData(Vec2T<i64> size) -> u64;
 	auto destroyDynamicTextureData(u64 handle) -> void;
+	auto screenshot() -> ImageRgba;
 
 	ComPtr<ID3D11ShaderResourceView> windowTextureShaderResourceView;
 	static constexpr Vec2 textureSize{ 1920.0f, 1080.0f };

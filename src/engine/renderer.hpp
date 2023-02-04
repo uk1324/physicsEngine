@@ -22,6 +22,7 @@ public:
 	static auto update(Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture = std::nullopt) -> void;
 	static auto updateFrameStart() -> void;
 	static auto updateFrameEnd() -> void;
+	static auto screenshot() -> ImageRgba;
 
 	static auto drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate = false) -> void;
 	static auto outputTextureHandle() -> void*;

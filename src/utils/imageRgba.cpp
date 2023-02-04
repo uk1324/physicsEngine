@@ -73,7 +73,7 @@ auto ImageRgba::fromFile(const char* path) -> std::optional<ImageRgba> {
 }
 
 auto ImageRgba::saveToFile(const char* path) const -> void {
-	stbi_write_png(path, static_cast<int>(size_.x), static_cast<int>(size_.x), 4, data_, static_cast<int>(size_.x * 4));
+	stbi_write_png(path, static_cast<int>(size_.x), static_cast<int>(size_.y), 4, data_, static_cast<int>(size_.x * 4));
 }
 
 auto ImageRgba::copyAndResize(const ImageRgba& other) -> void {

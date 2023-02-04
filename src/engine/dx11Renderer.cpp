@@ -534,6 +534,65 @@ auto Dx11Renderer::destroyDynamicTextureData(u64 handle) -> void {
 	handleToDynamicTextureData.erase(handle);
 }
 
+auto Dx11Renderer::screenshot() -> ImageRgba {
+	ComPtr<ID3D11Texture2D> screenTexture;
+	CHECK_WIN_HRESULT(gfx.swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(screenTexture.GetAddressOf())));
+
+
+	// TODO: Don't need to do as much if the texture is non multisampled.
+	// https://stackoverflow.com/questions/21202215/c-directx11-capture-screen-and-save-to-file
+
+	D3D11_TEXTURE2D_DESC desc;
+	screenTexture->GetDesc(&desc);
+
+	UINT support = 0;
+	CHECK_WIN_HRESULT(gfx.device->CheckFormatSupport(desc.Format, &support));
+	ASSERT(support & D3D11_FORMAT_SUPPORT_MULTISAMPLE_RESOLVE);
+
+	ComPtr<ID3D11Texture2D> nonMultisampledCopy;
+	desc.SampleDesc.Count = 1;
+	CHECK_WIN_HRESULT(gfx.device->CreateTexture2D(&desc, nullptr, nonMultisampledCopy.GetAddressOf()));
+
+	for (UINT item = 0; item < desc.ArraySize; item++) {
+		for (UINT level = 0; level < desc.MipLevels; level++) {
+			UINT index = D3D11CalcSubresource(level, item, desc.MipLevels);
+			gfx.ctx->ResolveSubresource(nonMultisampledCopy.Get(), index, screenTexture.Get(), index, desc.Format);
+		}
+	}
+
+	desc.BindFlags = 0;
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+	desc.Usage = D3D11_USAGE_STAGING;
+		
+	ComPtr<ID3D11Texture2D> cpuAccessibleCopy;
+	CHECK_WIN_HRESULT(gfx.device->CreateTexture2D(&desc, NULL, cpuAccessibleCopy.GetAddressOf()));
+
+	gfx.ctx->CopyResource(cpuAccessibleCopy.Get(), nonMultisampledCopy.Get());
+
+	if (desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
+		ASSERT_NOT_REACHED();
+	}
+
+	D3D11_MAPPED_SUBRESOURCE map;
+	gfx.ctx->Map(cpuAccessibleCopy.Get(), 0, D3D11_MAP_READ, 0, &map);
+	ImageRgba result{ Vec2T<i64>{ desc.Width, desc.Height } };
+	for (usize y = 0; y < result.size().y; y++) {
+		const auto src = reinterpret_cast<u8*>(map.pData) + y * map.RowPitch;
+		const auto dstRowSize = sizeof(PixelRgba) * result.size().x;
+		const auto dst = reinterpret_cast<u8*>(result.data()) + y * dstRowSize;
+		memcpy(dst, src, dstRowSize);
+	}
+	gfx.ctx->Unmap(cpuAccessibleCopy.Get(), 0);
+
+	if (desc.Format == DXGI_FORMAT_B8G8R8A8_UNORM) {
+		for (auto& p : result) {
+			std::swap(p.r, p.b);
+		}
+	}
+
+	return result;
+}
+
 Dx11Renderer::DynamicTextureData::DynamicTextureData(Gfx& gfx, Vec2T<i64> size) {
 	const D3D11_TEXTURE2D_DESC textureDesc{
 		.Width = static_cast<UINT>(size.x),

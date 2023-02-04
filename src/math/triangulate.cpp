@@ -222,7 +222,8 @@ auto SimplePolygonTriangulator::operator()(Span<const Vec2> vertices) -> const s
 	result.clear();
 	usize iter = 0;
 	while (verts.size() > 3) {
-		if (iter > vertices.size() * 15)
+		//if (iter > vertices.size() * 15)
+		if (iter > vertices.size())
 			return result;
 		iter++;
 		for (usize i = 0; i < verts.size(); i++) {

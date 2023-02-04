@@ -10,8 +10,7 @@ struct VertexShader {
 	ComPtr<ID3DBlob> blob;
 };
 
-class Gfx
-{
+class Gfx {
 public:
 	Gfx(HWND hWnd_);
 

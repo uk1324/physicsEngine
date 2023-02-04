@@ -37,6 +37,10 @@ auto Renderer::updateFrameEnd() -> void {
 	gfx->present();
 }
 
+auto Renderer::screenshot() -> ImageRgba {
+	return renderer->screenshot();
+}
+
 auto Renderer::drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate) -> void {
 	renderer->drawDynamicTexture(pos, height, dynamicTexture, interpolate);
 }
