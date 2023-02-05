@@ -87,6 +87,8 @@ int pnpoly(const std::vector<Vec2>& vert, Vec2 test)
 	return c;
 }
 
+#include <math/polygon.hpp>
+
 #include <engine/frameAllocator.hpp>
 #include <set>
 #include <engine/input.hpp>
@@ -110,7 +112,6 @@ auto MarchingSquares::update() -> void {
 	if (Input::isKeyDown(Keycode::A))
 		paused = !paused;
 
-	//auto image = ImageRgba::fromFile(frameAllocator.format(PATH "out%d.png", i / 2).data());
 	auto image = ImageRgba::fromFile(frameAllocator.format(PATH "out%d.png", i).data());
 	if (paused)
 		i++;
@@ -127,54 +128,7 @@ auto MarchingSquares::update() -> void {
 		vertices.clear();
 		texture.copyAndResize(*image);
 		marchingSquares();
-		/*auto screen = Renderer::screenshot();
-		screen.saveToFile(frameAllocator.format("C:/Users/user/Downloads/ffmpeg-5.1.2-essentials_build/ffmpeg-5.1.2-essentials_build/bad/out%d.jpg", i - 1).data());*/
 	}
-
-
-	//for (int i = 0; i )
-
-	//srand(0);
-	//for (auto& v : vertices) {
-	//	for (auto& a : v) {
-	//		a += Vec2(rand() / float(RAND_MAX) * 1.0f, rand() / float(RAND_MAX) * 1.0f);
-	//	}
-	//}
-	//for (auto& v : vertices) {
-	//	std::vector<int> toRem;
-	//	/*for (int i = v.size() - 1; i >= 0; i--) {
-	//		for (int j = v.size() - 1; j >= 0; j--) {*/
-	//	std::set<std::pair<int, int>> tested;
-	//	for (int i = 0; i < v.size(); i++) {
-	//		for (int j = 0; j < v.size(); j++) {
-	//			std::pair<int, int> id;
-	//			if (i < j) {
-	//				id = { i, j };
-	//			}
-	//			else {
-	//				id = { j, i };
-	//			}
-	//			if (tested.find(id) != tested.end())
-	//				continue;
-
-	//			if (i == j)
-	//				continue;
-	//			tested.insert(id);
-
-	//			if (distance(v[i], v[j]) < 2.0f) {
-	//				toRem.push_back(j);
-	//				//v.erase(v.begin() + j);
-	//			}
-	//		}
-	//	}
-
-	//	std::sort(toRem.begin(), toRem.end());
-	//	for (int i = toRem.size() - 1; i > 0; i--) {
-	//		if (toRem[i] >= v.size())
-	//			continue;
-	//		v.erase(v.begin() + toRem[i]);
-	//	}
-	//}
 
 	for (int i = vertices.size() - 1; i >= 0; i--) {
 		if (vertices[i].size() < 3) {
@@ -197,120 +151,6 @@ auto MarchingSquares::update() -> void {
 		twiceTheSignedArea += f(lines[lines.size() - 1], lines[0]);
 		return twiceTheSignedArea > 0.0f;
 	};
-
-	//for (int i = vertices.size() - 1; i >= 0; i--) {
-	//	if (isClockWise(vertices[i]))
-	//		continue;
-
-	//	int outsideShape;
-	//	for (int j = 0; j < vertices.size(); j++) {
-	//		if (i == j)
-	//			continue;
-
-	//		if (!isClockWise(vertices[j]))
-	//			continue;
-
-	//		for (int a = 0; a < vertices[i].size(); a++) {
-	//			if (!pnpoly(vertices[j], vertices[i][a])) {
-	//				goto next;
-	//			}
-	//		}
-	//		outsideShape = j;
-	//		goto found;
-
-	//		next:
-	//		int x = 5;
-	//	}
-	//	goto end;
-	//found:
-	//	//Debug::drawLine(vertices[outsideShape][0], vertices[i][0], Vec3::BLUE);
-	//	auto& inside = vertices[i];
-	//	auto& outside = vertices[outsideShape];
-
-	//	auto intersectsShape = [](std::vector<Vec2> shape, const LineSegment& line) -> bool {
-	//		for (int i = 0; i < shape.size(); i++) {
-	//			auto next = i + 1;
-	//			if (next >= shape.size()) {
-	//				next = 0;
-	//			}
-	//			LineSegment l{ shape[i], shape[next] };
-	//			auto endpoints = line.getCorners();
-	//			auto lendpoints = l.getCorners();
-	//			if (auto p = line.intersection(l); p.has_value()) {
-	//				if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f
-	//					&& distance(*p, lendpoints[0]) > 0.15f && distance(*p, lendpoints[1]) > 0.15f) {
-	//					return true;
-	//				}
-	//				/*if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f) {
-	//					return true;
-	//				}*/
-	//				//return true;
-	//			}
-	//			else {
-	//				//Debug::drawLine(endpoints[0], endpoints[1]);
-	//			}
-	//		}
-	//		return false;
-	//	};
-
-	//	int foundInside, foundOutside;
-	//	bool foundLine = false;
-	//	for (int i = 0; i < inside.size(); i++) {
-	//		for (int j = 0; j < outside.size(); j++) {
-	//			auto dir = (outside[j] - inside[i]).normalized();
-	//			LineSegment segment{ inside[i], outside[j]};
-	//			/*LineSegment segment{ inside[i] - dir * 0.05f, outside[j] + dir * 0.05f };*/
-	//			if (!intersectsShape(inside, segment) && !intersectsShape(outside, segment)) {
-	//				foundInside = i;
-	//				foundOutside = j;
-	//				foundLine = true;
-	//				goto foundLineLabel;
-	//			}
-	//			//Debug::drawLine(outside[j], inside[i], Vec3::RED);
-	//		}
-	//	}
-	//	goto end;
-	//	foundLineLabel:
-	//	if (foundLine) {
-	//		//Debug::drawLine(inside[foundInside], outside[foundOutside], Vec3::BLUE);
-	//		//ImGui::Checkbox("asd", &asd);
-	//		asd = true;
-	//		if (asd) {
-	//			const auto cutPoint = inside[foundInside];
-	//			const auto cutPointOutside = outside[foundOutside];
-	//			std::rotate(inside.begin(), inside.begin() + foundInside, inside.end());
-	//			//std::reverse(inside.begin(), inside.end());
-	//			/*auto next = foundOutside + 1;
-	//			if (next >= outside.size()) {
-	//				next = 0;
-	//			}*/
-	//			auto k = foundOutside + 1;
-	//			if (k >= outside.size()) {
-	//				k = 0;
-	//			}
-	//			outside.insert(outside.begin() + k, inside.begin(), inside.end());
-	//			auto h = foundOutside + inside.size();
-	//			if (h >= outside.size()) {
-	//				h = 0;
-	//			}
-	//			//Debug::drawPoint(outside[h]);
-	//			outside.insert(outside.begin() + h + 1, cutPoint);
-	//			outside.insert(outside.begin() + h + 2, cutPointOutside);
-	//			/*outside.insert(outside.begin() + foundOutside + inside.size() + 2, outside[foundOutside]);*/
-	//			/*outside.insert(outside.begin() + foundOutside + inside.size() + 2, inside.back());*/
-	//			/*outside.insert(outside.begin() + foundOutside + inside.size() + 1, cutPoint);
-	//			outside.insert(outside.begin() + foundOutside + inside.size() + 2, cutPointOutside);*/
-	//			//Debug::drawPoint(cutPoint);
-	//			vertices.erase(vertices.begin() + i);
-	//		}
-	//	}
-	//}
-	//end:
-	//int x = 5;
-
-
-
-
 
 	for (int i = vertices.size() - 1; i >= 0; i--) {
 		if (isClockWise(vertices[i]))
@@ -337,7 +177,6 @@ auto MarchingSquares::update() -> void {
 		}
 		goto end;
 	found:
-		//Debug::drawLine(vertices[outsideShape][0], vertices[i][0], Vec3::BLUE);
 		auto insideIndex = i;
 		auto outsideIndex = outsideShape;
 		auto& inside = vertices[i];
@@ -353,41 +192,12 @@ auto MarchingSquares::update() -> void {
 				auto endpoints = line.getCorners();
 				auto lendpoints = l.getCorners();
 				if (auto p = line.intersection(l); p.has_value()) {
-					if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f
+					
+					return true;
+					/*if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f
 						&& distance(*p, lendpoints[0]) > 0.15f && distance(*p, lendpoints[1]) > 0.15f) {
-						return true;
-					}
-					/*if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f) {
 						return true;
 					}*/
-					//return true;
-				} else {
-					//Debug::drawLine(endpoints[0], endpoints[1]);
-				}
-			}
-			return false;
-		};
-
-		auto intersectsShape2 = [](std::vector<Vec2> shape, const LineSegment& line) -> bool {
-			for (int i = 0; i < shape.size(); i++) {
-				auto next = i + 1;
-				if (next >= shape.size()) {
-					next = 0;
-				}
-				auto previous = i - 1;
-				if (previous < 0) {
-					previous = shape.size() - 1;
-				}
-				//srand(0);
-				//LineSegment l{ shape[i] + Vec2{ (rand() / (float)RAND_MAX) }, shape[next] + Vec2{ (rand() / (float)RAND_MAX) } };
-				LineSegment l{ shape[previous], shape[next] };
-				auto endpoints = line.getCorners();
-				auto lendpoints = l.getCorners();
-				if (auto p = line.intersection(l); p.has_value()) {
-					if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f
-						&& distance(*p, lendpoints[0]) > 0.15f && distance(*p, lendpoints[1]) > 0.15f) {
-						return true;
-					}
 					/*if (distance(*p, endpoints[0]) > 0.15f && distance(*p, endpoints[1]) > 0.15f) {
 						return true;
 					}*/
@@ -406,7 +216,6 @@ auto MarchingSquares::update() -> void {
 			for (int j = 0; j < outside.size(); j++) {
 				auto dir = (outside[j] - inside[i]).normalized();
 				LineSegment segment{ inside[i], outside[j] };
-				/*LineSegment segment{ inside[i] - dir * 0.05f, outside[j] + dir * 0.05f };*/
 				const auto dist = distance(inside[i], outside[j]);
 				if (dist > minDistance) {
 					continue;
@@ -418,7 +227,7 @@ auto MarchingSquares::update() -> void {
 							continue;
 						}
 
-						if (intersectsShape2(vertices[k], segment)) {
+						if (intersectsShape(vertices[k], segment)) {
 							intersectsSomeOtherShape = true;
 							break;
 						}
@@ -431,54 +240,35 @@ auto MarchingSquares::update() -> void {
 					foundOutside = j;
 					foundLine = true;
 				}
-				//Debug::drawLine(outside[j], inside[i], Vec3::RED);
 			}
 		}
 		if (foundLine) {
-			//Debug::drawLine(inside[foundInside], outside[foundOutside], Vec3::BLUE);
-			//ImGui::Checkbox("asd", &asd);
-			static bool asd;
-			asd = true;
-			if (asd) {
-				const auto cutPoint = inside[foundInside];
-				const auto cutPointOutside = outside[foundOutside];
-				std::rotate(inside.begin(), inside.begin() + foundInside, inside.end());
-				//std::reverse(inside.begin(), inside.end());
-				/*auto next = foundOutside + 1;
-				if (next >= outside.size()) {
-					next = 0;
-				}*/
-				auto k = foundOutside + 1;
-				if (k >= outside.size()) {
-					k = 0;
-				}
-				outside.insert(outside.begin() + k, inside.begin(), inside.end());
-				auto h = foundOutside + inside.size();
-				if (h >= outside.size()) {
-					h = 0;
-				}
-				//Debug::drawPoint(outside[h]);
-				outside.insert(outside.begin() + h + 1, cutPoint);
-				outside.insert(outside.begin() + h + 2, cutPointOutside);
-				/*outside.insert(outside.begin() + foundOutside + inside.size() + 2, outside[foundOutside]);*/
-				/*outside.insert(outside.begin() + foundOutside + inside.size() + 2, inside.back());*/
-				/*outside.insert(outside.begin() + foundOutside + inside.size() + 1, cutPoint);
-				outside.insert(outside.begin() + foundOutside + inside.size() + 2, cutPointOutside);*/
-				//Debug::drawPoint(cutPoint);
-				vertices.erase(vertices.begin() + i);
+			const auto cutPoint = inside[foundInside];
+			const auto cutPointOutside = outside[foundOutside];
+			std::rotate(inside.begin(), inside.begin() + foundInside, inside.end());
+			auto k = foundOutside + 1;
+			if (k >= outside.size()) {
+				k = 0;
 			}
+			outside.insert(outside.begin() + k, inside.begin(), inside.end());
+			auto h = foundOutside + inside.size();
+			if (h >= outside.size()) {
+				h = 0;
+			}
+			outside.insert(outside.begin() + h + 1, cutPoint);
+			outside.insert(outside.begin() + h + 2, cutPointOutside);
+			vertices.erase(vertices.begin() + i);
 		}
 	}
 end:
 	int x = 5;
 
 	static bool doDp = true;
-	//ImGui::Checkbox("doDp", &doDp);
 	static float max = 1.5f;
-	//ImGui::InputFloat("max", &max);
+	
 	if (doDp) {
 		for (auto& lines : vertices) {
-			lines = dp(lines, max);
+			lines = polygonDouglassPeckerSimplify(lines, max);
 		}
 	}
 

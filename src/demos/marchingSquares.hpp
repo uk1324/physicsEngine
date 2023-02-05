@@ -12,7 +12,7 @@ struct MarchingSquares {
 
 
 	auto marchingSquares() -> void;
-	int i = 1;
+	int i = 408;
 	bool paused = false;
 	std::vector<bool> visited;
 	SimplePolygonTriangulator triangulate;

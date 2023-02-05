@@ -66,7 +66,7 @@ auto Span<T>::operator[](usize index) -> T& {
 
 template<typename T>
 auto Span<T>::operator[](usize index) const -> const T& {
-	return const_cast<T&>((const_cast<const Span<T>&>(*this))[index]);
+	return const_cast<T&>((const_cast<Span<T>&>(*this))[index]);
 }
 
 template<typename T>
