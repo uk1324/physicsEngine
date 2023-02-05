@@ -289,6 +289,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\math\polygon.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\math\transform.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -424,6 +428,7 @@
     <ClInclude Include="src\math\line.hpp" />
     <ClInclude Include="src\math\lineSegment.hpp" />
     <ClInclude Include="src\math\mat2.hpp" />
+    <ClInclude Include="src\math\polygon.hpp" />
     <ClInclude Include="src\math\transform.hpp" />
     <ClInclude Include="src\math\triangle.hpp" />
     <ClInclude Include="src\math\triangulate.hpp" />

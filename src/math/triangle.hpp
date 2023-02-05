@@ -8,6 +8,7 @@ struct Triangle {
 	/*auto counterClockwiseContains(Vec2 p) const -> bool;
 	auto clockwiseContains(Vec2 p) const -> bool;*/
 	auto contains(Vec2 p) const -> bool;
+	auto containsWithEpsilon(Vec2 p, float epsilon) -> bool;
 	auto isClockwise() const -> bool;
 	auto area() -> bool;
 };

@@ -12,16 +12,7 @@ struct MarchingSquares {
 
 
 	auto marchingSquares() -> void;
-	/*int i = 1616;*/
-	int i = 0;
-	//int i = 3281;
-	//int i = 3781;
-	//int i = 4275;
-	//int i = 0;
-	//int i = 3761;
-	//int i = 3701;
-	//int i = 0;
-	bool asd = false;
+	int i = 1;
 	bool paused = false;
 	std::vector<bool> visited;
 	SimplePolygonTriangulator triangulate;

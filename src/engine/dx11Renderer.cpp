@@ -535,12 +535,13 @@ auto Dx11Renderer::destroyDynamicTextureData(u64 handle) -> void {
 }
 
 auto Dx11Renderer::screenshot() -> ImageRgba {
+	// https://stackoverflow.com/questions/21202215/c-directx11-capture-screen-and-save-to-file
+	// TODO: Don't need to do as much if the texture is non multisampled.
+
+	// Multisampled textures have to be resolved, which makes them non multisampled before they can be accessed on the CPU. If a texture is non multisampled it can be copied to a CPU accessible texture using CopyResource.
+
 	ComPtr<ID3D11Texture2D> screenTexture;
 	CHECK_WIN_HRESULT(gfx.swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(screenTexture.GetAddressOf())));
-
-
-	// TODO: Don't need to do as much if the texture is non multisampled.
-	// https://stackoverflow.com/questions/21202215/c-directx11-capture-screen-and-save-to-file
 
 	D3D11_TEXTURE2D_DESC desc;
 	screenTexture->GetDesc(&desc);
@@ -569,6 +570,8 @@ auto Dx11Renderer::screenshot() -> ImageRgba {
 
 	gfx.ctx->CopyResource(cpuAccessibleCopy.Get(), nonMultisampledCopy.Get());
 
+	// Could probably just render to a texture to convert the formats.
+	// Copy resource can automatically convert between some types, but only the ones described here https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression#format-conversion-using-direct3d-101.
 	if (desc.Format != DXGI_FORMAT_B8G8R8A8_UNORM) {
 		ASSERT_NOT_REACHED();
 	}
@@ -577,10 +580,10 @@ auto Dx11Renderer::screenshot() -> ImageRgba {
 	gfx.ctx->Map(cpuAccessibleCopy.Get(), 0, D3D11_MAP_READ, 0, &map);
 	ImageRgba result{ Vec2T<i64>{ desc.Width, desc.Height } };
 	for (usize y = 0; y < result.size().y; y++) {
-		const auto src = reinterpret_cast<u8*>(map.pData) + y * map.RowPitch;
+		const auto srcRow = reinterpret_cast<u8*>(map.pData) + y * map.RowPitch;
 		const auto dstRowSize = sizeof(PixelRgba) * result.size().x;
-		const auto dst = reinterpret_cast<u8*>(result.data()) + y * dstRowSize;
-		memcpy(dst, src, dstRowSize);
+		const auto dstRow = reinterpret_cast<u8*>(result.data()) + y * dstRowSize;
+		memcpy(dstRow, srcRow, dstRowSize);
 	}
 	gfx.ctx->Unmap(cpuAccessibleCopy.Get(), 0);
 

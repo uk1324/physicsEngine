@@ -205,6 +205,9 @@
     <ClCompile Include="src\demos\marchingSquares.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\math\polygon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -436,6 +439,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\demos\marchingSquares.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\polygon.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
