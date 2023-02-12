@@ -6,11 +6,13 @@
 
 namespace Json
 {
+	class JsonError : public std::exception {};
+
 	class Value
 	{
 	public:
-		class InvalidTypeAccess : public std::exception {};
-		class OutOfRangeAccess : public std::exception {};
+		class InvalidTypeAccess : public JsonError {};
+		class OutOfRangeAccess : public JsonError {};
 
 		using StringType = std::string;
 		using ArrayType = std::vector<Value>;

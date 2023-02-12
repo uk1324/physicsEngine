@@ -42,18 +42,18 @@ auto Debug::drawPoint(Vec2 pos, const Vec3& color) -> void {
 	points.push_back({ pos, 0.01f, color });
 }
 
-auto Debug::drawLines(Span<const Vec2> lines, const Vec3& color) -> void {
-	if (lines.size() < 2)
+auto Debug::drawLines(Span<const Vec2> vertices, const Vec3& color) -> void {
+	if (vertices.size() < 2)
 		return;
 
-	drawLine(lines[0], lines[1], color);
+	drawLine(vertices[0], vertices[1], color);
 
-	if (lines.size() == 2)
+	if (vertices.size() == 2)
 		return;
 
 	for (usize i = 1; i < lines.size() - 1; i++)
-		drawLine(lines[i], lines[i + 1], color);
-	drawLine(lines.back(), lines[0], color);
+		drawLine(vertices[i], vertices[i + 1], color);
+	drawLine(vertices.back(), vertices[0], color);
 }
 
 auto Debug::drawAabb(const Aabb& aabb, const Vec3& color) -> void {
@@ -110,10 +110,10 @@ auto Debug::drawSimplePolygon(Span<const Vec2> vertices, const Vec3& color) -> v
 	}
 }
 
-auto Debug::drawText(Vec2 pos, const char* text, const Vec3& color, float height) -> void {
-	auto length = strlen(text) + 1;
+auto Debug::drawStr(Vec2 pos, const char* txt, const Vec3& color, float height) -> void {
+	auto length = strlen(txt) + 1;
 	auto t = frameAllocator.alloc(length);
-	memcpy(t, text, length);
+	memcpy(t, txt, length);
 	Debug::text.push_back(Text{ pos, reinterpret_cast<char*>(t), color, height });
 }
 

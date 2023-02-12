@@ -25,7 +25,9 @@ enum class Keycode : u8 {
 	I = 'I',
 	J = 'J',
 	K = 'K',
+	O = 'O',
 	P = 'P',
+	Q = 'Q',
 	R = 'R',
 	S = 'S',
 	T = 'T',
@@ -78,6 +80,7 @@ public:
 	static auto cursorPos() -> Vec2 { return cursorPos_; };
 	static auto cursorPosWindowSpace() -> Vec2 { return cursorPosWindowSpace_; };
 	static auto scrollDelta() -> float;
+	static auto anyKeyPressed() -> bool;
 
 	static auto update() -> void;
 
@@ -108,6 +111,7 @@ private:
 	static Vec2 cursorPos_;
 	static Vec2 cursorPosWindowSpace_;
 	static float scrollDelta_;
+	static bool anyKeyPressed_;
 };
 
 template<typename ButtonEnum>

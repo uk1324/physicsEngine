@@ -5,10 +5,14 @@
 #include <game/collider.hpp>
 
 struct Body {
+	static constexpr float DEFAULT_DENSITY = 200.0f;
+
 	Body();
-	Body(Vec2 pos, const Collider& collider, bool isStatic);
+	Body(Vec2 pos, const Collider& collider, bool isStatic = false);
 	auto updateInvMassAndInertia() -> void;
 	auto isStatic() const -> bool;
+	auto makeStatic() -> void;
+	auto updateMass(float density = DEFAULT_DENSITY) -> void;
 
 	Transform transform;
 	Vec2 vel;

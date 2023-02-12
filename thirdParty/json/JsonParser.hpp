@@ -6,6 +6,6 @@
 
 namespace Json
 {
-	class ParsingError : public std::exception {};
+	class ParsingError : public JsonError {};
 	Value parse(std::string_view text);
 }

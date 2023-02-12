@@ -6,7 +6,9 @@
 #include <math/triangulate.hpp>
 #include <game/collider.hpp>
 #include <utils/span.hpp>
+
 #include <vector>
+#include <sstream>
 
 namespace Debug {
 	auto update() -> void;
@@ -20,13 +22,15 @@ namespace Debug {
 	auto drawHollowCircle(Vec2 pos, float radius = 0.01f, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawCircleCollider(Vec2 pos, float radius = 0.01f, float orientation = 0.0f, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawPoint(Vec2 pos, const Vec3& color = DEFAULT_COLOR) -> void;
-	auto drawLines(Span<const Vec2> lines, const Vec3& color = DEFAULT_COLOR) -> void;
+	auto drawLines(Span<const Vec2> vertices, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawAabb(const Aabb& aabb, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawParabola(float a, Vec2 pos, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawBox(Vec2 pos, float orientation, Vec2 size, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawCollider(const Collider& collider, Vec2 pos, float orientation, const Vec3& color = DEFAULT_COLOR) -> void;
 	auto drawSimplePolygon(Span<const Vec2> vertices, const Vec3& color = DEFAULT_COLOR) -> void;
-	auto drawText(Vec2 pos, const char* text, const Vec3& color = DEFAULT_COLOR, float height = 0.1f) -> void;
+	auto drawStr(Vec2 pos, const char* text, const Vec3& color = DEFAULT_COLOR, float height = 0.1f) -> void;
+	template<typename T>
+	auto drawText(Vec2 pos, const T& value, const Vec3& color = DEFAULT_COLOR, float height = 0.1f) -> void;
 
 	struct Line {
 		Vec2 start;
@@ -79,4 +83,11 @@ namespace Debug {
 	extern std::vector<Parabola> parabolas;
 	extern std::vector<Triangle> triangles;
 	extern std::vector<Text> text;
+
+	template<typename T>
+	auto drawText(Vec2 pos, const T& value, const Vec3& color, float height) -> void {
+		std::stringstream stream;
+		stream << value;
+		drawStr(pos, stream.str().data(), color, height);
+	}
 }

@@ -21,8 +21,7 @@ Body::Body(Vec2 pos, const Collider& collider, bool isStatic)
 		invRotationalInertia = 0.0f;
 	}
 	else {
-		static constexpr float DENSITY = 200.0f;
-		const auto info = massInfo(collider, DENSITY);
+		const auto info = massInfo(collider, DEFAULT_DENSITY);
 		mass = info.mass;
 		invMass = 1.0f / info.mass;
 		rotationalInertia = info.rotationalInertia;
@@ -34,20 +33,6 @@ Body::Body(Vec2 pos, const Collider& collider, bool isStatic)
 	torque = 0.0f;
 	force = Vec2{ 0.0f };
 }
-
-//Body::Body(const BodyOldEditor& body)
-//	: invMass{ 1.0f / body.mass }
-//	, invRotationalInertia{ 1.0f / body.rotationalInertia }
-//	, torque{ 0.0f }
-//	, force{ 0.0f }
-//	, collider{ body.collider }
-//	, mass{ body.mass }
-//	, rotationalInertia{ body.rotationalInertia } 
-//	, transform{ body.pos, body.orientation }
-//	, vel{ body.vel }
-//	, angularVel{ body.angularVel }
-//	, coefficientOfFriction{ 0.2f }
-//{}
 
 auto Body::updateInvMassAndInertia() -> void {
 	if (mass == std::numeric_limits<float>::infinity()) {
@@ -62,6 +47,18 @@ auto Body::updateInvMassAndInertia() -> void {
 
 auto Body::isStatic() const -> bool {
 	return invMass == 0.0f;
+}
+
+auto Body::makeStatic() -> void {
+	mass = std::numeric_limits<float>::infinity();
+	updateInvMassAndInertia();
+}
+
+auto Body::updateMass(float density) -> void {
+	const auto info = massInfo(collider, density);
+	mass = info.mass;
+	rotationalInertia = info.rotationalInertia;
+	updateInvMassAndInertia();
 }
 
 Body::Body() : Body{ Vec2{ 0.0f }, CircleCollider{ 0.5f }, false } {}

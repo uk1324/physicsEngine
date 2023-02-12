@@ -163,9 +163,7 @@ auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB)
 			return;
 
 		if (a.aabb.collides(b.aabb)) {
-
 			BodyPair key{ &*aBody, &*bBody };
-
 			if (auto collision = ::collide(key.a->transform, key.a->collider, key.b->transform, key.b->collider); collision.has_value()) {
 				// TODO: Move this into some function or constructor probably when making a better collision system.
 				collision->coefficientOfFriction = sqrt(key.a->coefficientOfFriction * key.b->coefficientOfFriction);

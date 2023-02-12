@@ -3,28 +3,40 @@
 #include <math/utils.hpp>
 
 auto DistanceJoint::preStep(float invDeltaTime) -> void {
+	if (!ent.body.isAlive(bodyA) || !ent.body.isAlive(bodyB)) {
+		ent.distanceJoint.destroy(*this);
+	}
 	bias = invDeltaTime;
 }
 
 // Don't know what a correct pendulum should look like. Car keys that were left in the ignition were oscillating back and forth for around 3 minutes and if no one interrupted them, they would have continuted for a bit longer. The car keys were connected by a circle so the friction is should probably different from this kind of joint.
+
+#include <utils/dbg.hpp>
 auto DistanceJoint::applyImpluse() -> void {
 	auto a = ent.body.get(bodyA);
-	ASSERT(a.has_value());
 	auto b = ent.body.get(bodyB);
-	ASSERT(b.has_value());
+	if (!a.has_value() || !b.has_value())
+		return;
 
-	const auto bToA = a->transform.pos - b->transform.pos;
+	const auto posOnA = a->transform.pos + anchorOnA * a->transform.rot;
+	const auto posOnB = b->transform.pos + anchorOnB * b->transform.rot;
+	const auto bToA = posOnA - posOnB;
 	const auto distanceAb = bToA.length();
 	const auto distanceToFix = distanceAb - requiredDistance;
-	auto relativeVel = b->vel - a->vel;
+	
 
-	Vec2 r1{ 0.0f }, r2{ 0.0f };
-	float rn1 = 0.0f;
-	float rn2 = 0.0f;
+	//Vec2 r1{ 0.0f }, r2{ 0.0f };
+	
+	const auto n = bToA.normalized();
+	Vec2 r1 = posOnA - a->transform.pos, r2 = posOnB - b->transform.pos;
+	float rn1 = dot(r1, n);
+	float rn2 = dot(r2, n);
 	float kNormal = a->invMass + b->invMass;
 	kNormal += a->invRotationalInertia * (dot(r1, r1) - rn1 * rn1) + b->invRotationalInertia * (dot(r2, r2) - rn2 * rn2);
+	//kNormal += a->invRotationalInertia * pow(cross(n, r1), 2.0f) + b->invRotationalInertia * pow(cross(n, r2), 2.0f);
 
-	const auto n = bToA.normalized();
+	//auto relativeVel = b->vel + posOnB.rotBy90deg() * b->angularVel - (a->vel + posOnA.rotBy90deg() * a->angularVel);
+	auto relativeVel = (b->vel + cross(b->angularVel, r2)) - (a->vel + cross(a->angularVel, r1));
 	float vn = dot(relativeVel, n);
 
 	// Try to zero the velocity by pushing in the direction opposite to the error.
@@ -41,6 +53,8 @@ auto DistanceJoint::applyImpluse() -> void {
 
 	a->vel -= dPn * n * a->invMass;
 	b->vel += dPn * n * b->invMass;
+	a->angularVel -= a->invRotationalInertia * cross(r1, dPn * n);
+	b->angularVel += b->invRotationalInertia * cross(r2, dPn * n);
 
 	relativeVel = b->vel - a->vel;
 	Vec2 tangent = n.rotBy90deg();
@@ -86,4 +100,15 @@ auto DistanceJoint::applyImpluse() -> void {
 
 	b->vel += b->invMass * Pt;
 	b->angularVel += b->invRotationalInertia * det(r2, Pt);
+}
+
+auto DistanceJoint::getEndpoints() const -> std::array<Vec2, 2> {
+	const auto a = ent.body.get(bodyA);
+	const auto b = ent.body.get(bodyB);
+	if (!a.has_value() || !b.has_value()) {
+		ASSERT_NOT_REACHED();
+		return { Vec2{ 0.0f }, Vec2{ 0.0f } };
+	}
+
+	return { a->transform.pos + anchorOnA * a->transform.rot, b->transform.pos + anchorOnB * b->transform.rot };
 }

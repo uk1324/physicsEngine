@@ -28,9 +28,11 @@ struct EntityArray {
 	auto update() -> void;
 	auto get(const Id& id) -> std::optional<Entity&>;
 	auto isAlive(const Id& id) -> bool;
+	auto isAlive(const Entity& entity) -> bool;
 	auto create() -> Pair;
 	auto create(Entity&& entity) -> Pair;
 	auto destroy(const Id& id) -> void;	
+	auto destroy(const Entity& entity) -> void;	
 	auto validate(u32 index) -> std::optional<Id>;
 	auto reset() -> void;
 
@@ -113,6 +115,17 @@ auto EntityArray<Entity>::isAlive(const Id& id) -> bool {
 }
 
 template<typename Entity>
+auto EntityArray<Entity>::isAlive(const Entity& entity) -> bool {
+	const auto index = &entity - entities.data();
+	const auto id = validate(index);
+	if (!id.has_value()) {
+		ASSERT_NOT_REACHED();
+		return false;
+	}
+	return isAlive(id);
+}
+
+template<typename Entity>
 auto EntityArray<Entity>::create() -> Pair {
 	create(Entity{});
 }
@@ -140,6 +153,17 @@ auto EntityArray<Entity>::create(Entity&& entity) -> Pair {
 template<typename Entity>
 auto EntityArray<Entity>::destroy(const Id& id) -> void {
 	entitiesToRemove.push_back(id);
+}
+
+template<typename Entity>
+auto EntityArray<Entity>::destroy(const Entity& entity) -> void {
+	const auto index = &entity - entities.data();
+	const auto id = validate(index);
+	if (!id.has_value()) {
+		ASSERT_NOT_REACHED();
+		return;
+	}
+	destroy(*id);
 }
 
 template<typename Entity>

@@ -122,6 +122,14 @@ auto ImageRgba::end() -> PixelRgba* {
 	return data_ + size_.x * size_.y;
 }
 
+auto ImageRgba::cbegin() const -> const PixelRgba* {
+	return data_;
+}
+
+auto ImageRgba::cend() const -> const PixelRgba* {
+	return data_ + size_.x * size_.y;
+}
+
 auto ImageRgba::indexed() -> ImageRgba::IndexedPixelRange {
 	return IndexedPixelRange{ *this };
 }

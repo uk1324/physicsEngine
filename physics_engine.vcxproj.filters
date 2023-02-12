@@ -202,10 +202,13 @@
     <ClCompile Include="src\game\levelFormat\level.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\demos\marchingSquares.cpp">
+    <ClCompile Include="src\math\polygon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\math\polygon.cpp">
+    <ClCompile Include="src\math\marchingSquares.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demos\marchingSquaresDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -438,10 +441,16 @@
     <ClInclude Include="src\game\levelFormat\levelData.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\demos\marchingSquares.hpp">
+    <ClInclude Include="src\math\polygon.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\math\polygon.hpp">
+    <ClInclude Include="src\utils\dbg.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\math\marchingSquares.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\marchingSquaresDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

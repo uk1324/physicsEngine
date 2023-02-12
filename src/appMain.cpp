@@ -77,16 +77,11 @@ auto appMain() -> int {
 		while (accumulated >= frameLength) {
 			accumulated -= frameLength;
 			frameAllocator.reset();
-			//gfx.update();
 			Renderer::updateFrameStart();
 
 			Input::update();
 			Window::update();
-			Audio::update();
-
-/*			ImGui_ImplDX11_NewFrame();
-			ImGui_ImplWin32_NewFrame();
-			ImGui::NewFrame();*/			
+			Audio::update();		
 
 			// Without this the window doesn't close instantly.
 			// TODO: Maybe find a better way to do this. The current way still has to wait untill the frame finishes.
@@ -107,7 +102,6 @@ auto appMain() -> int {
 			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
 			
 			Renderer::updateFrameEnd();
-			//gfx.present();
 		}
 	}
 

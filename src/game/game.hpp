@@ -64,10 +64,47 @@ public:
 
 	auto detectCollisions() -> void;
 	auto saveLevel() const -> Json::Value;
-	auto loadLevel(const Json::Value& level) -> void;
+	auto saveLevelToFile(std::string_view path) -> void;
+	[[nodiscard]] auto loadLevel(const Json::Value& level) -> bool;
 	auto drawUi() -> void;
+	auto openLoadLevelDialog() -> std::optional<const char*>;
+	auto openSaveLevelDialog() -> void;
+	auto errorPopupModal(const char* message) -> void;
 	auto update() -> void;
 	auto physicsStep() -> void;
+
+
+
+	std::optional<std::string> lastSavedLevelPath;
+
+	std::vector<Json::Value> levelSavestates;
+
+	enum class Tool {
+		GRAB,
+		SELECT,
+		DISTANCE_JOINT,
+		CREATE_BODY,
+	};
+	Tool selectedTool = Tool::GRAB;
+	bool selectingJointTool = false;
+
+	std::optional<BodyId> grabbed;
+	Vec2 grabPointInGrabbedObjectSpace;
+
+	auto selectToolGui() -> void;
+	auto selectToolUpdate(const std::optional<BodyId>& bodyUnderCursor) -> void;
+	auto selectToolDraw() -> void;
+
+	using Entity = std::variant<BodyId, DistanceJointId>;
+	std::optional<Entity> selected;
+
+	std::optional<BodyId> distanceJointBodyA;
+	Vec2 distanceJointBodyAAnchor;
+
+	enum class BodyShape {
+		CIRCLE, RECTANGLE
+	};
+	BodyShape selectedShape = BodyShape::CIRCLE;
 
 	CollisionMap contacts;
 
@@ -75,9 +112,6 @@ public:
 
 	Vec2 gravity{ 0.0f };
 	float angularDamping = 0.98f;
-
-	std::optional<BodyId> selected;
-	Vec2 selectedGrabPointObjectSpace;
 
 	std::optional<Vec2> grabStart;
 

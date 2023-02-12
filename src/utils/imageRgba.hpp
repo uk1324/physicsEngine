@@ -48,6 +48,8 @@ public:
 
 	auto begin() -> PixelRgba*;
 	auto end() -> PixelRgba*;
+	auto cbegin() const -> const PixelRgba*;
+	auto cend() const -> const PixelRgba*;
 
 	struct IndexedPixelRange {
 		ImageRgba& image;

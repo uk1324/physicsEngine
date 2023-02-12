@@ -19,15 +19,15 @@ auto drawPolygon(const ConvexPolygon& polygon, const Transform& transform) {
 	Debug::drawLine(verts.back() * transform, verts[0] * transform);
 
 	for (usize i = 0; i < verts.size(); i++) {
-		Debug::drawText(verts[i] * transform, frameAllocator.format("v%zu", i).data(), Vec3::WHITE, 0.03f);
+		Debug::drawStr(verts[i] * transform, frameAllocator.format("v%zu", i).data(), Vec3::WHITE, 0.03f);
 	}
 
 	for (usize i = 0; i < verts.size() - 1; i++) {
 		auto midPoint = (verts[i] * transform + verts[i + 1] * transform) / 2.0f;
-		Debug::drawText(midPoint, frameAllocator.format("f%zu", i).data(), Vec3::WHITE, 0.03f);
+		Debug::drawStr(midPoint, frameAllocator.format("f%zu", i).data(), Vec3::WHITE, 0.03f);
 	}
 	auto midPoint = (verts.back() * transform + verts[0] * transform) / 2.0f;
-	Debug::drawText(midPoint, frameAllocator.format("f%zu", verts.size() - 1).data(), Vec3::WHITE, 0.03f);
+	Debug::drawStr(midPoint, frameAllocator.format("f%zu", verts.size() - 1).data(), Vec3::WHITE, 0.03f);
 }
 
 auto TestDemo::update() -> void {
@@ -65,7 +65,7 @@ auto TestDemo::update() -> void {
 
 			auto id = (point.id.featureOnA == ContactPointFeature::FACE ? "f" : "v") + std::to_string(point.id.featureOnAIndex)
 				+ ((point.id.featureOnB == ContactPointFeature::FACE) ? "f" : "v") + std::to_string(point.id.featureOnBIndex);
-			Debug::drawText(point.pos + Vec2{ 0.0f, 0.05f }, id.data(), Vec3::GREEN, 0.03f);
+			Debug::drawStr(point.pos + Vec2{ 0.0f, 0.05f }, id.data(), Vec3::GREEN, 0.03f);
 			Debug::drawPoint(point.pos, Vec3::RED);
 			Debug::drawRay(point.pos, manifold->normal * point.separation, Vec3::GREEN);
 			//Debug::drawRay(point.pos, manifold->normal, Vec3::GREEN);

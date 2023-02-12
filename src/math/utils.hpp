@@ -30,6 +30,17 @@ auto sign(T x) -> T {
 }
 
 template<typename T>
+auto signOrZero(T x) -> T {
+	if (x == 0) {
+		return 0;
+	} else if (x < 0) {
+		return -1;
+	} else {
+		return 1;
+	}
+}
+
+template<typename T>
 auto degToRad(T s) -> T {
 	return s * (TAU<T> / 360);
 }

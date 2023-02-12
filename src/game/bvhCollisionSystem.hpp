@@ -6,6 +6,7 @@
 #include <game/collisionSystem.hpp>
 
 #include <vector>
+#include <unordered_set>
 
 struct CollisionSystemProfile {
 	float updateTime;
@@ -25,6 +26,8 @@ public:
 	auto detectCollisions(CollisionMap& collisions) -> void;
 
 	auto raycast(Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;
+
+	//std::unordered_set<BodyPair> collisionsToIgnore;
 
 private:
 	auto raycastHelper(u32 nodeIndex, Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;

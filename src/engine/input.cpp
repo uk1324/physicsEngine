@@ -49,6 +49,10 @@ auto Input::scrollDelta() -> float {
 	return scrollDelta_;
 }
 
+auto Input::anyKeyPressed() -> bool {
+	return anyKeyPressed_;
+}
+
 auto Input::update() -> void {
 	keyDown.reset();
 	keyDownWithAutoRepeat.reset();
@@ -59,6 +63,7 @@ auto Input::update() -> void {
 	for (auto& [_, isUp] : buttonUp) isUp = false;
 
 	scrollDelta_ = 0.0f;
+	anyKeyPressed_ = false;
 }
 
 static auto setIfAlreadyExists(std::unordered_map<int, bool>& map, int key, bool value) -> void {
@@ -78,6 +83,8 @@ static auto isKeyboardKey(u8 vkCode) -> bool {
 auto Input::onKeyDown(u8 virtualKeyCode, bool autoRepeat) -> void {
 	if (virtualKeyCode >= VIRTUAL_KEY_COUNT)
 		return;
+
+	anyKeyPressed_ = true;
 
 	if (!autoRepeat) {
 		keyDown.set(virtualKeyCode);
@@ -138,3 +145,4 @@ std::unordered_map<int, bool> Input::buttonHeld;
 Vec2 Input::cursorPos_;
 Vec2 Input::cursorPosWindowSpace_;
 float Input::scrollDelta_;
+bool Input::anyKeyPressed_;

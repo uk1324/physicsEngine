@@ -31,7 +31,6 @@ auto Line::intersection(const Line& other) const -> std::optional<Vec2> {
 		return std::nullopt;
 	}
 
-	const auto x = A * A.inversed();
 	const Vec2 b{ d, other.d };
 	return b * A.inversed();
 }

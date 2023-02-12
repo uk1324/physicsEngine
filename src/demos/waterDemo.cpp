@@ -130,8 +130,6 @@ auto WaterDemo::update() -> void {
 
 				auto& right = cells[x + 1][y];
 				auto& left = cells[x - 1][y];
-				auto& belowRight = cells[x + 1][y - 1];
-				auto& belowLeft = cells[x - 1][y - 1];
 				if (cells[x][y + 1].density == 0) {
 
 					// Techincally more correct, but without it the water looks smoother. Adds a vertex in the middle if both neighbours are either bigger or smaller.
@@ -168,7 +166,7 @@ auto WaterDemo::update() -> void {
 				}
 
 				if (showDensity) {
-					const auto p = PixelRgba::scientificColoring(cell.density, 0, MAX_DENSITY);
+					const auto p = PixelRgba::scientificColoring(static_cast<float>(cell.density), 0, MAX_DENSITY);
 					Debug::drawSimplePolygon(verts, Vec3(p.r, p.g, p.b) / 255.0f);
 				} else {
 					Debug::drawSimplePolygon(verts, Vec3{ 14, 135, 204 } / 255.0f);

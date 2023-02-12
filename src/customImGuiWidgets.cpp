@@ -9,6 +9,53 @@
 
 using namespace ImGui;
 
+auto ImGui::openFileSelect() -> std::optional<std::string_view> {
+	static char path[MIN_FILE_SELECT_STRING_LENGTH] = "";
+	OPENFILENAMEA openFile{
+		.lStructSize = sizeof(OPENFILENAMEA),
+		.hwndOwner = reinterpret_cast<HWND>(Window::hWnd()),
+		.lpstrFilter = nullptr,
+		.nFilterIndex = 1,
+		.lpstrFile = path,
+		.nMaxFile = sizeof(path),
+		.lpstrFileTitle = nullptr,
+		.nMaxFileTitle = 0,
+		.lpstrInitialDir = nullptr,
+		.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER
+	};
+
+	if (GetOpenFileNameA(&openFile)) {
+		return path;
+	} else {
+		ASSERT(CommDlgExtendedError() == 0);
+	}
+
+	return std::nullopt;
+}
+
+auto ImGui::openFileSave() -> std::optional<std::string_view> {
+	static char path[MIN_FILE_SELECT_STRING_LENGTH] = "";
+	OPENFILENAMEA openFile{
+		.lStructSize = sizeof(OPENFILENAMEA),
+		.hwndOwner = reinterpret_cast<HWND>(Window::hWnd()),
+		.lpstrFilter = nullptr,
+		.nFilterIndex = 1,
+		.lpstrFile = path,
+		.nMaxFile = sizeof(path),
+		.lpstrFileTitle = nullptr,
+		.nMaxFileTitle = 0,
+		.lpstrInitialDir = nullptr,
+		.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER,
+	};
+
+	if (!GetSaveFileNameA(&openFile)) {
+		ASSERT(CommDlgExtendedError() == 0);
+		return std::nullopt;
+	}
+
+	return path;
+}
+
 auto ImGui::fileSelect(const char* label, char* outPath, int maxPathStringLength, const char* filterString, const char* initialDirectory, bool displayText) -> bool {
 	ASSERT(maxPathStringLength >= MIN_FILE_SELECT_STRING_LENGTH);
 	OPENFILENAMEA openFile{
@@ -46,8 +93,6 @@ auto ImGui::fileSelect(const char* label, char* outPath, int maxPathStringLength
 	return false;
 }
 
-
-
 auto ImGui::imageFileSelect(const char* label, const char* initialDirectory) -> std::optional<ImageRgba> {
 	char path[MIN_FILE_SELECT_STRING_LENGTH] = "";
 	if (!fileSelect(label, path, sizeof(path), "image\0*.png;*.jpg;*.bmp\0", initialDirectory, false)) {
@@ -70,7 +115,6 @@ auto ImGui::imageSaveFileSelect(const ImageRgba& image, const char* label, const
 		.lpstrInitialDir = initialDirectory,
 		.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_EXPLORER,
 	};
-
 
 	if (!Button(label))
 		return;

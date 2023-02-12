@@ -165,7 +165,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\demos\marchingSquares.cpp">
+    <ClCompile Include="src\demos\marchingSquaresDemo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -293,6 +293,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\math\marchingSquares.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\math\transform.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -395,7 +399,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\demos\marchingSquares.hpp" />
+    <ClInclude Include="src\demos\marchingSquaresDemo.hpp" />
     <ClInclude Include="src\game\collider.hpp" />
     <ClInclude Include="src\game\convexPolygonCollider.hpp" />
     <ClInclude Include="src\game\body.hpp" />
@@ -429,6 +433,7 @@
     <ClInclude Include="src\math\lineSegment.hpp" />
     <ClInclude Include="src\math\mat2.hpp" />
     <ClInclude Include="src\math\polygon.hpp" />
+    <ClInclude Include="src\math\marchingSquares.hpp" />
     <ClInclude Include="src\math\transform.hpp" />
     <ClInclude Include="src\math\triangle.hpp" />
     <ClInclude Include="src\math\triangulate.hpp" />
@@ -445,6 +450,7 @@
     <ClInclude Include="src\demos\fourierTransformDemo.hpp" />
     <ClInclude Include="src\demos\demos.hpp" />
     <ClInclude Include="src\demos\pixelPhysics.hpp" />
+    <ClInclude Include="src\utils\dbg.hpp" />
     <ClInclude Include="src\utils\iter2d.hpp" />
     <ClInclude Include="src\utils\areaAllocator.hpp" />
     <ClInclude Include="src\utils\asserts.hpp" />

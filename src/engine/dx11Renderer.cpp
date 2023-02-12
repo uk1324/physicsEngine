@@ -579,7 +579,7 @@ auto Dx11Renderer::screenshot() -> ImageRgba {
 	D3D11_MAPPED_SUBRESOURCE map;
 	gfx.ctx->Map(cpuAccessibleCopy.Get(), 0, D3D11_MAP_READ, 0, &map);
 	ImageRgba result{ Vec2T<i64>{ desc.Width, desc.Height } };
-	for (usize y = 0; y < result.size().y; y++) {
+	for (i64 y = 0; y < result.size().y; y++) {
 		const auto srcRow = reinterpret_cast<u8*>(map.pData) + y * map.RowPitch;
 		const auto dstRowSize = sizeof(PixelRgba) * result.size().x;
 		const auto dstRow = reinterpret_cast<u8*>(result.data()) + y * dstRowSize;
