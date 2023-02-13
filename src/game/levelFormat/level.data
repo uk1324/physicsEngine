@@ -40,4 +40,6 @@ LevelDistanceJoint @Serialize {
 	i32 bodyAIndex;
 	i32 bodyBIndex;
 	float distance;
+	Vec2 anchorA;
+	Vec2 anchorB;
 }

@@ -604,10 +604,8 @@ auto contains(Vec2 point, Vec2 pos, float orientation, const BoxCollider& box) -
 }
 
 auto contains(Vec2 point, Vec2 pos, float, const CircleCollider& circle) -> bool {
-	return (point - pos).lengthSq() <= circle.radius;
+	return (point - pos).lengthSq() <= pow(circle.radius, 2.0f);
 }
-
-#include <engine/debug.hpp>
 
 auto contains(Vec2 point, Vec2 pos, float orientation, const ConvexPolygon& convexPolygon) -> bool {
 	const Transform transform{ pos, orientation };

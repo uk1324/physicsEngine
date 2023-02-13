@@ -50,6 +50,8 @@ auto Body::isStatic() const -> bool {
 }
 
 auto Body::makeStatic() -> void {
+	vel = Vec2{ 0.0f };
+	angularVel = 0.0f;
 	mass = std::numeric_limits<float>::infinity();
 	updateInvMassAndInertia();
 }

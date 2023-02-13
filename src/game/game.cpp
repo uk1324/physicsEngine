@@ -26,41 +26,42 @@
 #include <json/Json.hpp>
 #include <fstream>
 
+std::vector<BodyId> bodies;
 Game::Game() {
-	int height = 10;
-	float boxSize = 1.0f;
-	float gapSize = 0.1f;
-	for (int i = 1; i < height + 1; i++) {
-		std::vector<BodyId> bodies;
-		for (int j = 0; j < i; j++) {
-			float y = (height + 1 - i) * (boxSize + gapSize);
-			float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
+	//int height = 10;
+	//float boxSize = 1.0f;
+	//float gapSize = 0.1f;
+	//for (int i = 1; i < height + 1; i++) {
+	//	std::vector<BodyId> bodies;
+	//	for (int j = 0; j < i; j++) {
+	//		float y = (height + 1 - i) * (boxSize + gapSize);
+	//		float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
 
-			ent.body.create(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
-			//ent.body.create(Body{ Vec2{ x, y }, CircleCollider{ 0.5f }, false });	
+	//		ent.body.create(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
+	//		//ent.body.create(Body{ Vec2{ x, y }, CircleCollider{ 0.5f }, false });	
 
-			//ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(3, 0.5f), false });
+	//		//ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(3, 0.5f), false });
 
-			/*float radius = 0.7f;
-			if (i == height) {
-				auto gon = ConvexPolygon::regular(6, radius);
-				gon.verts.pop_back();
-				gon.calculateNormals();
-				const auto& [id, b] = ent.body.create(Body{ Vec2{ x, y }, gon, false });
-				bodies.push_back(id);
-				b.transform.rot *= Rotation{ -TAU<float> / 6.0f };
-			} else {
-				const auto& [id, _] = ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(6, radius), false });
-				bodies.push_back(id);
-			}*/
-		}
+	//		/*float radius = 0.7f;
+	//		if (i == height) {
+	//			auto gon = ConvexPolygon::regular(6, radius);
+	//			gon.verts.pop_back();
+	//			gon.calculateNormals();
+	//			const auto& [id, b] = ent.body.create(Body{ Vec2{ x, y }, gon, false });
+	//			bodies.push_back(id);
+	//			b.transform.rot *= Rotation{ -TAU<float> / 6.0f };
+	//		} else {
+	//			const auto& [id, _] = ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(6, radius), false });
+	//			bodies.push_back(id);
+	//		}*/
+	//	}
 
-	/*	if (i == height) {
-			for (int j = 0; j < bodies.size() - 1; j++) {
-				ent.distanceJoint.create(DistanceJoint{ bodies[j], bodies[j + 1], boxSize + boxSize / 4.0f });
-			}
-		}*/
-	}
+	///*	if (i == height) {
+	//		for (int j = 0; j < bodies.size() - 1; j++) {
+	//			ent.distanceJoint.create(DistanceJoint{ bodies[j], bodies[j + 1], boxSize + boxSize / 4.0f });
+	//		}
+	//	}*/
+	//}
 
 	//{
 	//	float height = 2.0f;
@@ -71,7 +72,59 @@ Game::Game() {
 	//	}
 	//}
 
-	ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
+	{
+		float width = 0.5f;
+		float height = 4.0f;
+		auto addJoint = [this](BodyId a, BodyId b, Vec2 anchorA, Vec2 anchorB) {
+			auto [jointId, _] = ent.distanceJoint.create(DistanceJoint{ a, b, 0.0f, anchorA, anchorB });
+			const BodyPair bodyPair{ a, b };
+			revoluteJointsWithIgnoredCollisions.push_back({ jointId, bodyPair });
+		};
+
+		for (int i = 0; i < 4; i++) {
+			const auto pos = Vec2{ i * (height - width), 0.0f };
+			const auto collider = BoxCollider{ Vec2{ height, width } };
+			for (int _ = 0; _ < 2; _++) {
+				const auto& [id, body] = ent.body.create(Body{ pos + Vec2{ 0.0f, 2.0f }, collider });
+				bodies.push_back(id);
+			}
+			
+			addJoint(bodies.back(), *(bodies.end() - 2), Vec2{ 0.0f }, Vec2{ 0.0f });
+		}
+
+		for (size_t i = 0; i < bodies.size() - 2; i += 2) {
+			for (int j = 0; j < 2; j++) {
+				const auto anchor = Vec2{ height / 2.0f - width / 2.0f, 0.0f };
+				addJoint(bodies[i + j], bodies[i + j + 2], anchor, -anchor);
+			}
+		}
+
+		for (const auto& a : bodies) {
+			for (const auto& b : bodies) {
+				if (&a != &b) {
+					collisionSystem.collisionsToIgnore.insert({ a, b });
+				}
+			}
+		}
+
+		for (size_t i = 0; i < bodies.size() - 3; i += 2) {
+			collisionSystem.collisionsToIgnore.erase({ bodies[i], bodies[i + 3] });
+		}
+
+		// Attach the endpoints to a prismatic joint?
+		for (int i = 0; i < bodies.size(); i += 2) {
+			auto b0 = ent.body.get(bodies[i + 1]);
+			const auto a = PI<float> / 10.0f;
+			const auto b = PI<float> - a;
+			b0->transform.rot = Rotation{ a };
+			auto b1 = ent.body.get(bodies[i]);
+			b1->transform.rot = Rotation{ b };
+		}
+
+	}
+
+	//ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
+	ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
 	/*const auto& [a, a_] = ent.body.create(Body{ Vec2{ 1.0f, 3.0f }, BoxCollider{ Vec2{ 1.0f } }, false });
 	const auto& [b, b_] = ent.body.create(Body{ Vec2{ 0.0f, 2.0f }, BoxCollider{ Vec2{ 1.0f } }, false });
 	ent.distanceJoint.create(DistanceJoint{ a, b, 3.0f, Vec2{ 0.2f }, Vec2{ 0.2f } });*/
@@ -87,11 +140,6 @@ Game::Game() {
 	gravity = Vec2{ 0.0f, -10.0f };
 	
 }
-
-//auto Game::detectCollisions() -> void {
-//	collisionSystem.update();
-//	collisionSystem.detectCollisions(contacts);
-//}
 
 auto Game::saveLevel() const -> Json::Value {
 	auto level = Json::Value::emptyObject();
@@ -134,12 +182,14 @@ auto Game::saveLevel() const -> Json::Value {
 
 	{
 		level["distanceJoints"] = Json::Value::emptyArray();
-		auto& joints = level["bodies"].array();
+		auto& joints = level["distanceJoints"].array();
 		for (const auto& [id, joint] : ent.distanceJoint) {
 			joints.push_back(LevelDistanceJoint{
-				.bodyAIndex = joint.bodyA.index(),
-				.bodyBIndex = joint.bodyA.index(),
-				.distance = joint.requiredDistance
+				.bodyAIndex = oldBodyIndexToNewIndex[joint.bodyA.index()],
+				.bodyBIndex = oldBodyIndexToNewIndex[joint.bodyB.index()],
+				.distance = joint.requiredDistance,
+				.anchorA = joint.anchorOnA,
+				.anchorB = joint.anchorOnB
 			}.toJson());
 		}
 	}
@@ -211,7 +261,9 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 		ent.distanceJoint.create(DistanceJoint{
 			.bodyA = *bodyA,
 			.bodyB = *bodyB,
-			.requiredDistance = levelJoint.distance
+			.requiredDistance = levelJoint.distance,
+			.anchorOnA = levelJoint.anchorA,
+			.anchorOnB = levelJoint.anchorB,
 		});
 	}
 
@@ -265,14 +317,13 @@ auto Game::drawUi() -> void {
 		}
 	}
 
-	const char* errorModalMessage = "";
+	std::optional<const char*> errorModalMessage;
 	if (BeginMainMenuBar()) {
 		if (BeginMenu("file")) {
 			if (MenuItem("open", "ctrl+o")) {
 				const auto error = openLoadLevelDialog();
 				if (error.has_value()) {
 					errorModalMessage = *error;
-					BeginPopup("error");
 				}
 			}
 			if (MenuItem("save", "ctrl+s")) {
@@ -290,7 +341,7 @@ auto Game::drawUi() -> void {
 		EndMainMenuBar();
 	}
 
-	errorPopupModal(errorModalMessage);
+	openErrorPopupModal(errorModalMessage);
 
 	End();
 
@@ -312,12 +363,13 @@ auto Game::drawUi() -> void {
 	
 
 	Begin("tool");
-	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0create body\0\0");
+	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0\0");
 
 	switch (selectedTool) {
 	case Game::Tool::GRAB: break;
 	case Game::Tool::SELECT: selectToolGui(); break;
 	case Game::Tool::DISTANCE_JOINT: break;
+	case Game::Tool::REVOLUTE_JOINT: break;
 	case Game::Tool::CREATE_BODY:
 		Combo("shape", reinterpret_cast<int*>(&selectedShape), "circle\0rectangle\0\0");
 		break;
@@ -343,7 +395,12 @@ auto Game::openLoadLevelDialog() -> std::optional<const char*> {
 	buffer << file.rdbuf();
 
 	const auto levelStr = buffer.str();
-	const auto levelJson = Json::parse(levelStr);
+	Json::Value levelJson;
+	try {
+		levelJson = Json::parse(levelStr);
+	} catch (const Json::ParsingError&) {
+		return "failed to parse level";
+	}
 	if (!loadLevel(levelJson)) {
 		return "failed to load level";
 	}
@@ -358,12 +415,17 @@ auto Game::openSaveLevelDialog() -> void {
 	}
 }
 
-auto Game::errorPopupModal(const char* message) -> void {
+auto Game::openErrorPopupModal(std::optional<const char*> message) -> void {
 	using namespace ImGui;
+	if (message.has_value()) {
+		errorPopupModalMessage = *message;
+		OpenPopup("error");
+	}
+
 	const auto center = GetMainViewport()->GetCenter();
 	SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 	if (BeginPopupModal("error", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-		TextWrapped(message);
+		TextWrapped(errorPopupModalMessage);
 		if (Button("ok", ImVec2(120, 0))) {
 			CloseCurrentPopup();
 		}
@@ -425,15 +487,14 @@ auto Game::update() -> void {
 		}
 	}
 
-	const char* errorMessage = "";
+	std::optional<const char*> errorMessage;
 	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::O)) {
 		const auto error = openLoadLevelDialog();
 		if (error.has_value()) {
 			errorMessage = *error;
-			ImGui::BeginPopup("error");
 		}
 	}
-	errorPopupModal(errorMessage);
+	openErrorPopupModal(errorMessage);
 
 	if (Input::isMouseButtonDown(MouseButton::RIGHT)) {
 		grabStart = mousePos;
@@ -483,7 +544,7 @@ auto Game::update() -> void {
 
 	selectToolUpdate(bodyUnderCursor);
 
-	if (selectedTool == Tool::DISTANCE_JOINT) {
+	if (selectedTool == Tool::DISTANCE_JOINT || selectedTool == Tool::REVOLUTE_JOINT) {
 		if (bodyUnderCursor.has_value() && Input::isMouseButtonDown(MouseButton::LEFT)) {
 			if (!distanceJointBodyA.has_value()) {
 				distanceJointBodyA = bodyUnderCursor;
@@ -495,14 +556,24 @@ auto Game::update() -> void {
 				const auto b = ent.body.get(bId);
 				const auto aAnchor = distanceJointBodyAAnchor;
 				const auto bAnchor = bodyUnderCursorPosInSelectedObjectSpace;
-				const auto distance = ::distance(a->transform.pos + aAnchor * a->transform.rot, b->transform.pos + bAnchor * b->transform.rot);
+				float distance = 0.0f;
+				if (selectedTool == Tool::DISTANCE_JOINT) {
+					distance = ::distance(a->transform.pos + aAnchor * a->transform.rot, b->transform.pos + bAnchor * b->transform.rot);
+				}
+
 				if (aId != bId && a.has_value() && b.has_value()) {
-					ent.distanceJoint.create(DistanceJoint{
+					const auto& [joint, _] = ent.distanceJoint.create(DistanceJoint{
 						aId, bId,
 						distance,
 						aAnchor, bAnchor
 					});
 					distanceJointBodyA = std::nullopt;
+
+					if (selectedTool == Tool::REVOLUTE_JOINT) {
+						BodyPair bodyPair{ aId, bId };
+						collisionSystem.collisionsToIgnore.insert(bodyPair);
+						revoluteJointsWithIgnoredCollisions.push_back(std::pair{ joint, bodyPair });
+					}
 				}
 			}
 		}
@@ -518,6 +589,15 @@ auto Game::update() -> void {
 	} else {
 		distanceJointBodyA = std::nullopt;
 	}
+
+	std::erase_if(revoluteJointsWithIgnoredCollisions, [this](const auto& it) {
+		const auto& [joint, bodyPair] = it;
+		if (!ent.distanceJoint.isAlive(joint)) {
+			collisionSystem.collisionsToIgnore.erase(bodyPair);
+			return true;
+		}
+		return false;
+	});
 
 	if (selectedTool == Tool::CREATE_BODY && Input::isMouseButtonDown(MouseButton::LEFT)) {
 		switch (selectedShape) {
@@ -591,16 +671,26 @@ auto Game::physicsStep() -> void {
 	const auto invDeltaTime = 1.0f / Time::deltaTime();
 
 	for (auto& [key, contact] : contacts) {
-		contact.preStep(*key.a, *key.b, invDeltaTime);
+		auto a = ent.body.get(key.a);
+		auto b = ent.body.get(key.b);
+		// @Performance: this and the other loop.
+		if (!a.has_value() || !b.has_value())
+			continue;
+		contact.preStep(*a, *b, invDeltaTime);
 	}
 
 	for (const auto& [_, joint] : ent.distanceJoint) {
 		joint.preStep(invDeltaTime);
 	}
 
+	// TODO: Should the constraints be solved separately from collisions?
 	for (int i = 0; i < 10; i++) {
 		for (auto& [key, contact] : contacts) {
-			contact.applyImpulse(*key.a, *key.b);
+			auto a = ent.body.get(key.a);
+			auto b = ent.body.get(key.b);
+			if (!a.has_value() || !b.has_value())
+				continue;
+			contact.applyImpulse(*a, *b);
 		}
 		for (const auto& [_, joint] : ent.distanceJoint) {
 			joint.applyImpluse();
@@ -624,11 +714,12 @@ auto Game::selectToolGui() -> void {
 				return;
 
 			auto isStatic = body->isStatic();
-			Checkbox("is static", &isStatic);
-			if (isStatic) {
-				body->makeStatic();
-			} else {
-				body->updateMass();
+			if (Checkbox("is static", &isStatic)) {
+				if (isStatic) {
+					body->makeStatic();
+				} else {
+					body->updateMass();
+				}
 			}
 		},
 		[&](const DistanceJointId& jointId) {
@@ -646,6 +737,14 @@ auto Game::selectToolUpdate(const std::optional<BodyId>& bodyUnderCursor) -> voi
 		selected = std::nullopt;
 		return;
 	} 
+
+	if (Input::isKeyDown(Keycode::DEL)) {
+		std::visit(overloaded{
+			[&](const BodyId& body) { ent.body.destroy(body); },
+			[&](const DistanceJointId& joint) { ent.distanceJoint.destroy(joint); }
+		}, *selected);
+		selected = std::nullopt;
+	}
 
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 		selected = std::nullopt;

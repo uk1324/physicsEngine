@@ -7,6 +7,7 @@
 #include <engine/input.hpp>
 #include <engine/frameAllocator.hpp>
 #include <imgui/imgui.h>
+#include <utils/io.hpp>
 
 #include <chrono>
 
@@ -90,9 +91,8 @@ auto appMain() -> int {
 
 			// Don't update with the scaled frame time so the game is deterministic.
 			static constexpr auto FRAME_TIME = 1.0f / 60.0f;
-			Time::update(FRAME_TIME);
-
 			const auto oldTimeScale = Time::timeScale;
+			Time::update(FRAME_TIME);
 			if (Time::timeScale != oldTimeScale)
 				accumulated = 0ns;
 
@@ -102,6 +102,7 @@ auto appMain() -> int {
 			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
 			
 			Renderer::updateFrameEnd();
+
 		}
 	}
 

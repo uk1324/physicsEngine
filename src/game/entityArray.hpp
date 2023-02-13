@@ -11,13 +11,14 @@ template<typename Entity>
 struct EntityArray {
 	struct Id {
 		friend EntityArray;
-		Id() : index_{ 0xCDCDCDCD }, version{ 0xCDCDCDCD } {}
+		Id() : index_{ 0xCDCDCDCD }, version_{ 0xCDCDCDCD } {}
 		auto operator==(const Id&) const -> bool = default;
 		auto index() const -> i32;
+		auto version() const -> i32;
 	private:
-		Id(u32 index, u32 version) : index_{ index }, version{ version } {}
+		Id(u32 index, u32 version) : index_{ index }, version_{ version } {}
 		u32 index_;
-		u32 version;
+		u32 version_;
 	};
 
 	struct Pair {
@@ -68,6 +69,21 @@ public:
 	auto entitiesAddedLastFrame() const -> const std::vector<Id>& { return entitiesAddedLastFrame_; }
 };
 
+namespace std {
+
+template<typename Entity>
+// For some reason it doesn't work if you put EntityArray<Entity>::Id as the specialization (typename doesn't help), but it does work if you just put anything in here so I put EntityArray<Entity>.
+struct hash<EntityArray<Entity>> {
+	using argument_type = typename EntityArray<Entity>::Id;
+	using result_type = size_t;
+
+	result_type operator ()(const argument_type& key) const {
+		return std::hash<i32>()(key.index()) * std::hash<i32>()(key.index());
+	}
+};
+
+}
+
 template<typename Entity>
 auto EntityArray<Entity>::update() -> void {
 	ASSERT(entities.size() == entityVersions.size());
@@ -82,7 +98,7 @@ auto EntityArray<Entity>::update() -> void {
 			return;
 		}
 
-		if (id.version != entityVersions[id.index_]) {
+		if (id.version_ != entityVersions[id.index_]) {
 			// Should double free be an error?
 			ASSERT_NOT_REACHED();
 			return;
@@ -102,7 +118,7 @@ auto EntityArray<Entity>::get(const Id& id) -> std::optional<Entity&> {
 		return std::nullopt;
 	}
 
-	if (id.version != entityVersions[id.index_]) {
+	if (id.version_ != entityVersions[id.index_]) {
 		return std::nullopt;
 	}
 
@@ -237,4 +253,9 @@ auto EntityArray<Entity>::Iterator::operator*() -> Pair {
 template<typename Entity>
 auto EntityArray<Entity>::Id::index() const -> i32 {
 	return index_;
+}
+
+template<typename Entity>
+auto EntityArray<Entity>::Id::version() const -> i32 {
+	return version_;
 }

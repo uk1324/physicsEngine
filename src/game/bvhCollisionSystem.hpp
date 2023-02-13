@@ -27,7 +27,7 @@ public:
 
 	auto raycast(Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;
 
-	//std::unordered_set<BodyPair> collisionsToIgnore;
+	std::unordered_set<BodyPair, BodyPairHasher> collisionsToIgnore;
 
 private:
 	auto raycastHelper(u32 nodeIndex, Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;

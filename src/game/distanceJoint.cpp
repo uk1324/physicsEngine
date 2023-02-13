@@ -106,7 +106,7 @@ auto DistanceJoint::getEndpoints() const -> std::array<Vec2, 2> {
 	const auto a = ent.body.get(bodyA);
 	const auto b = ent.body.get(bodyB);
 	if (!a.has_value() || !b.has_value()) {
-		ASSERT_NOT_REACHED();
+		//ASSERT_NOT_REACHED();
 		return { Vec2{ 0.0f }, Vec2{ 0.0f } };
 	}
 

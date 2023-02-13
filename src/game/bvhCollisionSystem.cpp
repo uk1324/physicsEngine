@@ -17,8 +17,7 @@ auto BvhCollisionSystem::update() -> void {
 	for (const auto& node : nodesToRemove) {
 		removeLeafNode(node);
 		freeNode(node);
-		// @Performance: Order doesn't matter so could use swap and pop.
-		std::erase(freeNodes, node);
+		std::erase(leafNodes, node);
 	}
 
 	for (const auto& nodeIndex : leafNodes) {
@@ -33,7 +32,6 @@ auto BvhCollisionSystem::update() -> void {
 		if (body->isStatic())
 			continue;
 
-		/*const auto updatedAabb = aabb(body->collider, body->transform.pos, body->orientation);*/
 		const auto updatedAabb = aabb(body->collider, body->transform);
 		if (!(node.aabb.contains(updatedAabb.min) && node.aabb.contains(updatedAabb.max))) {
 			if (leafNodes.size() == 1) {
@@ -162,11 +160,26 @@ auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB)
 		if (aBody->isStatic() && bBody->isStatic())
 			return;
 
+		BodyPair key{ a.body, b.body };
+
+		if (collisionsToIgnore.contains(key))
+			return;
+
 		if (a.aabb.collides(b.aabb)) {
-			BodyPair key{ &*aBody, &*bBody };
-			if (auto collision = ::collide(key.a->transform, key.a->collider, key.b->transform, key.b->collider); collision.has_value()) {
+
+			Body* keyA;
+			Body* keyB;
+			// If the body pair swapped the ids then also swap the order so the collision normal and other things point in the correct direction.
+			if (key.a == a.body) {
+				keyA = &*aBody;
+				keyB = &*bBody;
+			} else {
+				keyA = &*bBody;
+				keyB = &*aBody;
+			}
+			if (auto collision = ::collide(keyA->transform, keyA->collider, keyB->transform, keyB->collider); collision.has_value()) {
 				// TODO: Move this into some function or constructor probably when making a better collision system.
-				collision->coefficientOfFriction = sqrt(key.a->coefficientOfFriction * key.b->coefficientOfFriction);
+				collision->coefficientOfFriction = sqrt(keyA->coefficientOfFriction * keyB->coefficientOfFriction);
 				collisions[key] = *collision;
 			}
 		}
@@ -290,7 +303,7 @@ auto BvhCollisionSystem::insertHelper(u32 parentNode, u32 nodeToInsert) -> u32 {
 	}
 }
 
-// Doesn't free the node.
+// Doesn't free the node and doesn't remove the node from leaf nodes. This is because this function is also used to remove and reinsert nodes.
 auto BvhCollisionSystem::removeLeafNode(u32 nodeToRemove) -> void {
 	if (nodeToRemove == rootNode) {
 		rootNode = NULL_NODE;

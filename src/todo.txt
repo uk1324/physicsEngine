@@ -96,3 +96,6 @@ Drawing polygons.
 Revolute joints.
 Spring joints.
 Collision groups
+
+Website that allows uploading and loading levels. The opening levels could be something like in Roblox. Uploading could be either done using the website or built in uploader which uses an api for uploading levels? The uploading from the program would also need a login system.
+Should thumbnails be rendered on the client or server side?

@@ -453,6 +453,9 @@
     <ClInclude Include="src\demos\marchingSquaresDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\utils\pairHash.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\engine\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />

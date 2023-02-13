@@ -56,6 +56,8 @@ auto LevelDistanceJoint::toJson() const -> Json::Value {
 	result["bodyAIndex"] = Json::Value(bodyAIndex);
 	result["bodyBIndex"] = Json::Value(bodyBIndex);
 	result["distance"] = Json::Value(distance);
+	result["anchorA"] = { { "x", anchorA.x }, { "y", anchorA.y } };
+	result["anchorB"] = { { "x", anchorB.x }, { "y", anchorB.y } };
 	return result;
 }
 
@@ -64,6 +66,8 @@ auto LevelDistanceJoint::fromJson(const Json::Value& json) -> LevelDistanceJoint
 		.bodyAIndex = json.at("bodyAIndex").intNumber(),
 		.bodyBIndex = json.at("bodyBIndex").intNumber(),
 		.distance = json.at("distance").number(),
+		.anchorA = Vec2{ json.at("anchorA").at("x").number(), json.at("anchorA").at("y").number() },
+		.anchorB = Vec2{ json.at("anchorB").at("x").number(), json.at("anchorB").at("y").number() },
 	};
 }
 

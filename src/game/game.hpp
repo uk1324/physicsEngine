@@ -62,14 +62,14 @@ class Game {
 public:
 	Game();
 
-	auto detectCollisions() -> void;
 	auto saveLevel() const -> Json::Value;
 	auto saveLevelToFile(std::string_view path) -> void;
 	[[nodiscard]] auto loadLevel(const Json::Value& level) -> bool;
 	auto drawUi() -> void;
 	auto openLoadLevelDialog() -> std::optional<const char*>;
 	auto openSaveLevelDialog() -> void;
-	auto errorPopupModal(const char* message) -> void;
+	const char* errorPopupModalMessage = "";
+	auto openErrorPopupModal(std::optional<const char*> message) -> void;
 	auto update() -> void;
 	auto physicsStep() -> void;
 
@@ -83,6 +83,7 @@ public:
 		GRAB,
 		SELECT,
 		DISTANCE_JOINT,
+		REVOLUTE_JOINT,
 		CREATE_BODY,
 	};
 	Tool selectedTool = Tool::GRAB;
@@ -100,6 +101,8 @@ public:
 
 	std::optional<BodyId> distanceJointBodyA;
 	Vec2 distanceJointBodyAAnchor;
+
+	std::vector<std::pair<DistanceJointId, BodyPair>> revoluteJointsWithIgnoredCollisions;
 
 	enum class BodyShape {
 		CIRCLE, RECTANGLE
