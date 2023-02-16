@@ -37,7 +37,7 @@ auto HexagonalPyramid::load() -> void {
 		}
 
 		if (i == pyramidHeight) {
-			for (int j = 0; j < bodies.size() - 1; j++) {
+			for (size_t j = 0; j < bodies.size() - 1; j++) {
 				ent.distanceJoint.create(DistanceJoint{ bodies[j], bodies[j + 1], radius + radius / 4.0f, Vec2{ 0.0f }, Vec2{ 0.0f } });
 			}
 		}

@@ -6,7 +6,14 @@
 #include <game/collisionSystem.hpp>
 
 #include <vector>
+
 #include <unordered_set>
+// TODO:
+// spatial hashing / bucketing
+// inactive flag on objects
+
+// The exact number of collisions pairs checked in the O(n^2) broadphase is choose(n, 2).
+// choose(n, 2) = n * (n - 1) / 2 = n^2 - n / 2. Taking the limit as n goes to infinity you just get n^2 / 2
 
 class BvhCollisionSystem {
 public:

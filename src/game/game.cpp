@@ -15,13 +15,6 @@
 #include <engine/frameAllocator.hpp>
 #include <customImguiWidgets.hpp>
 
-// spatial hashing / bucketing
-// inactive flag on objects
-
-// The exact number of collisions pairs checked in the O(n^2) broadphase is choose(n, 2).
-// choose(n, 2) = n * (n - 1) / 2 = n^2 - n / 2. Taking the limit as n goes to infinity you just get n^2 / 2
-
-
 #include <sstream>
 #include <utils/io.hpp>
 #include <json/Json.hpp>
@@ -31,6 +24,8 @@
 #include <game/demos/doubleDominoDemo.hpp>
 #include <game/demos/hexagonalPyramidDemo.hpp>
 #include <game/demos/scissorsMechanismDemo.hpp>
+
+#include <filesystem>
 
 Game::Game() {
 #define DEMO(type) demos.push_back(std::make_unique<type>());
@@ -49,7 +44,31 @@ Game::Game() {
 	Input::registerKeyButton(Keycode::D, GameButton::SELECT_DISTANCE_JOINT_TOOL);
 	Input::registerKeyButton(Keycode::SHIFT, GameButton::SNAP_TO_IMPORTANT_FEATURES);
 	Window::maximize();
-	
+
+	std::ifstream lastLoadedInfo{ lastLoadedLevelInfoPath };
+	std::string type;
+	std::getline(lastLoadedInfo, type);
+	bool loadedOldLevel = false;
+	if (type == "demo") {
+		std::string name;
+		std::getline(lastLoadedInfo, name);
+		for (auto& demo : demos) {
+			if (demo->name() == name) {
+				loadDemo(*demo.get());
+				loadedOldLevel = true;
+			}
+		}
+	} else if (type == "level_path") {
+		std::string path;
+		std::getline(lastLoadedInfo, path);
+		if (!loadLevelFromFile(path.data()).has_value()) {
+			loadedOldLevel = true;
+		}
+	} 
+
+	if (!loadedOldLevel) {
+		ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
+	}
 }
 
 auto Game::saveLevel() const -> Json::Value {
@@ -154,7 +173,6 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 			}
 		}
 	} catch (const Json::JsonError&) {
-		ASSERT_NOT_REACHED();
 		goto error;
 	}
 
@@ -209,10 +227,39 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 	return false;
 }
 
+auto Game::loadLevelFromFile(const char* path) -> std::optional<const char*> {
+	const std::ifstream file{ path, std::ios_base::binary };
+	if (file.fail()) {
+		return "failed to open file";
+	}
+
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+
+	const auto levelStr = buffer.str();
+	Json::Value levelJson;
+	try {
+		levelJson = Json::parse(levelStr);
+	} catch (const Json::ParsingError&) {
+		return "failed to parse level";
+	}
+	if (!loadLevel(levelJson)) {
+		return "failed to load level";
+	}
+
+	std::ofstream info{ lastLoadedLevelInfoPath };
+	info << "level_path\n";
+	info << path;
+	return std::nullopt;
+}
+
 auto Game::loadDemo(Demo& demo) -> void {
 	resetLevel();
 	demo.load();
 	loadedDemo = demo;
+	std::ofstream info{ lastLoadedLevelInfoPath };
+	info << "demo\n";
+	info << loadedDemo->name();
 }
 
 auto Game::drawUi() -> void {
@@ -262,13 +309,12 @@ auto Game::drawUi() -> void {
 	End();
 
 
-	std::optional<const char*> errorModalMessage;
 	if (BeginMainMenuBar()) {
 		if (BeginMenu("file")) {
 			if (MenuItem("open", "ctrl+o")) {
 				const auto error = openLoadLevelDialog();
 				if (error.has_value()) {
-					errorModalMessage = *error;
+					openErrorPopupModal(*error);
 				}
 			}
 			if (MenuItem("save", "ctrl+s")) {
@@ -286,9 +332,7 @@ auto Game::drawUi() -> void {
 		if (BeginMenu("demos")) {
 			for (auto& demo : demos) {
 				if (MenuItem(demo->name())) {
-					resetLevel();
-					demo->load();
-					loadedDemo = *demo.get();
+					loadDemo(*demo.get());
 				}
 			}
 
@@ -297,7 +341,6 @@ auto Game::drawUi() -> void {
 		EndMainMenuBar();
 	}
 
-	openErrorPopupModal(errorModalMessage);
 
 	if (loadedDemo.has_value()) {
 		Begin("demo");
@@ -347,17 +390,17 @@ auto Game::drawUi() -> void {
 					const auto toMs = 1000.0f;
 					Text("%.2f", time / (Time::deltaTime() * toMs));
 				} else {
-					Text("%.2f", time / profile.total);
+					Text("%.2f", time / physicsProfile.total);
 				}
 				rowIndex++;
 			};
-			row("collideTotal", profile.collideTotal);
-			row("colliderUpdateBvh", profile.collideUpdateBvh);
-			row("collideDetectCollisions", profile.collideDetectCollisions);
-			row("solveTotal", profile.solveTotal);
-			row("solvePrestep", profile.solvePrestep);
-			row("solveVelocities", profile.solveVelocities);
-			row("total", profile.total);
+			row("collideTotal", physicsProfile.collideTotal);
+			row("colliderUpdateBvh", physicsProfile.collideUpdateBvh);
+			row("collideDetectCollisions", physicsProfile.collideDetectCollisions);
+			row("solveTotal", physicsProfile.solveTotal);
+			row("solvePrestep", physicsProfile.solvePrestep);
+			row("solveVelocities", physicsProfile.solveVelocities);
+			row("total", physicsProfile.total);
 
 			EndTable();
 		}
@@ -378,34 +421,18 @@ auto Game::drawUi() -> void {
 	}
 
 	End();
+
+	displayErrorPopupModal();
 }
+
+#include <filesystem>
 
 auto Game::openLoadLevelDialog() -> std::optional<const char*> {
 	const auto path = ImGui::openFileSelect();
 	if (!path.has_value()) {
 		return std::nullopt;
 	}
-
-	const std::ifstream file{ path->data(), std::ios_base::binary };
-	if (file.fail()) {
-		return "failed to open file";
-	} 
-
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-
-	const auto levelStr = buffer.str();
-	Json::Value levelJson;
-	try {
-		levelJson = Json::parse(levelStr);
-	} catch (const Json::ParsingError&) {
-		return "failed to parse level";
-	}
-	if (!loadLevel(levelJson)) {
-		return "failed to load level";
-	}
-
-	return std::nullopt;
+	return loadLevelFromFile(path->data());
 }
 
 auto Game::openSaveLevelDialog() -> void {
@@ -415,11 +442,16 @@ auto Game::openSaveLevelDialog() -> void {
 	}
 }
 
-auto Game::openErrorPopupModal(std::optional<const char*> message) -> void {
+auto Game::openErrorPopupModal(const char* message) -> void {
+	errorPopupModalMessage = message;
+	openErrorPopup = true;
+}
+
+auto Game::displayErrorPopupModal() -> void {
 	using namespace ImGui;
-	if (message.has_value()) {
-		errorPopupModalMessage = *message;
+	if (openErrorPopup) {
 		OpenPopup("error");
+		openErrorPopup = false;
 	}
 
 	const auto center = GetMainViewport()->GetCenter();
@@ -487,14 +519,12 @@ auto Game::update() -> void {
 		}
 	}
 
-	std::optional<const char*> errorMessage;
 	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::O)) {
 		const auto error = openLoadLevelDialog();
 		if (error.has_value()) {
-			errorMessage = *error;
+			openErrorPopupModal(*error);
 		}
 	}
-	openErrorPopupModal(errorMessage);
 
 	if (Input::isMouseButtonDown(MouseButton::RIGHT)) {
 		grabStart = cursorPos;
@@ -612,13 +642,13 @@ auto Game::update() -> void {
 	// The collisions system has to be updated because even if the physics isn't updated, because it registres new entities.
 	collisionSystem.update();
 	if (doPhysicsUpdate) {
-		profile = PhysicsProfile{};
+		physicsProfile = PhysicsProfile{};
 		Timer timer;
 		const auto substepLength = Time::deltaTime() / physicsSubsteps;
 		for (i32 i = 0; i < physicsSubsteps; i++) {
-			physicsStep(substepLength, physicsSolverIterations, profile);
+			physicsStep(substepLength, physicsSolverIterations, physicsProfile);
 		}
-		profile.total = timer.elapsedMilliseconds();
+		physicsProfile.total = timer.elapsedMilliseconds();
 	}
 
 	for (const auto& [_, body] : ent.body) {

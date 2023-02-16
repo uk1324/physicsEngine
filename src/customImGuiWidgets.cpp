@@ -9,8 +9,12 @@
 
 using namespace ImGui;
 
+#include <filesystem>
+
+#include <utils/io.hpp>
 auto ImGui::openFileSelect() -> std::optional<std::string_view> {
 	static char path[MIN_FILE_SELECT_STRING_LENGTH] = "";
+	dbg(std::filesystem::current_path());
 	OPENFILENAMEA openFile{
 		.lStructSize = sizeof(OPENFILENAMEA),
 		.hwndOwner = reinterpret_cast<HWND>(Window::hWnd()),
@@ -25,6 +29,7 @@ auto ImGui::openFileSelect() -> std::optional<std::string_view> {
 	};
 
 	if (GetOpenFileNameA(&openFile)) {
+		dbg(std::filesystem::current_path());
 		return path;
 	} else {
 		ASSERT(CommDlgExtendedError() == 0);

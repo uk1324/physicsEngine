@@ -6,6 +6,8 @@
 #include <game/physicsProfile.hpp>
 #include <game/demo.hpp>
 
+#include <filesystem>
+
 // TODO: Replay system. Mouse position would need to be either saved in world space or later transformed by the camera transform. Could store 2 camera transforms one for the actual camera and the replay camera.
 
 // Entites in the editor have to be polymorphic. Can't use inheritance because the pointers might get invalidated
@@ -66,13 +68,19 @@ public:
 
 	auto saveLevel() const -> Json::Value;
 	auto saveLevelToFile(std::string_view path) -> void;
+	// Creating the path at runtime because some functions change the current working directory. For example GetOpenFileNameA.
+	std::string lastLoadedLevelInfoPath = (std::filesystem::current_path() / "data.txt").string();
 	[[nodiscard]] auto loadLevel(const Json::Value& level) -> bool;
+	auto loadLevelFromFile(const char* path) -> std::optional<const char*>;
 	auto loadDemo(Demo& demo) -> void;
 	auto drawUi() -> void;
 	auto openLoadLevelDialog() -> std::optional<const char*>;
 	auto openSaveLevelDialog() -> void;
+	// This is split into 2 function like this so the popup with the name error is only opened in one place of the code which means there can only be one at a time. This allows calling openErrorPopupModal from anywhere.
 	const char* errorPopupModalMessage = "";
-	auto openErrorPopupModal(std::optional<const char*> message) -> void;
+	bool openErrorPopup = false;
+	auto openErrorPopupModal(const char* message) -> void;
+	auto displayErrorPopupModal() -> void;
 	auto update() -> void;
 	auto physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void;
 	auto resetLevel() -> void;
@@ -126,7 +134,7 @@ public:
 	bool scaleContactNormals = false;
 	bool doASingleStep = false;
 
-	PhysicsProfile profile;
+	PhysicsProfile physicsProfile;
 	int profileUnitsIndex = 0;
 
 	int physicsSolverIterations = 10;
