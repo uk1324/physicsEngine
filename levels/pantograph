@@ -1,0 +1,273 @@
+{
+    "gravity": {
+        "x": 0,
+        "y": 0
+    },
+    "bodies": [
+        {
+            "mass": 400,
+            "orientation": -0.66131,
+            "pos": {
+                "x": -12.1084,
+                "y": 7.39706
+            },
+            "vel": {
+                "x": 0.428841,
+                "y": -0.105602
+            },
+            "rotationalInertia": 133.333,
+            "angularVel": -0.0735343,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 0.5
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 400,
+            "orientation": 0.707248,
+            "pos": {
+                "x": -12.1084,
+                "y": 7.39706
+            },
+            "vel": {
+                "x": 0.428842,
+                "y": -0.105607
+            },
+            "rotationalInertia": 133.333,
+            "angularVel": 0.234532,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 0.5
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 400,
+            "orientation": 0.707246,
+            "pos": {
+                "x": -9.39713,
+                "y": 7.45936
+            },
+            "vel": {
+                "x": 0.0832022,
+                "y": 0.105108
+            },
+            "rotationalInertia": 133.333,
+            "angularVel": 0.234623,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 0.5
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 400,
+            "orientation": -0.661365,
+            "pos": {
+                "x": -9.39714,
+                "y": 7.45934
+            },
+            "vel": {
+                "x": 0.0832292,
+                "y": 0.1051
+            },
+            "rotationalInertia": 133.333,
+            "angularVel": -0.073521,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 0.5
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": 0,
+                "y": -50
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 200,
+                        "y": 100
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -8.25,
+                "y": 6.33681
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 1,
+                        "y": 1.21667
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        }
+    ],
+    "distanceJoints": [
+        {
+            "bodyAIndex": 1,
+            "bodyBIndex": 0,
+            "anchorB": {
+                "x": 0,
+                "y": 0
+            },
+            "distance": 0,
+            "anchorA": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        {
+            "bodyAIndex": 3,
+            "bodyBIndex": 2,
+            "anchorB": {
+                "x": 0,
+                "y": 0
+            },
+            "distance": 0,
+            "anchorA": {
+                "x": 0,
+                "y": 0
+            }
+        },
+        {
+            "bodyAIndex": 0,
+            "bodyBIndex": 2,
+            "anchorB": {
+                "x": -1.75,
+                "y": 0
+            },
+            "distance": 0,
+            "anchorA": {
+                "x": 1.75,
+                "y": 0
+            }
+        },
+        {
+            "bodyAIndex": 1,
+            "bodyBIndex": 3,
+            "anchorB": {
+                "x": -1.75,
+                "y": 0
+            },
+            "distance": 0,
+            "anchorA": {
+                "x": 1.75,
+                "y": 0
+            }
+        },
+        {
+            "bodyAIndex": 3,
+            "bodyBIndex": 5,
+            "anchorB": {
+                "x": 0.283334,
+                "y": -0.0118055
+            },
+            "distance": 0,
+            "anchorA": {
+                "x": 1.82564,
+                "y": -0.0165617
+            }
+        }
+    ],
+    "trails": [
+        {
+            "bodyIndex": 0,
+            "anchor": {
+                "x": 1.682,
+                "y": 0.039501
+            },
+            "color": {
+                "x": 1,
+                "y": 0,
+                "z": 0
+            },
+            "maxHistorySize": 200
+        },
+        {
+            "bodyIndex": 1,
+            "anchor": {
+                "x": -1.89505,
+                "y": -0.00479871
+            },
+            "color": {
+                "x": 0.0427046,
+                "y": 1,
+                "z": 0.335684
+            },
+            "maxHistorySize": 200
+        }
+    ],
+    "ignoredCollisions": [
+        {
+            "bodyAIndex": 1,
+            "bodyBIndex": 3
+        },
+        {
+            "bodyAIndex": 3,
+            "bodyBIndex": 5
+        },
+        {
+            "bodyAIndex": 0,
+            "bodyBIndex": 1
+        },
+        {
+            "bodyAIndex": 1,
+            "bodyBIndex": 2
+        },
+        {
+            "bodyAIndex": 0,
+            "bodyBIndex": 2
+        },
+        {
+            "bodyAIndex": 2,
+            "bodyBIndex": 3
+        }
+    ]
+}

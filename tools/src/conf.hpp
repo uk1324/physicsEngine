@@ -21,6 +21,7 @@ enum class FieldTypeType {
 	FLOAT,
 	I32,
 	VEC2,
+	VEC3,
 	USIZE,
 	CPP,
 	ANGLE,

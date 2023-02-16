@@ -71,6 +71,24 @@ auto LevelDistanceJoint::fromJson(const Json::Value& json) -> LevelDistanceJoint
 	};
 }
 
+auto LevelTrail::toJson() const -> Json::Value {
+	auto result = Json::Value::emptyObject();
+	result["bodyIndex"] = Json::Value(bodyIndex);
+	result["anchor"] = { { "x", anchor.x }, { "y", anchor.y } };
+	result["color"] = { { "x", color.x }, { "y", color.y }, { "z", color.z } };
+	result["maxHistorySize"] = Json::Value(maxHistorySize);
+	return result;
+}
+
+auto LevelTrail::fromJson(const Json::Value& json) -> LevelTrail {
+	return LevelTrail{
+		.bodyIndex = json.at("bodyIndex").intNumber(),
+		.anchor = Vec2{ json.at("anchor").at("x").number(), json.at("anchor").at("y").number() },
+		.color = Vec3{ json.at("color").at("x").number(), json.at("color").at("y").number(), json.at("color").at("z").number() },
+		.maxHistorySize = json.at("maxHistorySize").intNumber(),
+	};
+}
+
 auto LevelIgnoredCollision::toJson() const -> Json::Value {
 	auto result = Json::Value::emptyObject();
 	result["bodyAIndex"] = Json::Value(bodyAIndex);

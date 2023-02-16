@@ -278,6 +278,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\game\trail.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\gfx\gfx.cpp" />
     <ClCompile Include="src\appMain.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -453,6 +457,7 @@
     <ClInclude Include="src\game\demo.hpp" />
     <ClInclude Include="src\game\levelFormat\levelData.hpp" />
     <ClInclude Include="src\game\physicsProfile.hpp" />
+    <ClInclude Include="src\game\trail.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
     <ClInclude Include="src\math\bits.hpp" />
     <ClInclude Include="src\math\collision.hpp" />
@@ -492,6 +497,7 @@
     <ClInclude Include="src\utils\refOptional.hpp" />
     <ClInclude Include="src\utils\span.hpp" />
     <ClInclude Include="src\utils\staticVec.hpp" />
+    <ClInclude Include="src\utils\swapAndPop.hpp" />
     <ClInclude Include="src\utils\timer.hpp" />
     <ClInclude Include="src\winUtils.hpp" />
     <ClInclude Include="thirdParty\imgui\imconfig.h" />

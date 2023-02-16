@@ -44,6 +44,13 @@ LevelDistanceJoint @Serialize {
 	Vec2 anchorB;
 }
 
+LevelTrail @Serialize {
+	i32 bodyIndex;
+	Vec2 anchor;
+	Vec3 color;
+	i32 maxHistorySize;
+}
+
 LevelIgnoredCollision @Serialize {
 	i32 bodyAIndex;
 	i32 bodyBIndex;

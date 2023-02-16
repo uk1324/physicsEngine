@@ -83,6 +83,7 @@ public:
 	auto displayErrorPopupModal() -> void;
 	auto update() -> void;
 	auto physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void;
+	auto draw() -> void;
 	auto resetLevel() -> void;
 
 	std::optional<std::string> lastSavedLevelPath;
@@ -95,6 +96,7 @@ public:
 		DISTANCE_JOINT,
 		REVOLUTE_JOINT,
 		CREATE_BODY,
+		TRAIL
 	};
 	Tool selectedTool = Tool::GRAB;
 	bool selectingJointTool = false;
@@ -106,7 +108,7 @@ public:
 	auto selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnderCursor) -> void;
 	auto selectToolDraw() -> void;
 
-	using Entity = std::variant<BodyId, DistanceJointId>;
+	using Entity = std::variant<BodyId, DistanceJointId, TrailId>;
 	std::optional<Entity> selected;
 
 	std::optional<BodyId> distanceJointBodyA;

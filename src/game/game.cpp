@@ -125,11 +125,23 @@ auto Game::saveLevel() const -> Json::Value {
 	}
 
 	{
+		auto& trails = (level["trails"] = Json::Value::emptyArray()).array();
+		for (const auto& [id, trail] : ent.trail) {
+			trails.push_back(LevelTrail{
+				.bodyIndex = oldBodyIndexToNewIndex[trail.body.index()],
+				.anchor = trail.anchor,
+				.color = trail.color,
+				.maxHistorySize = trail.maxHistorySize,
+			}.toJson());
+		}
+	}
+
+	{
 		auto& ignoredCollisions = (level["ignoredCollisions"] = Json::Value::emptyArray()).array();
 		for (const auto& ignoredCollision : ent.collisionsToIgnore) {
 			ignoredCollisions.push_back(LevelIgnoredCollision{
 				.bodyAIndex = oldBodyIndexToNewIndex[ignoredCollision.a.index()],
-				.bodyBIndex = oldBodyIndexToNewIndex[ignoredCollision.a.index()],
+				.bodyBIndex = oldBodyIndexToNewIndex[ignoredCollision.b.index()],
 			}.toJson());
 		}
 	}
@@ -140,6 +152,9 @@ auto Game::saveLevelToFile(std::string_view path) -> void {
 	std::ofstream file{ path.data() };
 	const auto levelJson = saveLevel();
 	Json::prettyPrint(file, levelJson);
+	std::ofstream info{ lastLoadedLevelInfoPath };
+	info << "level_path\n";
+	info << path;
 }
 
 auto Game::loadLevel(const Json::Value& level) -> bool {
@@ -152,6 +167,7 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 	std::vector<LevelBody> levelBodies;
 	std::vector<LevelDistanceJoint> levelDistanceJoints;
 	std::vector<LevelIgnoredCollision> levelIgnoredCollisions;
+	std::vector<LevelTrail> levelTrails;
 	try {
 		levelGravity = vec2FromJson(level.at("gravity"));;
 		{
@@ -170,6 +186,13 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 			const auto& ignoredCollisions = level.at("ignoredCollisions").array();
 			for (const auto& ignoredCollision : ignoredCollisions) {
 				levelIgnoredCollisions.push_back(LevelIgnoredCollision::fromJson(ignoredCollision));
+			}
+		}
+
+		if (level.contains("trails")) {
+			const auto& trails = level.at("trails").array();
+			for (const auto& trail : trails) {
+				levelTrails.push_back(LevelTrail::fromJson(trail));
 			}
 		}
 	} catch (const Json::JsonError&) {
@@ -208,6 +231,19 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 			.requiredDistance = levelJoint.distance,
 			.anchorOnA = levelJoint.anchorA,
 			.anchorOnB = levelJoint.anchorB,
+		});
+	}
+
+	for (const auto& levelTrail : levelTrails) {
+		const auto body = ent.body.validate(levelTrail.bodyIndex);
+		if (!body.has_value()) {
+			goto error;
+		}
+		ent.trail.create(Trail{
+			.body = *body,
+			.anchor = levelTrail.anchor,
+			.color = levelTrail.color,
+			.maxHistorySize = levelTrail.maxHistorySize,
 		});
 	}
 
@@ -311,6 +347,10 @@ auto Game::drawUi() -> void {
 
 	if (BeginMainMenuBar()) {
 		if (BeginMenu("file")) {
+			if (MenuItem("new")) {
+				resetLevel();
+				ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
+			}
 			if (MenuItem("open", "ctrl+o")) {
 				const auto error = openLoadLevelDialog();
 				if (error.has_value()) {
@@ -408,7 +448,7 @@ auto Game::drawUi() -> void {
 	}
 
 	Begin("tool");
-	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0\0");
+	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0trail\0\0");
 
 	switch (selectedTool) {
 	case Game::Tool::GRAB: break;
@@ -418,6 +458,7 @@ auto Game::drawUi() -> void {
 	case Game::Tool::CREATE_BODY:
 		Combo("shape", reinterpret_cast<int*>(&selectedShape), "circle\0rectangle\0\0");
 		break;
+	case Game::Tool::TRAIL: break;
 	}
 
 	End();
@@ -631,12 +672,13 @@ auto Game::update() -> void {
 		}
 	}
 
-	auto doPhysicsUpdate = false;
+	if (selectedTool == Tool::TRAIL && Input::isMouseButtonDown(MouseButton::LEFT) && bodyUnderCursor.has_value()) {
+		ent.trail.create(Trail{ .body = *bodyUnderCursor, .anchor = bodyUnderCursorPosInSelectedObjectSpace });
+	}
+
+	auto doPhysicsUpdate = updatePhysics || doASingleStep;
 	if (doASingleStep) {
-		doPhysicsUpdate = true;
 		doASingleStep = false;
-	} else if (updatePhysics) {
-		doPhysicsUpdate = true;
 	}
 
 	// The collisions system has to be updated because even if the physics isn't updated, because it registres new entities.
@@ -647,42 +689,29 @@ auto Game::update() -> void {
 		const auto substepLength = Time::deltaTime() / physicsSubsteps;
 		for (i32 i = 0; i < physicsSubsteps; i++) {
 			physicsStep(substepLength, physicsSolverIterations, physicsProfile);
-		}
-		physicsProfile.total = timer.elapsedMilliseconds();
-	}
 
-	for (const auto& [_, body] : ent.body) {
-		Debug::drawCollider(body.collider, body.transform.pos, body.transform.angle());
-	}
-
-	if (drawContacts) {
-		for (const auto& [_, collision] : contacts) {
-			for (i32 i = 0; i < collision.contactCount; i++) {
-				const auto& contact = collision.contacts[i];
-				const auto scale = scaleContactNormals ? contact.separation : 0.1f;
-				Debug::drawRay(contact.pos, -collision.normal * scale, Vec3::RED);
+			if (selectedTool == Tool::GRAB && grabbed.has_value()) {
+				auto body = ent.body.get(*grabbed);
+				if (body.has_value()) {
+					const auto offsetUprightSpace = grabPointInGrabbedObjectSpace * body->transform.rot;
+					const auto fromMouseToObject = cursorPos - (body->transform.pos + offsetUprightSpace);
+					body->force = -body->vel / (Time::deltaTime() * 2.0f) * body->mass;
+					body->force += fromMouseToObject / pow(Time::deltaTime(), 2.0f) * body->mass / 10.0f;
+					body->torque = det(offsetUprightSpace, body->force);
+				} else {
+					grabbed = std::nullopt;
+				}
 			}
 		}
+		physicsProfile.total = timer.elapsedMilliseconds();
+
+		// Update trail after physics to get the most up to date position.
+		for (const auto& [_, trail] : ent.trail) {
+			trail.update();
+		}
 	}
 
-	switch (selectedTool) {
-	case Game::Tool::GRAB:
-		break;
-	case Game::Tool::SELECT:
-		selectToolDraw();
-		break;
-	case Game::Tool::DISTANCE_JOINT:
-		break;
-	case Game::Tool::REVOLUTE_JOINT:
-		break;
-	case Game::Tool::CREATE_BODY:
-		break;
-	}
-
-	for (const auto& [_, joint] : ent.distanceJoint) {
-		const auto endpoints = joint.getEndpoints();
-		Debug::drawRay(endpoints[0], (endpoints[1] - endpoints[0]).normalized() * joint.requiredDistance);
-	}
+	draw();
 
 	Renderer::update(camera);
 }
@@ -762,6 +791,47 @@ auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) 
 	}
 }
 
+auto Game::draw() -> void {
+	for (const auto& [_, body] : ent.body) {
+		Debug::drawCollider(body.collider, body.transform.pos, body.transform.angle());
+	}
+
+	if (drawContacts) {
+		for (const auto& [_, collision] : contacts) {
+			for (i32 i = 0; i < collision.contactCount; i++) {
+				const auto& contact = collision.contacts[i];
+				const auto scale = scaleContactNormals ? contact.separation : 0.1f;
+				Debug::drawRay(contact.pos, -collision.normal * scale, Vec3::RED);
+			}
+		}
+	}
+
+	switch (selectedTool) {
+	case Game::Tool::GRAB:
+		break;
+	case Game::Tool::SELECT:
+		selectToolDraw();
+		break;
+	case Game::Tool::DISTANCE_JOINT:
+		break;
+	case Game::Tool::REVOLUTE_JOINT:
+		break;
+	case Game::Tool::CREATE_BODY:
+		break;
+	case Game::Tool::TRAIL:
+		break;
+	}
+
+	for (const auto& [_, joint] : ent.distanceJoint) {
+		const auto endpoints = joint.getEndpoints();
+		Debug::drawRay(endpoints[0], (endpoints[1] - endpoints[0]).normalized() * joint.requiredDistance);
+	}
+
+	for (const auto& [_, trail] : ent.trail) {
+		trail.draw();
+	}
+}
+
 auto Game::resetLevel() -> void {
 	collisionSystem.reset();
 	ent.reset();
@@ -793,6 +863,20 @@ auto Game::selectToolGui() -> void {
 				return;
 
 			InputFloat("required distance", &joint->requiredDistance);
+		},
+		[&](const TrailId& trailId) {
+			auto trail = ent.trail.get(trailId);
+			if (!trail.has_value())
+				return;
+
+			ColorEdit3("color", trail->color.data());
+			InputInt("max history size", &trail->maxHistorySize);
+			InputFloat2("anchor", trail->anchor.data());
+			if (Button("clear") && trail->history.size() != 0) {
+				const auto last = trail->history.back();
+				trail->history.clear();
+				trail->history.push_back(last);
+			}
 		}
 	}, *selected);
 }
@@ -806,27 +890,37 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 	if (Input::isKeyDown(Keycode::DEL)) {
 		std::visit(overloaded{
 			[&](const BodyId& body) { ent.body.destroy(body); },
-			[&](const DistanceJointId& joint) { ent.distanceJoint.destroy(joint); }
+			[&](const DistanceJointId& joint) { ent.distanceJoint.destroy(joint); },
+			[&](const TrailId& trail) { ent.trail.destroy(trail); }
 		}, *selected);
 		selected = std::nullopt;
 	}
 
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
+		const auto colliderThickness = 0.02f / camera.zoom;
 		selected = std::nullopt;
-		for (const auto& [id, joint] : ent.distanceJoint) {
-			const auto endpoints = joint.getEndpoints();;
-			const auto jointCollider = LineSegment{ endpoints[0], endpoints[1] };
-			const auto colliderThickness = 0.02f / camera.zoom;
-			Debug::drawCircle(endpoints[0], colliderThickness);
-			if (jointCollider.asCapsuleContains(colliderThickness, cursorPos)) {
-				selected = id;
-				break;
+		auto select = [&]() -> std::optional<Entity> {
+			for (const auto& [id, joint] : ent.distanceJoint) {
+				const auto endpoints = joint.getEndpoints();
+				const auto jointCollider = LineSegment{ endpoints[0], endpoints[1] };
+				if (jointCollider.asCapsuleContains(colliderThickness, cursorPos)) {
+					return id;
+				}
 			}
-		}
 
-		if (!selected.has_value() && bodyUnderCursor.has_value()) {
-			selected = *bodyUnderCursor;
-		}
+			for (const auto& [id, trail] : ent.trail) {
+				if (trail.history.size() > 0 && distance(trail.history.back(), cursorPos) < colliderThickness) {
+					return id;
+				}
+			}
+
+			if (bodyUnderCursor.has_value()) {
+				return bodyUnderCursor;
+			}
+
+			return std::nullopt;
+		};
+		selected = select();
 	}
 }
 
@@ -849,7 +943,14 @@ auto Game::selectToolDraw() -> void {
 			for (const auto& endpoint : endpoints) {
 				Debug::drawPoint(endpoint, Vec3::RED);
 			}
+		},
+		[&](const TrailId& traildId) {
+			const auto trail = ent.trail.get(traildId);
+			if (!trail.has_value())
+				return;
+			return;
 		}
+
 	}, *selected);
 }
 

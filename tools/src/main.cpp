@@ -38,6 +38,7 @@ static auto operator<<(std::ostream& os, const Data::FieldType& type) -> std::os
 		os << "float";
 		break;
 	case FieldTypeType::VEC2: os << "Vec2"; break;
+	case FieldTypeType::VEC3: os << "Vec3"; break;
 	case FieldTypeType::CPP: os << type.cpp; break;
 	case FieldTypeType::USIZE: os << "usize"; break;
 	case FieldTypeType::VARIANT:
@@ -76,6 +77,7 @@ auto outFieldSerialize(std::ostream& os, const Field& field, const FieldType& ty
 		os << "Json::Value(" << field.name << ")";
 		break;
 	case FieldTypeType::VEC2: os << "{ { \"x\", " << field.name << ".x }, { \"y\", " << field.name << ".y } }"; break;
+	case FieldTypeType::VEC3: os << "{ { \"x\", " << field.name << ".x }, { \"y\", " << field.name << ".y }, { \"z\", " << field.name << ".z } }"; break;
 	case FieldTypeType::USIZE: os << "Json::Value(static_cast<Json::Value::IntType>(" << field.name << "))"; break;
 	case FieldTypeType::CPP: os << name << ".toJson()"; break;
 	case FieldTypeType::VARIANT:
@@ -102,6 +104,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 	{
 		hppOut << "#pragma once\n\n";
 		hppOut << "#include <math/vec2.hpp>\n";
+		hppOut << "#include <math/vec3.hpp>\n";
 		if (jsonUsed) hppOut << "#include <json/JsonValue.hpp>\n";
 		hppOut << '\n';
 	}
@@ -203,6 +206,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 								cppOut << jsonGet(cppOut, field.name) << ".number()"; break;
 
 							case FieldTypeType::VEC2: cppOut << "Vec2{ " << jsonGet(cppOut, field.name) << ".at(\"x\").number(), " << jsonGet(cppOut, field.name) << ".at(\"y\").number() }"; break;
+							case FieldTypeType::VEC3: cppOut << "Vec3{ " << jsonGet(cppOut, field.name) << ".at(\"x\").number(), " << jsonGet(cppOut, field.name) << ".at(\"y\").number(), " << jsonGet(cppOut, field.name) << ".at(\"z\").number() }"; break;
 
 							case FieldTypeType::USIZE: cppOut << "static_cast<usize>(" << jsonGet(cppOut, field.name) << ".intNumber())"; break;
 							case FieldTypeType::CPP: cppOut << field.type << "::fromJson(" << jsonGet(cppOut, field.name) << ")"; break;

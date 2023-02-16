@@ -276,6 +276,7 @@ auto Parser::fieldType() -> FieldType {
 	else if (matchIdentifier("angle")) return FieldType{ FieldTypeType::ANGLE };
 	else if (matchIdentifier("i32")) return FieldType{ FieldTypeType::I32 };
 	else if (matchIdentifier("Vec2")) return FieldType{ FieldTypeType::VEC2 };
+	else if (matchIdentifier("Vec3")) return FieldType{ FieldTypeType::VEC3 };
 	else if (matchIdentifier("usize")) return FieldType{ FieldTypeType::USIZE };
 	else if (matchIdentifier("variant")) {
 		expect(TokenType::LESS_THAN);

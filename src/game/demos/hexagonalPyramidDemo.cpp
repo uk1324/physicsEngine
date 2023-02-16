@@ -22,16 +22,16 @@ auto HexagonalPyramid::load() -> void {
 			float y = (pyramidHeight + 1 - i) * (radius + gapSize);
 			float x = -i * (radius / 2.0f + radius / 8.0f) + j * (radius + radius / 4.0f);
 
-			float radius = 0.7f;
+			float radiusa = 0.7f;
 			if (i == pyramidHeight) {
-				auto gon = ConvexPolygon::regular(6, radius);
+				auto gon = ConvexPolygon::regular(6, radiusa);
 				gon.verts.pop_back();
 				gon.calculateNormals();
 				const auto& [id, b] = ent.body.create(Body{ Vec2{ x, y }, gon, false });
 				bodies.push_back(id);
 				b.transform.rot *= Rotation{ -TAU<float> / 6.0f };
 			} else {
-				const auto& [id, _] = ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(6, radius), false });
+				const auto& [id, _] = ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(6, radiusa), false });
 				bodies.push_back(id);
 			}
 		}
