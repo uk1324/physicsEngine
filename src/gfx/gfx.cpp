@@ -67,8 +67,8 @@ auto Gfx::update() -> void {
 	}
 }
 
-auto Gfx::present() -> void {
-	if (const auto presentResult{ swapChain->Present(1, 0) }; presentResult == ERROR_DEVICE_REMOVED)
+auto Gfx::present(bool vsyncEnabled) -> void {
+	if (const auto presentResult{ swapChain->Present(vsyncEnabled ? 1 : 0, 0) }; presentResult == ERROR_DEVICE_REMOVED)
 		CHECK_WIN_HRESULT(device->GetDeviceRemovedReason());
 }
 

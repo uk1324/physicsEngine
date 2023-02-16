@@ -9,6 +9,7 @@
 #include <engine/renderer.hpp>
 #include <imgui/imgui.h>
 #include <game/ent.hpp>
+#include <utils/timer.hpp>
 #include <game/levelFormat/levelData.hpp>
 #include <utils/overloaded.hpp>
 #include <engine/frameAllocator.hpp>
@@ -26,108 +27,19 @@
 #include <json/Json.hpp>
 #include <fstream>
 
-std::vector<BodyId> bodies;
+#include <game/demos/pyramidDemo.hpp>
+#include <game/demos/doubleDominoDemo.hpp>
+#include <game/demos/hexagonalPyramidDemo.hpp>
+#include <game/demos/scissorsMechanismDemo.hpp>
+
 Game::Game() {
-	//int height = 10;
-	//float boxSize = 1.0f;
-	//float gapSize = 0.1f;
-	//for (int i = 1; i < height + 1; i++) {
-	//	std::vector<BodyId> bodies;
-	//	for (int j = 0; j < i; j++) {
-	//		float y = (height + 1 - i) * (boxSize + gapSize);
-	//		float x = -i * (boxSize / 2.0f + boxSize / 8.0f) + j * (boxSize + boxSize / 4.0f);
-
-	//		ent.body.create(Body{ Vec2{ x, y }, BoxCollider{ Vec2{ boxSize } }, false });
-	//		//ent.body.create(Body{ Vec2{ x, y }, CircleCollider{ 0.5f }, false });	
-
-	//		//ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(3, 0.5f), false });
-
-	//		/*float radius = 0.7f;
-	//		if (i == height) {
-	//			auto gon = ConvexPolygon::regular(6, radius);
-	//			gon.verts.pop_back();
-	//			gon.calculateNormals();
-	//			const auto& [id, b] = ent.body.create(Body{ Vec2{ x, y }, gon, false });
-	//			bodies.push_back(id);
-	//			b.transform.rot *= Rotation{ -TAU<float> / 6.0f };
-	//		} else {
-	//			const auto& [id, _] = ent.body.create(Body{ Vec2{ x, y }, ConvexPolygon::regular(6, radius), false });
-	//			bodies.push_back(id);
-	//		}*/
-	//	}
-
-	///*	if (i == height) {
-	//		for (int j = 0; j < bodies.size() - 1; j++) {
-	//			ent.distanceJoint.create(DistanceJoint{ bodies[j], bodies[j + 1], boxSize + boxSize / 4.0f });
-	//		}
-	//	}*/
-	//}
-
-	//{
-	//	float height = 2.0f;
-	//	float width = 0.5f;
-	//	for (int i = 0; i < 25; i++) {
-	//		const auto& [_, body] = ent.body.create(Body{ Vec2{ i * (height + 0.02f), height / 2.0f }, BoxCollider{ Vec2{ width, height } } });
-	//		body.coefficientOfFriction = 0.7f;
-	//	}
-	//}
-
-	{
-		float width = 0.5f;
-		float height = 4.0f;
-		auto addJoint = [this](BodyId a, BodyId b, Vec2 anchorA, Vec2 anchorB) {
-			auto [jointId, _] = ent.distanceJoint.create(DistanceJoint{ a, b, 0.0f, anchorA, anchorB });
-			const BodyPair bodyPair{ a, b };
-			revoluteJointsWithIgnoredCollisions.push_back({ jointId, bodyPair });
-		};
-
-		for (int i = 0; i < 4; i++) {
-			const auto pos = Vec2{ i * (height - width), 0.0f };
-			const auto collider = BoxCollider{ Vec2{ height, width } };
-			for (int _ = 0; _ < 2; _++) {
-				const auto& [id, body] = ent.body.create(Body{ pos + Vec2{ 0.0f, 2.0f }, collider });
-				bodies.push_back(id);
-			}
-			
-			addJoint(bodies.back(), *(bodies.end() - 2), Vec2{ 0.0f }, Vec2{ 0.0f });
-		}
-
-		for (size_t i = 0; i < bodies.size() - 2; i += 2) {
-			for (int j = 0; j < 2; j++) {
-				const auto anchor = Vec2{ height / 2.0f - width / 2.0f, 0.0f };
-				addJoint(bodies[i + j], bodies[i + j + 2], anchor, -anchor);
-			}
-		}
-
-		for (const auto& a : bodies) {
-			for (const auto& b : bodies) {
-				if (&a != &b) {
-					collisionSystem.collisionsToIgnore.insert({ a, b });
-				}
-			}
-		}
-
-		for (size_t i = 0; i < bodies.size() - 3; i += 2) {
-			collisionSystem.collisionsToIgnore.erase({ bodies[i], bodies[i + 3] });
-		}
-
-		// Attach the endpoints to a prismatic joint?
-		for (int i = 0; i < bodies.size(); i += 2) {
-			auto b0 = ent.body.get(bodies[i + 1]);
-			const auto a = PI<float> / 10.0f;
-			const auto b = PI<float> - a;
-			b0->transform.rot = Rotation{ a };
-			auto b1 = ent.body.get(bodies[i]);
-			b1->transform.rot = Rotation{ b };
-		}
-
-	}
-
-	//ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 100.0f } }, true });
-	ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
-	/*const auto& [a, a_] = ent.body.create(Body{ Vec2{ 1.0f, 3.0f }, BoxCollider{ Vec2{ 1.0f } }, false });
-	const auto& [b, b_] = ent.body.create(Body{ Vec2{ 0.0f, 2.0f }, BoxCollider{ Vec2{ 1.0f } }, false });
-	ent.distanceJoint.create(DistanceJoint{ a, b, 3.0f, Vec2{ 0.2f }, Vec2{ 0.2f } });*/
+#define DEMO(type) demos.push_back(std::make_unique<type>());
+	DEMO(PyramidDemo)
+	DEMO(DoubleDominoDemo)
+	DEMO(HexagonalPyramid)
+	DEMO(ScissorsMechanism)
+	std::sort(demos.begin(), demos.end(), [](const auto& a, const auto& b) { return strcmp(a->name(), b->name()) < 0; });
+#undef DEMO
 
 	camera.zoom = 0.125f / 2.0f;
 	camera.pos = Vec2{ 0.0f, 6.0f };
@@ -135,9 +47,8 @@ Game::Game() {
 	Input::registerKeyButton(Keycode::Q, GameButton::SELECT_SELECT_TOOL);
 	Input::registerKeyButton(Keycode::J, GameButton::START_SELECT_JOINT_TOOL);
 	Input::registerKeyButton(Keycode::D, GameButton::SELECT_DISTANCE_JOINT_TOOL);
+	Input::registerKeyButton(Keycode::SHIFT, GameButton::SNAP_TO_IMPORTANT_FEATURES);
 	Window::maximize();
-	//gravity = Vec2{ 0.0f, 0.0f };
-	gravity = Vec2{ 0.0f, -10.0f };
 	
 }
 
@@ -193,6 +104,16 @@ auto Game::saveLevel() const -> Json::Value {
 			}.toJson());
 		}
 	}
+
+	{
+		auto& ignoredCollisions = (level["ignoredCollisions"] = Json::Value::emptyArray()).array();
+		for (const auto& ignoredCollision : ent.collisionsToIgnore) {
+			ignoredCollisions.push_back(LevelIgnoredCollision{
+				.bodyAIndex = oldBodyIndexToNewIndex[ignoredCollision.a.index()],
+				.bodyBIndex = oldBodyIndexToNewIndex[ignoredCollision.a.index()],
+			}.toJson());
+		}
+	}
 	return level;
 }
 
@@ -211,6 +132,7 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 	Vec2 levelGravity;
 	std::vector<LevelBody> levelBodies;
 	std::vector<LevelDistanceJoint> levelDistanceJoints;
+	std::vector<LevelIgnoredCollision> levelIgnoredCollisions;
 	try {
 		levelGravity = vec2FromJson(level.at("gravity"));;
 		{
@@ -225,14 +147,18 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 				levelDistanceJoints.push_back(LevelDistanceJoint::fromJson(jointJson));
 			}
 		}
+		{
+			const auto& ignoredCollisions = level.at("ignoredCollisions").array();
+			for (const auto& ignoredCollision : ignoredCollisions) {
+				levelIgnoredCollisions.push_back(LevelIgnoredCollision::fromJson(ignoredCollision));
+			}
+		}
 	} catch (const Json::JsonError&) {
 		ASSERT_NOT_REACHED();
 		goto error;
 	}
 
-	collisionSystem.reset();
-	ent.reset();
-	contacts.clear();
+	resetLevel();
 
 	gravity = levelGravity;
 
@@ -267,11 +193,26 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 		});
 	}
 
+	for (const auto& ignoredCollision : levelIgnoredCollisions) {
+		const auto bodyA = ent.body.validate(ignoredCollision.bodyAIndex);
+		const auto bodyB = ent.body.validate(ignoredCollision.bodyBIndex);
+		if (!bodyA.has_value() || !bodyB.has_value()) {
+			goto error;
+		}
+		ent.collisionsToIgnore.insert({ *bodyA, *bodyB });
+	}
+
 	return true;
 
 	error:
 	dbg("failed to load level");
 	return false;
+}
+
+auto Game::loadDemo(Demo& demo) -> void {
+	resetLevel();
+	demo.load();
+	loadedDemo = demo;
 }
 
 auto Game::drawUi() -> void {
@@ -300,6 +241,8 @@ auto Game::drawUi() -> void {
 	}
 
 	Checkbox("reuse previous contact accumulators", &reusePreviousFrameContactAccumulators);
+	InputInt("solver iterations", &physicsSolverIterations);
+	InputInt("physics substeps", &physicsSubsteps);
 	End();
 
 	Begin("savestates");
@@ -316,6 +259,8 @@ auto Game::drawUi() -> void {
 			levelSavestates.erase(levelSavestates.begin() + i);
 		}
 	}
+	End();
+
 
 	std::optional<const char*> errorModalMessage;
 	if (BeginMainMenuBar()) {
@@ -338,13 +283,37 @@ auto Game::drawUi() -> void {
 			}
 			EndMenu();
 		}
+		if (BeginMenu("demos")) {
+			for (auto& demo : demos) {
+				if (MenuItem(demo->name())) {
+					resetLevel();
+					demo->load();
+					loadedDemo = *demo.get();
+				}
+			}
+
+			EndMenu();
+		}
 		EndMainMenuBar();
 	}
 
 	openErrorPopupModal(errorModalMessage);
 
-	End();
-
+	if (loadedDemo.has_value()) {
+		Begin("demo");
+		if (TreeNode("load settings")) {
+			loadedDemo->loadSettingsGui();
+			if (Button("reload")) {
+				loadDemo(*loadedDemo);
+			}
+			TreePop();
+		}
+		if (TreeNode("runtime settings")) {
+			loadedDemo->settingsGui();
+			TreePop();
+		}
+		End();
+	}
 	
 	if (Input::isButtonDown(GameButton::SELECT_GRAB_TOOL)) selectedTool = Tool::GRAB;
 	if (Input::isButtonDown(GameButton::SELECT_SELECT_TOOL)) selectedTool = Tool::SELECT;
@@ -359,8 +328,41 @@ auto Game::drawUi() -> void {
 		}
 	}
 
-	
-	
+	{
+		Begin("physics profile");
+		const auto updateRate = round(1.0f / Time::deltaTime());
+		const auto hz = static_cast<int>(updateRate * physicsSubsteps);
+		Text("physics running at %dhz", hz);
+		Combo("units", &profileUnitsIndex, "ms\0delta time %\0physics total time %\0\0");
+		if (BeginTable("profile table", 2, ImGuiTableFlags_Borders)) {
+			auto rowIndex = 0;
+			auto row = [&](const char* name, float time) {
+				TableNextRow();
+				TableSetColumnIndex(0);
+				Text(name);
+				TableSetColumnIndex(1);
+				if (profileUnitsIndex == 0) {
+					Text("%.2fms", time);
+				} else if (profileUnitsIndex == 1) {
+					const auto toMs = 1000.0f;
+					Text("%.2f", time / (Time::deltaTime() * toMs));
+				} else {
+					Text("%.2f", time / profile.total);
+				}
+				rowIndex++;
+			};
+			row("collideTotal", profile.collideTotal);
+			row("colliderUpdateBvh", profile.collideUpdateBvh);
+			row("collideDetectCollisions", profile.collideDetectCollisions);
+			row("solveTotal", profile.solveTotal);
+			row("solvePrestep", profile.solvePrestep);
+			row("solveVelocities", profile.solveVelocities);
+			row("total", profile.total);
+
+			EndTable();
+		}
+		End();
+	}
 
 	Begin("tool");
 	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0\0");
@@ -376,8 +378,6 @@ auto Game::drawUi() -> void {
 	}
 
 	End();
-
-
 }
 
 auto Game::openLoadLevelDialog() -> std::optional<const char*> {
@@ -445,16 +445,16 @@ auto Game::update() -> void {
 	camera.scrollOnCursorPos();
 
 	// For positions not not lag behind the camera has to be updated first.
-	const auto mousePos = camera.screenSpaceToCameraSpace(Input::cursorPos());
-	Debug::drawPoint(mousePos);
+	auto cursorPos = camera.screenSpaceToCameraSpace(Input::cursorPos());
+	Debug::drawPoint(cursorPos);
 
 	ent.update();
 
 	if (drawTrajectory) {
-		Vec2 previous = mousePos;
+		Vec2 previous = cursorPos;
 		for (int i = 0; i < 50; i++) {
 			float x = i / 20.0f / 16.0f / camera.zoom;
-			Vec2 v = mousePos + Vec2{ x * initialVelocity.x, x * x * gravity.y / 2.0f + x * initialVelocity.y };
+			Vec2 v = cursorPos + Vec2{ x * initialVelocity.x, x * x * gravity.y / 2.0f + x * initialVelocity.y };
 			if ((previous - v).lengthSq() < 0.001f)
 				continue;
 
@@ -469,7 +469,7 @@ auto Game::update() -> void {
 		}
 	}
 	if (Input::isKeyDown(Keycode::U)) {
-		const auto& [_, body] = ent.body.create(Body{ mousePos, BoxCollider{ Vec2{ 1.0f } }, false });
+		const auto& [_, body] = ent.body.create(Body{ cursorPos, BoxCollider{ Vec2{ 1.0f } }, false });
 		body.vel = initialVelocity;
 		body.angularVel = 1.5f;
 		body.transform.rot = Rotation{ 0.0f };
@@ -497,21 +497,21 @@ auto Game::update() -> void {
 	openErrorPopupModal(errorMessage);
 
 	if (Input::isMouseButtonDown(MouseButton::RIGHT)) {
-		grabStart = mousePos;
+		grabStart = cursorPos;
 	}
 
 	if (grabStart.has_value() && Input::isMouseButtonUp(MouseButton::RIGHT)) {
-		const auto size = (mousePos - *grabStart).applied(abs);
-		const auto pos = (mousePos + *grabStart) / 2.0f;
+		const auto size = (cursorPos - *grabStart).applied(abs);
+		const auto pos = (cursorPos + *grabStart) / 2.0f;
 		ent.body.create(Body{ pos, BoxCollider{ size }, 0.0f });
 	}
 
 	std::optional<BodyId> bodyUnderCursor;
 	Vec2 bodyUnderCursorPosInSelectedObjectSpace;
 	for (const auto [id, body] : ent.body) {
-		if (contains(mousePos, body.transform.pos, body.transform.angle(), body.collider)) {
+		if (contains(cursorPos, body.transform.pos, body.transform.angle(), body.collider)) {
 			bodyUnderCursor = id;
-			bodyUnderCursorPosInSelectedObjectSpace = (mousePos - body.transform.pos) * body.transform.rot.inversed();
+			bodyUnderCursorPosInSelectedObjectSpace = (cursorPos - body.transform.pos) * body.transform.rot.inversed();
 			break;
 		}
 	}
@@ -529,7 +529,7 @@ auto Game::update() -> void {
 			auto body = ent.body.get(*grabbed);
 			if (body.has_value()) {
 				const auto offsetUprightSpace = grabPointInGrabbedObjectSpace * body->transform.rot;
-				const auto fromMouseToObject = mousePos - (body->transform.pos + offsetUprightSpace);
+				const auto fromMouseToObject = cursorPos - (body->transform.pos + offsetUprightSpace);
 				body->force = -body->vel / (Time::deltaTime() * 5.0f) * body->mass;
 				body->force += fromMouseToObject / pow(Time::deltaTime(), 2.0f) * body->mass / 10.0f;
 				body->torque = det(offsetUprightSpace, body->force);
@@ -542,7 +542,7 @@ auto Game::update() -> void {
 		grabbed = std::nullopt;
 	}
 
-	selectToolUpdate(bodyUnderCursor);
+	selectToolUpdate(cursorPos, bodyUnderCursor);
 
 	if (selectedTool == Tool::DISTANCE_JOINT || selectedTool == Tool::REVOLUTE_JOINT) {
 		if (bodyUnderCursor.has_value() && Input::isMouseButtonDown(MouseButton::LEFT)) {
@@ -571,8 +571,8 @@ auto Game::update() -> void {
 
 					if (selectedTool == Tool::REVOLUTE_JOINT) {
 						BodyPair bodyPair{ aId, bId };
-						collisionSystem.collisionsToIgnore.insert(bodyPair);
-						revoluteJointsWithIgnoredCollisions.push_back(std::pair{ joint, bodyPair });
+						ent.collisionsToIgnore.insert(bodyPair);
+						ent.revoluteJointsWithIgnoredCollisions.push_back(std::pair{ joint, bodyPair });
 					}
 				}
 			}
@@ -590,33 +590,35 @@ auto Game::update() -> void {
 		distanceJointBodyA = std::nullopt;
 	}
 
-	std::erase_if(revoluteJointsWithIgnoredCollisions, [this](const auto& it) {
-		const auto& [joint, bodyPair] = it;
-		if (!ent.distanceJoint.isAlive(joint)) {
-			collisionSystem.collisionsToIgnore.erase(bodyPair);
-			return true;
-		}
-		return false;
-	});
-
 	if (selectedTool == Tool::CREATE_BODY && Input::isMouseButtonDown(MouseButton::LEFT)) {
 		switch (selectedShape) {
 		case Game::BodyShape::CIRCLE:
-			ent.body.create(Body{ mousePos, CircleCollider{ 0.5f } });
+			ent.body.create(Body{ cursorPos, CircleCollider{ 0.5f } });
 			break;
 		case Game::BodyShape::RECTANGLE:
-			ent.body.create(Body{ mousePos, BoxCollider{ Vec2{ 1.0f } } });
+			ent.body.create(Body{ cursorPos, BoxCollider{ Vec2{ 1.0f } } });
 			break;
 		}
 	}
 
-	// The collisions system has to be updated because even if the physics isn't updated, because it registres new entities.
-	collisionSystem.update();
+	auto doPhysicsUpdate = false;
 	if (doASingleStep) {
-		physicsStep();
+		doPhysicsUpdate = true;
 		doASingleStep = false;
 	} else if (updatePhysics) {
-		physicsStep();
+		doPhysicsUpdate = true;
+	}
+
+	// The collisions system has to be updated because even if the physics isn't updated, because it registres new entities.
+	collisionSystem.update();
+	if (doPhysicsUpdate) {
+		profile = PhysicsProfile{};
+		Timer timer;
+		const auto substepLength = Time::deltaTime() / physicsSubsteps;
+		for (i32 i = 0; i < physicsSubsteps; i++) {
+			physicsStep(substepLength, physicsSolverIterations, profile);
+		}
+		profile.total = timer.elapsedMilliseconds();
 	}
 
 	for (const auto& [_, body] : ent.body) {
@@ -641,6 +643,8 @@ auto Game::update() -> void {
 		break;
 	case Game::Tool::DISTANCE_JOINT:
 		break;
+	case Game::Tool::REVOLUTE_JOINT:
+		break;
 	case Game::Tool::CREATE_BODY:
 		break;
 	}
@@ -652,57 +656,88 @@ auto Game::update() -> void {
 
 	Renderer::update(camera);
 }
-auto Game::physicsStep() -> void {
+auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void {
 	for (const auto [_, body] : ent.body) {
 		if (body.isStatic())
 			continue;
 
 		// It might be better to use impulses instead of forces so they are independent of the time step.
-		body.vel += (body.force * body.invMass + gravity) * Time::deltaTime();
+		body.vel += (body.force * body.invMass + gravity) * dt;
 		body.force = Vec2{ 0.0f };
 
-		body.angularVel += body.torque * body.invRotationalInertia * Time::deltaTime();
-		body.angularVel *= pow(angularDamping, Time::deltaTime());
+		body.angularVel += body.torque * body.invRotationalInertia * dt;
+		body.angularVel *= pow(angularDamping, dt);
 		body.torque = 0.0f;
 	}
 
-	collisionSystem.detectCollisions(contacts);
-
-	const auto invDeltaTime = 1.0f / Time::deltaTime();
-
-	for (auto& [key, contact] : contacts) {
-		auto a = ent.body.get(key.a);
-		auto b = ent.body.get(key.b);
-		// @Performance: this and the other loop.
-		if (!a.has_value() || !b.has_value())
-			continue;
-		contact.preStep(*a, *b, invDeltaTime);
+	{
+		Timer timerCollision;
+		{
+			Timer timer;
+			collisionSystem.updateBvh();
+			profile.collideUpdateBvh = timer.elapsedMilliseconds();
+		}
+		{
+			Timer timer;
+			collisionSystem.detectCollisions(contacts, ent.collisionsToIgnore);
+			profile.collideDetectCollisions = timer.elapsedMilliseconds();
+		}
+		profile.collideTotal += timerCollision.elapsedMilliseconds();
 	}
 
-	for (const auto& [_, joint] : ent.distanceJoint) {
-		joint.preStep(invDeltaTime);
-	}
+	const auto invDt = 1.0f / dt;
 
-	// TODO: Should the constraints be solved separately from collisions?
-	for (int i = 0; i < 10; i++) {
+	Timer solveTimer;
+	{
+		Timer timer;
 		for (auto& [key, contact] : contacts) {
 			auto a = ent.body.get(key.a);
 			auto b = ent.body.get(key.b);
+			// @Performance: this and the other loop.
 			if (!a.has_value() || !b.has_value())
 				continue;
-			contact.applyImpulse(*a, *b);
+			contact.preStep(*a, *b, invDt);
 		}
+
 		for (const auto& [_, joint] : ent.distanceJoint) {
-			joint.applyImpluse();
+			joint.preStep(invDt);
 		}
+		profile.solvePrestep += timer.elapsedMilliseconds();
 	}
+
+	{
+		Timer timer;
+		// TODO: Should the constraints be solved separately from collisions?
+		for (int i = 0; i < solverIterations; i++) {
+			for (auto& [key, contact] : contacts) {
+				auto a = ent.body.get(key.a);
+				auto b = ent.body.get(key.b);
+				if (!a.has_value() || !b.has_value())
+					continue;
+				contact.applyImpulse(*a, *b);
+			}
+			for (const auto& [_, joint] : ent.distanceJoint) {
+				joint.applyImpluse();
+			}
+		}
+		profile.solveVelocities = timer.elapsedMilliseconds();
+	}
+	profile.solveTotal += solveTimer.elapsedMilliseconds();
 
 	for (const auto [_, body] : ent.body) {
 		if (body.isStatic())
 			continue;
-		body.transform.pos += body.vel * Time::deltaTime();
-		body.transform.rot *= Rotation{ body.angularVel * Time::deltaTime() };
+		body.transform.pos += body.vel * dt;
+		body.transform.rot *= Rotation{ body.angularVel * dt };
 	}
+}
+
+auto Game::resetLevel() -> void {
+	collisionSystem.reset();
+	ent.reset();
+	contacts.clear();
+	gravity = Vec2{ 0.0f, -10.0f };
+	loadedDemo = std::nullopt;
 }
 
 auto Game::selectToolGui() -> void {
@@ -732,7 +767,7 @@ auto Game::selectToolGui() -> void {
 	}, *selected);
 }
 
-auto Game::selectToolUpdate(const std::optional<BodyId>& bodyUnderCursor) -> void {
+auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnderCursor) -> void {
 	if (selectedTool != Tool::SELECT) {
 		selected = std::nullopt;
 		return;
@@ -753,7 +788,7 @@ auto Game::selectToolUpdate(const std::optional<BodyId>& bodyUnderCursor) -> voi
 			const auto jointCollider = LineSegment{ endpoints[0], endpoints[1] };
 			const auto colliderThickness = 0.02f / camera.zoom;
 			Debug::drawCircle(endpoints[0], colliderThickness);
-			if (jointCollider.asCapsuleContains(colliderThickness, camera.cursorPos())) {
+			if (jointCollider.asCapsuleContains(colliderThickness, cursorPos)) {
 				selected = id;
 				break;
 			}

@@ -187,7 +187,7 @@ auto PixelRgba::fromHsv(float h, float s, float v) -> PixelRgba {
 	float hue = h * 360.f;
 
 	float C = s * v;
-	float X = C * (1.0f - std::abs(std::fmod(hue / 60.0f, 2) - 1));
+	float X = C * (1.0f - std::abs(std::fmodf(hue / 60.0f, 2) - 1));
 	float m = v - C;
 	float r, g, b;
 	if (hue >= 0 && hue < 60)

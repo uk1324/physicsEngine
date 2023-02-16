@@ -15,7 +15,7 @@ public:
 	Gfx(HWND hWnd_);
 
 	auto update() -> void;
-	auto present() -> void;
+	auto present(bool vsyncEnabled) -> void;
 
 	auto createConstantBuffer(UINT sizeBytes) -> ComPtr<ID3D11Buffer>;
 	auto updateConstantBuffer(ComPtr<ID3D11Buffer>& buffer, void* data, usize dataSize) -> void;

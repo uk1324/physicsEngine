@@ -42,4 +42,6 @@ auto levelColliderFromJson(const Json::Value& collider) -> LevelCollider{
 	UNJSON(LevelConvexPolygon)
 
 #undef UNJSON
+	ASSERT_NOT_REACHED();
+	throw Json::JsonError{};
 }

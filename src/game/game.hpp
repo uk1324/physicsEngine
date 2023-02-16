@@ -3,6 +3,8 @@
 #include <game/bvhCollisionSystem.hpp>
 #include <engine/camera.hpp>
 #include <json/JsonValue.hpp>
+#include <game/physicsProfile.hpp>
+#include <game/demo.hpp>
 
 // TODO: Replay system. Mouse position would need to be either saved in world space or later transformed by the camera transform. Could store 2 camera transforms one for the actual camera and the replay camera.
 
@@ -65,15 +67,15 @@ public:
 	auto saveLevel() const -> Json::Value;
 	auto saveLevelToFile(std::string_view path) -> void;
 	[[nodiscard]] auto loadLevel(const Json::Value& level) -> bool;
+	auto loadDemo(Demo& demo) -> void;
 	auto drawUi() -> void;
 	auto openLoadLevelDialog() -> std::optional<const char*>;
 	auto openSaveLevelDialog() -> void;
 	const char* errorPopupModalMessage = "";
 	auto openErrorPopupModal(std::optional<const char*> message) -> void;
 	auto update() -> void;
-	auto physicsStep() -> void;
-
-
+	auto physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void;
+	auto resetLevel() -> void;
 
 	std::optional<std::string> lastSavedLevelPath;
 
@@ -93,7 +95,7 @@ public:
 	Vec2 grabPointInGrabbedObjectSpace;
 
 	auto selectToolGui() -> void;
-	auto selectToolUpdate(const std::optional<BodyId>& bodyUnderCursor) -> void;
+	auto selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnderCursor) -> void;
 	auto selectToolDraw() -> void;
 
 	using Entity = std::variant<BodyId, DistanceJointId>;
@@ -102,14 +104,15 @@ public:
 	std::optional<BodyId> distanceJointBodyA;
 	Vec2 distanceJointBodyAAnchor;
 
-	std::vector<std::pair<DistanceJointId, BodyPair>> revoluteJointsWithIgnoredCollisions;
-
 	enum class BodyShape {
 		CIRCLE, RECTANGLE
 	};
 	BodyShape selectedShape = BodyShape::CIRCLE;
 
 	CollisionMap contacts;
+
+	std::vector<std::unique_ptr<Demo>> demos;
+	std::optional<Demo&> loadedDemo;
 
 	Camera camera;
 
@@ -122,6 +125,12 @@ public:
 	bool drawContacts = false;
 	bool scaleContactNormals = false;
 	bool doASingleStep = false;
+
+	PhysicsProfile profile;
+	int profileUnitsIndex = 0;
+
+	int physicsSolverIterations = 10;
+	int physicsSubsteps = 1;
 
 	bool drawTrajectory = false;
 	Vec2 initialVelocity{ 1.0f };

@@ -173,7 +173,7 @@ auto EntityArray<Entity>::destroy(const Id& id) -> void {
 
 template<typename Entity>
 auto EntityArray<Entity>::destroy(const Entity& entity) -> void {
-	const auto index = &entity - entities.data();
+	const auto index = static_cast<u32>(&entity - entities.data());
 	const auto id = validate(index);
 	if (!id.has_value()) {
 		ASSERT_NOT_REACHED();

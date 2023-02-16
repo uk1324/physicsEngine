@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+	<CodeSnippet Format="1.0.0">
+		<Header>
+			<Title>demoCpp</Title>
+			<Shortcut>demoCpp</Shortcut>
+		</Header>
+		<Snippet>
+			<Code Language="CPP">
+				<![CDATA[ #include <game/demos/$Name$Demo.hpp>
+					#include <game/ent.hpp>
+
+					#include <imgui/imgui.h>
+					using namespace ImGui;
+
+					auto $Name$::name() -> const char* {
+						return "";
+					}
+
+					auto $Name$::loadSettingsGui() -> void {
+
+					}
+
+					auto $Name$::load() -> void {
+						ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
+					}
+				]]>
+			</Code>
+			<Declarations>
+				<Literal>
+					<ID>Name</ID>
+				</Literal>
+			</Declarations>
+		</Snippet>
+	</CodeSnippet>
+</CodeSnippets>

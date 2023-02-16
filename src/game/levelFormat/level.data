@@ -43,3 +43,8 @@ LevelDistanceJoint @Serialize {
 	Vec2 anchorA;
 	Vec2 anchorB;
 }
+
+LevelIgnoredCollision @Serialize {
+	i32 bodyAIndex;
+	i32 bodyBIndex;
+}

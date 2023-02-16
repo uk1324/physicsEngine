@@ -28,23 +28,24 @@ auto ConvexPolygon::aabb(const Transform& transform) const -> Aabb {
     ASSERT(verts.size() >= 2);
     Aabb aabb{ Vec2{ std::numeric_limits<float>::infinity() }, Vec2{ -std::numeric_limits<float>::infinity() } };
     for (const auto& vert : verts) {
-        aabb.min = aabb.min.min(vert);
-        aabb.max = aabb.max.max(vert);
+        const auto v = vert * transform;
+        aabb.min = aabb.min.min(v);
+        aabb.max = aabb.max.max(v);
     }
     return aabb;
 }
 
 auto ConvexPolygon::massInfo(float density) const -> MassInfo {
-    double area = 0.0;
+    float area = 0.0f;
     // Calculate value of shoelace formula
-    int j = verts.size() - 1;
+    int previous = static_cast<int>(verts.size()) - 1;
     for (int i = 0; i < verts.size(); i++)
     {
-        area += (verts[j].x + verts[i].x) * (verts[j].y - verts[i].y);
-        j = i;  // j is previous vertex to i
+        area += (verts[previous].x + verts[i].x) * (verts[previous].y - verts[i].y);
+        previous = i;  // j is previous vertex to i
     }
 
-    area = abs(area / 2.0);
+    area = abs(area / 2.0f);
 
     float mass = area * density;
 
@@ -52,7 +53,7 @@ auto ConvexPolygon::massInfo(float density) const -> MassInfo {
     if (verts.size() != 1) {
         float denom = 0.0f;
         float numer = 0.0f;
-        for (int j = verts.size() - 1, i = 0; i < verts.size(); j = i, i++) {
+        for (int j = static_cast<int>(verts.size()) - 1, i = 0; i < verts.size(); j = i, i++) {
             auto P0 = verts[j];
             auto P1 = verts[0];
             float a = (float)fabs(cross(P0, P1));

@@ -20,31 +20,6 @@ auto BvhCollisionSystem::update() -> void {
 		std::erase(leafNodes, node);
 	}
 
-	for (const auto& nodeIndex : leafNodes) {
-		auto& node = BvhCollisionSystem::node(nodeIndex);
-
-		const auto& body = ent.body.get(node.body);
-		if (!body.has_value()) {
-			ASSERT_NOT_REACHED();
-			continue;
-		}
-		// @Performance Add sleeping flag for bodies that haven't moved and check it here.
-		if (body->isStatic())
-			continue;
-
-		const auto updatedAabb = aabb(body->collider, body->transform);
-		if (!(node.aabb.contains(updatedAabb.min) && node.aabb.contains(updatedAabb.max))) {
-			if (leafNodes.size() == 1) {
-				node.aabb = addMarginToAabb(updatedAabb);
-			} else {
-				removeLeafNode(nodeIndex);
-				node.aabb = addMarginToAabb(updatedAabb);
-				insertHelper(rootNode, nodeIndex);
-			}
-			
-		}
-	}
-
 	for (const auto bodyId : ent.body.entitiesAddedLastFrame()) {
 		const auto& body = ent.body.get(bodyId);
 		if (!body.has_value()) {
@@ -69,17 +44,44 @@ auto BvhCollisionSystem::reset() -> void {
 	rootNode = NULL_NODE;
 }
 
+auto BvhCollisionSystem::updateBvh() -> void {
+	for (const auto& nodeIndex : leafNodes) {
+		auto& node = BvhCollisionSystem::node(nodeIndex);
+
+		const auto& body = ent.body.get(node.body);
+		if (!body.has_value()) {
+			ASSERT_NOT_REACHED();
+			continue;
+		}
+		// @Performance Add sleeping flag for bodies that haven't moved and check it here.
+		if (body->isStatic())
+			continue;
+
+		const auto updatedAabb = aabb(body->collider, body->transform);
+		if (!(node.aabb.contains(updatedAabb.min) && node.aabb.contains(updatedAabb.max))) {
+			if (leafNodes.size() == 1) {
+				node.aabb = addMarginToAabb(updatedAabb);
+			} else {
+				removeLeafNode(nodeIndex);
+				node.aabb = addMarginToAabb(updatedAabb);
+				insertHelper(rootNode, nodeIndex);
+			}
+
+		}
+	}
+}
+
 #include <chrono>
 
 // @Performance: Don't check collision between sleeping objects.
-auto BvhCollisionSystem::detectCollisions(CollisionMap& collisions) -> void {
+auto BvhCollisionSystem::detectCollisions(CollisionMap& collisions, const IgnoredCollisions& collisionsToIgnore) -> void {
 	if (rootNode == NULL_NODE || node(rootNode).isLeaf())
 		return;
 
 	auto& root = node(rootNode);
 	clearCrossedFlag(rootNode);
 	newCollisions.clear();
-	collide(newCollisions, root.children[0], root.children[1]);
+	collide(newCollisions, collisionsToIgnore, root.children[0], root.children[1]);
 
 	// Removing inside collide would require in total checking all the variations.
 	for (auto it = collisions.begin(); it != collisions.end(); ) {
@@ -145,7 +147,7 @@ auto BvhCollisionSystem::clearCrossedFlag(u32 nodeIndex) -> void {
 	clearCrossedFlag(parent.children[1]);
 }
 
-auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB) -> void {
+auto BvhCollisionSystem::collide(CollisionMap& collisions, const IgnoredCollisions& collisionsToIgnore, u32 nodeA, u32 nodeB) -> void {
 	auto& a = node(nodeA);
 	auto& b = node(nodeB);
 
@@ -185,35 +187,35 @@ auto BvhCollisionSystem::collide(CollisionMap& collisions, u32 nodeA, u32 nodeB)
 		}
 	} else if (!a.isLeaf() && !b.isLeaf()) {
 		if (a.aabb.collides(b.aabb)) {
-			collide(collisions, a.children[0], b.children[0]);
-			collide(collisions, a.children[0], b.children[1]);
-			collide(collisions, a.children[1], b.children[0]);
-			collide(collisions, a.children[1], b.children[1]);
+			collide(collisions, collisionsToIgnore, a.children[0], b.children[0]);
+			collide(collisions, collisionsToIgnore, a.children[0], b.children[1]);
+			collide(collisions, collisionsToIgnore, a.children[1], b.children[0]);
+			collide(collisions, collisionsToIgnore, a.children[1], b.children[1]);
 		}
 		if (!a.childrenCrossChecked) {
-			collide(collisions, a.children[0], a.children[1]);
+			collide(collisions, collisionsToIgnore, a.children[0], a.children[1]);
 			a.childrenCrossChecked = true;
 		}
 		if (!b.childrenCrossChecked) {
-			collide(collisions, b.children[0], b.children[1]);
+			collide(collisions, collisionsToIgnore, b.children[0], b.children[1]);
 			b.childrenCrossChecked = true;
 		}
 	} else if (a.isLeaf() && !b.isLeaf()) {
 		if (a.aabb.collides(b.aabb)) {
-			collide(collisions, nodeA, b.children[0]);
-			collide(collisions, nodeA, b.children[1]);
+			collide(collisions, collisionsToIgnore, nodeA, b.children[0]);
+			collide(collisions, collisionsToIgnore, nodeA, b.children[1]);
 		}
 		if (!b.childrenCrossChecked) {
-			collide(collisions, b.children[0], b.children[1]);
+			collide(collisions, collisionsToIgnore, b.children[0], b.children[1]);
 			b.childrenCrossChecked = true;
 		}
 	} else if (!a.isLeaf() && b.isLeaf()) {
 		if (a.aabb.collides(b.aabb)) {
-			collide(collisions, nodeB, a.children[0]);
-			collide(collisions, nodeB, a.children[1]);
+			collide(collisions, collisionsToIgnore, nodeB, a.children[0]);
+			collide(collisions, collisionsToIgnore, nodeB, a.children[1]);
 		}
 		if (!a.childrenCrossChecked) {
-			collide(collisions, a.children[0], a.children[1]);
+			collide(collisions, collisionsToIgnore, a.children[0], a.children[1]);
 			a.childrenCrossChecked = true;
 		}
 	}

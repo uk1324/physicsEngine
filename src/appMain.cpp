@@ -11,10 +11,6 @@
 
 #include <chrono>
 
-// TODO: Could make Noita like physics.
-
-// TODO: When doing serizliation also create a type without the unserializable fields that could be used inside the editor.
-
 // TODO: Use an actual testing framework.
 auto testAreaAllocator() -> void {
 	AreaAllocator allocator{ 1024 * 1024 };
@@ -69,15 +65,20 @@ auto appMain() -> int {
 
 	auto accumulated = previousFrameStart - previousFrameStart;
 	while (Window::running()) {
-		auto frameLength = duration_cast<nanoseconds>(16670000ns / Time::timeScale);
+		/*auto frameLength = duration_cast<nanoseconds>(16670000ns / Time::timeScale);*/
+		auto frameLength = duration_cast<nanoseconds>(16670000ns / 1 / Time::timeScale);
 		const auto frameStart = high_resolution_clock::now();
-		const auto elapsed = frameStart - previousFrameStart;
+		auto elapsed = frameStart - previousFrameStart;
+		if (elapsed > frameLength * 2) {
+			elapsed = frameLength * 2;
+		}
 		accumulated += elapsed;
 		previousFrameStart = frameStart;
 
 		while (accumulated >= frameLength) {
 			accumulated -= frameLength;
 			frameAllocator.reset();
+			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
 			Renderer::updateFrameStart();
 
 			Input::update();
@@ -99,10 +100,9 @@ auto appMain() -> int {
 			Debug::update();
 			gameMain->update();
 
-			// If the rendering is the bottleneck it might be better to take it out of this loop so the game can catch up be updating multiple times.
-			
-			Renderer::updateFrameEnd();
-
+			// WARNING: When vsync is enabled the game loop can't update faster that 60hz.
+			const auto enableVsync = true;
+			Renderer::updateFrameEnd(enableVsync);
 		}
 	}
 

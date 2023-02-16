@@ -159,8 +159,18 @@
   <ItemGroup>
     <None Include=".gitignore" />
     <None Include="src\game\levelFormat\level.data" />
+    <None Include="visualStudioSnippets\demoCpp.snippet" />
+    <None Include="visualStudioSnippets\demoHpp.snippet" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\game\demos\scissorsMechanismDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\demos\hexagonalPyramidDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\customImGuiWidgets.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
@@ -233,6 +243,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\game\convexPolygonCollider.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\demos\doubleDominoDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\demos\pyramidDemo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -344,6 +362,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\utils\timer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\winUtils.cpp" />
     <ClCompile Include="thirdParty\imgui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -399,6 +421,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\game\demos\scissorsMechanismDemo.hpp" />
+    <ClInclude Include="src\game\demos\hexagonalPyramidDemo.hpp" />
     <ClInclude Include="src\demos\marchingSquaresDemo.hpp" />
     <ClInclude Include="src\game\collider.hpp" />
     <ClInclude Include="src\game\convexPolygonCollider.hpp" />
@@ -417,6 +441,8 @@
     <ClInclude Include="src\game\collision.hpp" />
     <ClInclude Include="src\engine\debug.hpp" />
     <ClInclude Include="src\game\contactConstraint.hpp" />
+    <ClInclude Include="src\game\demos\doubleDominoDemo.hpp" />
+    <ClInclude Include="src\game\demos\pyramidDemo.hpp" />
     <ClInclude Include="src\game\ent.hpp" />
     <ClInclude Include="src\game\entityArray.hpp" />
     <ClInclude Include="src\game\game.hpp" />
@@ -424,7 +450,9 @@
     <ClInclude Include="src\game\input.hpp" />
     <ClInclude Include="src\game\distanceJoint.hpp" />
     <ClInclude Include="src\appMain.hpp" />
+    <ClInclude Include="src\game\demo.hpp" />
     <ClInclude Include="src\game\levelFormat\levelData.hpp" />
+    <ClInclude Include="src\game\physicsProfile.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
     <ClInclude Include="src\math\bits.hpp" />
     <ClInclude Include="src\math\collision.hpp" />
@@ -464,6 +492,7 @@
     <ClInclude Include="src\utils\refOptional.hpp" />
     <ClInclude Include="src\utils\span.hpp" />
     <ClInclude Include="src\utils\staticVec.hpp" />
+    <ClInclude Include="src\utils\timer.hpp" />
     <ClInclude Include="src\winUtils.hpp" />
     <ClInclude Include="thirdParty\imgui\imconfig.h" />
     <ClInclude Include="thirdParty\imgui\imgui.h" />
@@ -562,6 +591,7 @@
   <ItemGroup>
     <Text Include="src\todo.txt" />
     <Text Include="src\txt.txt" />
+    <Text Include="visualStudioSnippets\info.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

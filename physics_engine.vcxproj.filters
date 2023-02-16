@@ -17,6 +17,8 @@
   <ItemGroup>
     <None Include=".gitignore" />
     <None Include="src\game\levelFormat\level.data" />
+    <None Include="visualStudioSnippets\demoHpp.snippet" />
+    <None Include="visualStudioSnippets\demoCpp.snippet" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\gfx\gfx.cpp">
@@ -209,6 +211,21 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\demos\marchingSquaresDemo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\demos\pyramidDemo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\demos\doubleDominoDemo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\demos\hexagonalPyramidDemo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\game\demos\scissorsMechanismDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -456,6 +473,27 @@
     <ClInclude Include="src\utils\pairHash.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\utils\timer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\physicsProfile.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\demo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\demos\pyramidDemo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\demos\doubleDominoDemo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\demos\hexagonalPyramidDemo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\demos\scissorsMechanismDemo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\engine\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />
@@ -475,5 +513,6 @@
   <ItemGroup>
     <Text Include="src\txt.txt" />
     <Text Include="src\todo.txt" />
+    <Text Include="visualStudioSnippets\info.txt" />
   </ItemGroup>
 </Project>

@@ -56,7 +56,7 @@ auto polygonDouglassPeckerSimplify(Span<const Vec2> verts, float maxDistanceFrom
 
 	auto maxDistance = -std::numeric_limits<float>::infinity();
 	i64 maxVertex = 1;
-	for (i64 i = 1; i < verts.size() - 1; i++) {
+	for (i64 i = 1; i < static_cast<i64>(verts.size()) - 1; i++) {
 		const auto d = distance(Line{ first, last }, verts[i]);
 		if (d > maxDistance) {
 			maxDistance = d;
@@ -135,7 +135,7 @@ auto simplePolygonContainsSimplePolygon(Span<const Vec2> enclosed, Span<const Ve
 }
 
 auto removeHoles(std::vector<std::vector<Vec2>>& polygons, bool useTheFirstCutFound) -> void {
-	for (int p = polygons.size() - 1; p >= 0; p--) {
+	for (int p = static_cast<int>(polygons.size()) - 1; p >= 0; p--) {
 		if (simplePolygonIsClockwise(polygons[p]))
 			continue;
 
@@ -161,7 +161,7 @@ auto removeHoles(std::vector<std::vector<Vec2>>& polygons, bool useTheFirstCutFo
 
 		auto& outside = polygons[polygonContainingHoleIndex];
 		auto intersectsShape = [](const std::vector<Vec2>& shape, const LineSegment& line) -> bool {
-			int previous = shape.size() - 1;
+			int previous = static_cast<int>(shape.size()) - 1;
 			for (int i = 0; i < shape.size(); previous = i, i++) {
 				LineSegment l{ shape[previous], shape[i] };
 				auto endpoints = line.getCorners();

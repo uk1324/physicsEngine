@@ -71,3 +71,17 @@ auto LevelDistanceJoint::fromJson(const Json::Value& json) -> LevelDistanceJoint
 	};
 }
 
+auto LevelIgnoredCollision::toJson() const -> Json::Value {
+	auto result = Json::Value::emptyObject();
+	result["bodyAIndex"] = Json::Value(bodyAIndex);
+	result["bodyBIndex"] = Json::Value(bodyBIndex);
+	return result;
+}
+
+auto LevelIgnoredCollision::fromJson(const Json::Value& json) -> LevelIgnoredCollision {
+	return LevelIgnoredCollision{
+		.bodyAIndex = json.at("bodyAIndex").intNumber(),
+		.bodyBIndex = json.at("bodyBIndex").intNumber(),
+	};
+}
+

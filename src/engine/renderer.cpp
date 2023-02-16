@@ -31,10 +31,10 @@ auto Renderer::updateFrameStart() -> void {
 	ImGui::NewFrame();
 }
 
-auto Renderer::updateFrameEnd() -> void {
+auto Renderer::updateFrameEnd(bool enableVsync) -> void {
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-	gfx->present();
+	gfx->present(enableVsync);
 }
 
 auto Renderer::screenshot() -> ImageRgba {

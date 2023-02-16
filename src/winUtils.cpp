@@ -4,8 +4,7 @@
 
 #include <string>
 
-static auto getErrorMessage(long errorCode) -> std::string
-{
+static auto getErrorMessage(long errorCode) -> std::string {
 	ASSERT(errorCode != 0);
 
 	char* message;

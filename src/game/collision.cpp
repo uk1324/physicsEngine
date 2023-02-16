@@ -706,7 +706,7 @@ auto raycast(Vec2 rayBegin, Vec2 rayEnd, const CircleCollider& collider, const T
 	};
 }
 
-auto raycast(Vec2 rayBegin, Vec2 rayEnd, const ConvexPolygon& collider, const Transform& transform) -> std::optional<RaycastResult> {
+auto raycast(Vec2, Vec2, const ConvexPolygon&, const Transform&) -> std::optional<RaycastResult> {
 	return std::nullopt;
 }
 

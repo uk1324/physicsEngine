@@ -8,12 +8,6 @@
 #include <vector>
 #include <unordered_set>
 
-struct CollisionSystemProfile {
-	float updateTime;
-	float collisionCheckTime;
-	i32 collisionsChecked;
-};
-
 class BvhCollisionSystem {
 public:
 	BvhCollisionSystem();
@@ -23,16 +17,15 @@ private:
 public:
 	auto update() -> void;
 	auto reset() -> void;
-	auto detectCollisions(CollisionMap& collisions) -> void;
+	auto updateBvh() -> void;
+	auto detectCollisions(CollisionMap& collisions, const IgnoredCollisions& collisionsToIgnore) -> void;
 
 	auto raycast(Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;
-
-	std::unordered_set<BodyPair, BodyPairHasher> collisionsToIgnore;
 
 private:
 	auto raycastHelper(u32 nodeIndex, Vec2 start, Vec2 end) const -> std::optional<RaycastResult>;
 	auto clearCrossedFlag(u32 nodeIndex) -> void;
-	auto collide(CollisionMap& collisions, u32 nodeA, u32 nodeB) -> void;
+	auto collide(CollisionMap& collisions, const IgnoredCollisions& collisionsToIgnore, u32 nodeA, u32 nodeB) -> void;
 
 	static auto addMarginToAabb(const Aabb& aabb) -> Aabb;
 
