@@ -524,6 +524,8 @@
     <FxCompile Include="src\engine\shaders\vsLine.hlsl" />
     <FxCompile Include="src\engine\shaders\vsParabola.hlsl" />
     <FxCompile Include="src\engine\shaders\vsTexturedQuad.hlsl" />
+    <FxCompile Include="src\engine\shaders\psGrid.hlsl" />
+    <FxCompile Include="src\engine\shaders\vsFullscreenQuad.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="src\txt.txt" />

@@ -20,8 +20,8 @@ auto Renderer::terminate() -> void {
 	ImGui_ImplWin32_Shutdown();
 }
 
-auto Renderer::update(Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture) -> void {
-	renderer->update(camera, windowSizeIfRenderingToTexture);
+auto Renderer::update(Camera& camera, std::optional<float> gridSmallCellSize, std::optional<Vec2> windowSizeIfRenderingToTexture) -> void {
+	renderer->update(camera, gridSmallCellSize, windowSizeIfRenderingToTexture);
 }
 
 auto Renderer::updateFrameStart() -> void {

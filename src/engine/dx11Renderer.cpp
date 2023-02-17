@@ -32,8 +32,12 @@ Dx11Renderer::Dx11Renderer(Gfx& gfx)
 	psTexturedQuad = gfx.psFromFile(BUILD_DIR L"psTexturedQuad.cso");
 	texturedQuadConstantBufferResource = gfx.createConstantBuffer(sizeof(texturedQuadConstantBuffer));
 
+	vsFullscreenQuad = gfx.vsFromFile(BUILD_DIR L"vsFullscreenQuad.cso");
+	psGrid = gfx.psFromFile(BUILD_DIR L"psGrid.cso");
+	fullscreenQuadConstantBufferResource = gfx.createConstantBuffer(sizeof(fullscreenQuadConstantBuffer));
+	gridConstantBufferResource = gfx.createConstantBuffer(sizeof(gridConstantBuffer));
+
 	debugShapesFragmentShaderConstantBufferResource = gfx.createConstantBuffer(sizeof(debugShapesFragmentShaderConstantBuffer));
-	sizeof(parabolaShaderConstantBuffer);
 	{
 		const D3D11_BUFFER_DESC desc{
 			.ByteWidth = static_cast<UINT>(sizeof(PcVert) * DYNAMIC_TRIANGLES_SIZE),
@@ -203,7 +207,7 @@ Dx11Renderer::Dx11Renderer(Gfx& gfx)
 
 #include <utils/io.hpp>
 
-auto Dx11Renderer::update(Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture) -> void {
+auto Dx11Renderer::update(Camera& camera, std::optional<float> gridSmallCellSize, std::optional<Vec2> windowSizeIfRenderingToTexture) -> void {
 	const auto windowSize = windowSizeIfRenderingToTexture.has_value() ? *windowSizeIfRenderingToTexture : Window::size();
 	camera.aspectRatio = windowSize.xOverY();
 
@@ -253,6 +257,23 @@ auto Dx11Renderer::update(Camera& camera, std::optional<Vec2> windowSizeIfRender
 		p *= windowSize;
 		return p;
 	};
+
+	if (gridSmallCellSize.has_value()) {
+		fullscreenQuadConstantBuffer.transform = (screenScale * cameraTransform).inversed();
+		gfx.updateConstantBuffer(fullscreenQuadConstantBufferResource, &fullscreenQuadConstantBuffer, sizeof(fullscreenQuadConstantBuffer));
+		gfx.ctx->VSSetConstantBuffers(0, 1, fullscreenQuadConstantBufferResource.GetAddressOf());
+
+		gridConstantBuffer.cameraZoom = camera.zoom;
+		gridConstantBuffer.smallCellSize = *gridSmallCellSize;
+		gfx.updateConstantBuffer(gridConstantBufferResource, &gridConstantBuffer, sizeof(gridConstantBuffer));
+		gfx.ctx->PSSetConstantBuffers(0, 1, gridConstantBufferResource.GetAddressOf());
+
+		gfx.ctx->VSSetShader(vsFullscreenQuad.shader.Get(), nullptr, 0);
+		gfx.ctx->PSSetShader(psGrid.Get(), nullptr, 0);
+
+		// Assumes the fullscreen quad index buffer is set.
+		gfx.ctx->DrawIndexed(static_cast<UINT>(std::size(fullscreenQuadIndices)), 0, 0);
+	}
 
 	// Text
 	{
@@ -348,6 +369,7 @@ auto Dx11Renderer::update(Camera& camera, std::optional<Vec2> windowSizeIfRender
 	debugShapesFragmentShaderConstantBuffer.lineWidth = 0.003f * 1920.0f / windowSize.x;
 	debugShapesFragmentShaderConstantBuffer.smoothingWidth = debugShapesFragmentShaderConstantBuffer.lineWidth * (2.0f / 3.0f);
 	gfx.updateConstantBuffer(debugShapesFragmentShaderConstantBufferResource, &debugShapesFragmentShaderConstantBuffer, sizeof(debugShapesFragmentShaderConstantBuffer));
+	gfx.ctx->PSSetConstantBuffers(0, 1, debugShapesFragmentShaderConstantBufferResource.GetAddressOf());
 
 	// checkDraw can be called last in loops because zero sized arrays are not allowed.
 	// remember to put a draw or checkDraw after a loop.
@@ -431,7 +453,6 @@ auto Dx11Renderer::update(Camera& camera, std::optional<Vec2> windowSizeIfRender
 	{
 		gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
 		gfx.ctx->PSSetShader(psLine.Get(), nullptr, 0);
-		gfx.ctx->PSSetConstantBuffers(0, 1, debugShapesFragmentShaderConstantBufferResource.GetAddressOf());
 		UINT toDraw = 0;
 		auto draw = [&] {
 			if (toDraw == 0)

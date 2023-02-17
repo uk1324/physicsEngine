@@ -19,7 +19,7 @@ class Renderer {
 public:
 	static auto init() -> void;
 	static auto terminate() -> void;
-	static auto update(Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture = std::nullopt) -> void;
+	static auto update(Camera& camera, std::optional<float> gridSmallCellSize = std::nullopt, std::optional<Vec2> windowSizeIfRenderingToTexture = std::nullopt) -> void;
 	static auto updateFrameStart() -> void;
 	static auto updateFrameEnd(bool enableVsync) -> void;
 	static auto screenshot() -> ImageRgba;

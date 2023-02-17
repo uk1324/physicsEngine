@@ -10,7 +10,7 @@
 class Dx11Renderer {
 public:
 	Dx11Renderer(Gfx& gfx);
-	auto update(Camera& camera, std::optional<Vec2> windowSizeIfRenderingToTexture = std::nullopt) -> void;
+	auto update(Camera& camera, std::optional<float> gridSmallCellSize, std::optional<Vec2> windowSizeIfRenderingToTexture = std::nullopt) -> void;
 	auto drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate = false) -> void;
 
 	auto createDynamicTextureData(Vec2T<i64> size) -> u64;
@@ -73,6 +73,20 @@ private:
 
 	VertexShader vsColoredTriangle;
 	ComPtr<ID3D11PixelShader> psColoredTriangle;
+
+	VertexShader vsFullscreenQuad;
+	ComPtr<ID3D11PixelShader> psGrid;
+	ComPtr<ID3D11Buffer> gridConstantBufferResource;
+	struct alignas(16) GridConstantBuffer {
+		float cameraZoom;
+		float smallCellSize;
+	};
+	GridConstantBuffer gridConstantBuffer;
+	ComPtr<ID3D11Buffer> fullscreenQuadConstantBufferResource;
+	struct FullscreenQuadConstantBuffer {
+		float3x2 transform;
+	};
+	FullscreenQuadConstantBuffer fullscreenQuadConstantBuffer;
 
 	VertexShader vsTexturedQuad;
 	ComPtr<ID3D11PixelShader> psTexturedQuad;

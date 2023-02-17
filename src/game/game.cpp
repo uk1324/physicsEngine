@@ -346,7 +346,8 @@ auto Game::drawUi() -> void {
 	}
 	End();
 
-
+	// https://github.com/ocornut/imgui/issues/331
+	bool openGridModal = false;
 	if (BeginMainMenuBar()) {
 		if (BeginMenu("file")) {
 			if (MenuItem("new")) {
@@ -380,9 +381,36 @@ auto Game::drawUi() -> void {
 
 			EndMenu();
 		}
+		if (BeginMenu("grid")) {
+			MenuItem("enabled", nullptr, &isGridEnabled);
+
+			if (MenuItem("configure", nullptr, false, isGridEnabled)) {
+				openGridModal = true;
+			}
+			EndMenu();
+		}
 		EndMainMenuBar();
 	}
 
+	if (openGridModal) {
+		OpenPopup("grid");
+	}
+	const auto center = GetMainViewport()->GetCenter();
+	SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+	{
+		// https://github.com/ocornut/imgui/issues/528
+		bool isOpen = true;
+		if (BeginPopupModal("grid", &isOpen)) {
+			Checkbox("automatically scale", &automaticallyScaleGrid);
+			if (automaticallyScaleGrid) BeginDisabled();
+			InputFloat("cell size", &gridCellSize, 0.0f, 0.0f, "%.3f");
+			if (automaticallyScaleGrid) EndDisabled();
+			if (gridCellSize <= 0.0f) {
+				gridCellSize = 0.01f;
+			}
+			EndPopup();
+		}
+	}
 
 	if (loadedDemo.has_value()) {
 		Begin("demo");
@@ -731,7 +759,15 @@ auto Game::update() -> void {
 
 	draw();
 
-	Renderer::update(camera);
+	std::optional<float> cellSize;
+	if (isGridEnabled) {
+		if (automaticallyScaleGrid) {
+			cellSize = pow(2.0, round(log2(1.0 / camera.zoom / 25.0)));
+		} else {
+			cellSize = gridCellSize;
+		}
+	}
+	Renderer::update(camera, cellSize);
 }
 auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void {
 	for (const auto [_, body] : ent.body) {
