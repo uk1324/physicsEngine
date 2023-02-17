@@ -17,6 +17,7 @@ struct Aabb {
 	auto contains(const Aabb& aabb) const -> bool;
 	auto combined(const Aabb& aabb) const -> Aabb;
 	auto extended(Vec2 point) const -> Aabb;
+	auto addedPadding(float padding) const -> Aabb;
 	auto area() const -> float;
 	auto collides(const Aabb& other) const -> bool;
 	auto rayHits(Vec2 start, Vec2 end) const -> bool;

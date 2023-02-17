@@ -102,6 +102,7 @@ public:
 		// if nothing selected display "no entity selected"
 		// when selected make a combo with the possible graphs
 		// pos.x, pos.y, vel, rotation
+		// Save to level.
 	};
 	Tool selectedTool = Tool::GRAB;
 	bool selectingJointTool = false;
@@ -115,6 +116,9 @@ public:
 
 	using Entity = std::variant<BodyId, DistanceJointId, TrailId>;
 	std::optional<Entity> selected;
+	bool focusingOnSelected = false;
+	float elapsedSinceFocusStart = 0.0f;
+	Vec2 lastFrameFocusPos;
 
 	std::optional<BodyId> distanceJointBodyA;
 	Vec2 distanceJointBodyAAnchor;

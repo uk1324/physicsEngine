@@ -68,6 +68,10 @@ auto Aabb::extended(Vec2 point) const -> Aabb {
 	return Aabb{ min.min(point), max.max(point) };
 }
 
+auto Aabb::addedPadding(float padding) const -> Aabb {
+	return Aabb{ min - Vec2{ padding }, max + Vec2{ padding } };
+}
+
 auto Aabb::area() const -> float {
 	const auto s = size();
 	return s.x * s.y;

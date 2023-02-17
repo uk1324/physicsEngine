@@ -45,6 +45,7 @@ Game::Game() {
 	Input::registerKeyButton(Keycode::J, GameButton::START_SELECT_JOINT_TOOL);
 	Input::registerKeyButton(Keycode::D, GameButton::SELECT_DISTANCE_JOINT_TOOL);
 	Input::registerKeyButton(Keycode::SHIFT, GameButton::SNAP_TO_IMPORTANT_FEATURES);
+	Input::registerKeyButton(Keycode::F, GameButton::FOCUS_SELECTED_ON_OBJECT);
 	Window::maximize();
 
 	std::ifstream lastLoadedInfo{ lastLoadedLevelInfoPath };
@@ -895,6 +896,7 @@ auto Game::resetLevel() -> void {
 	contacts.clear();
 	gravity = Vec2{ 0.0f, -10.0f };
 	loadedDemo = std::nullopt;
+	selected = std::nullopt;
 }
 
 auto Game::selectToolGui() -> void {
@@ -939,19 +941,14 @@ auto Game::selectToolGui() -> void {
 }
 
 auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnderCursor) -> void {
+	if (!selected.has_value()) {
+		focusingOnSelected = false;
+	}
+
 	if (selectedTool != Tool::SELECT) {
 		selected = std::nullopt;
 		return;
 	} 
-
-	if (Input::isKeyDown(Keycode::DEL)) {
-		std::visit(overloaded{
-			[&](const BodyId& body) { ent.body.destroy(body); },
-			[&](const DistanceJointId& joint) { ent.distanceJoint.destroy(joint); },
-			[&](const TrailId& trail) { ent.trail.destroy(trail); }
-		}, *selected);
-		selected = std::nullopt;
-	}
 
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 		const auto colliderThickness = 0.02f / camera.zoom;
@@ -979,6 +976,86 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 		};
 		selected = select();
 	}
+
+	if (!selected.has_value()) {
+		return;
+	}
+
+	// TODO: Maybe move this into a function inside ent and use first class macros.
+	bool isAlive = std::visit(overloaded{
+		[&](const BodyId& body) { return ent.body.isAlive(body); },
+		[&](const DistanceJointId& joint) { return ent.distanceJoint.isAlive(joint); },
+		[&](const TrailId& trail) { return ent.trail.isAlive(trail); }
+	}, *selected);
+	if (!isAlive) {
+		selected = std::nullopt;
+		return;
+	}
+
+	if (Input::isKeyDown(Keycode::DEL)) {
+		std::visit(overloaded{
+			[&](const BodyId& body) { ent.body.destroy(body); },
+			[&](const DistanceJointId& joint) { ent.distanceJoint.destroy(joint); },
+			[&](const TrailId& trail) { ent.trail.destroy(trail); }
+		}, *selected);
+		selected = std::nullopt;
+		return;
+	}
+
+	// Don't think that focusing on a moving object should be considered a bug. Although the aabb changing due to rotation might be considered a bug. Could have a flag when the zoom reaches the desired value. The required aabb might still change due to rotation so it might be good to use the maximum possible aabb. This would require making a new function. For boxes this should be the diagonal, circles are easy. In general it needs to find the 2 points on the shape that are furthest apart from eachother.
+	// Also don't know if swithing selected entites should disable the focus.
+	if (const auto userMovedCamera = lastFrameFocusPos != camera.pos) {
+		focusingOnSelected = false;
+	}
+
+	if (Input::isButtonDown(GameButton::FOCUS_SELECTED_ON_OBJECT)) {
+		focusingOnSelected = !focusingOnSelected;
+		elapsedSinceFocusStart = 0.0f;
+	}
+
+	if (focusingOnSelected) {
+		auto selectedEntityAabb = std::visit(overloaded{
+			[&](const BodyId& bodyId) -> std::optional<Aabb> {
+				const auto body = ent.body.get(bodyId);
+				if (!body.has_value())
+					return std::nullopt;
+				// @Hack: ignore rotation so the aabb doesn't change a lot.
+				return aabb(body->collider, Transform{ body->transform.pos, 0.0f });
+			},
+			[&](const DistanceJointId& jointId) -> std::optional<Aabb> {
+				const auto joint = ent.distanceJoint.get(jointId);
+				if (!joint.has_value())
+					return std::nullopt;
+				const auto endpoints = joint->getEndpoints();
+				return Aabb::fromCorners(endpoints[0], endpoints[1]);
+			},
+			[&](const TrailId& traildId) -> std::optional<Aabb> {
+				const auto trail = ent.trail.get(traildId);
+				if (!trail.has_value())
+					return std::nullopt;
+
+				if (trail->history.size() == 0)
+					return std::nullopt;
+				
+				const auto p = trail->history.back();
+				float s = 1.0f;
+				return Aabb{ p - Vec2{ s }, p + Vec2{ s } };
+			}
+		}, *selected);
+
+		if (selectedEntityAabb.has_value()) {
+			elapsedSinceFocusStart = std::min(elapsedSinceFocusStart + Time::deltaTime(), 1.0f);
+			const auto size = selectedEntityAabb->size() * 6.0f;
+			const auto targetZoom = 1.0f / std::max(size.y, camera.heightIfWidthIs(size.x));
+
+			const auto [pos, zoom] = lerpPosAndZoom({ camera.pos, camera.zoom }, { selectedEntityAabb->center(), targetZoom }, elapsedSinceFocusStart);
+			camera.pos = pos;
+			camera.zoom = zoom;
+
+			lastFrameFocusPos = camera.pos;
+		}
+	}
+
 }
 
 auto Game::selectToolDraw() -> void {
