@@ -7,7 +7,7 @@
 
 // When a collision between 2 bodies happens and a collision between the same bodies happened on last frame too, the frame accumulators of contacts with the same features are transfered over.
 auto Collision::update(const Collision& newCollision) -> void {
-	if (!Game::reusePreviousFrameContactAccumulators) {
+	if (!Game::usePreviousStepImpulseSolutionsAsInitialGuess) {
 		*this = newCollision;
 		for (i8 i = 0; i < contactCount; i++) {
 			contacts[i].invNormalEffectiveMass = 0.0f;

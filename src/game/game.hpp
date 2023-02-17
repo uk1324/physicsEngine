@@ -96,7 +96,8 @@ public:
 		DISTANCE_JOINT,
 		REVOLUTE_JOINT,
 		CREATE_BODY,
-		TRAIL
+		TRAIL,
+		DISABLE_COLLISON
 	};
 	Tool selectedTool = Tool::GRAB;
 	bool selectingJointTool = false;
@@ -124,6 +125,8 @@ public:
 	std::vector<std::unique_ptr<Demo>> demos;
 	std::optional<Demo&> loadedDemo;
 
+	std::optional<BodyId> disableCollisionBodyA;
+
 	Camera camera;
 
 	Vec2 gravity{ 0.0f };
@@ -145,7 +148,9 @@ public:
 	bool drawTrajectory = false;
 	Vec2 initialVelocity{ 1.0f };
 
-	static bool reusePreviousFrameContactAccumulators;
+	// This is also called warm starting.
+	// The physics engine uses an iterative systems of equation solver which uses the Gauss-Seidel method. It starts with an initial guess and tries to get as close as possible to the analytical solution (if one exists else it gets it closer to satifying all equations). Enabling this makes it so the solver tries to improve convergence by expoliting temporal coherence between solutions. It uses the solution from the previous frame as the starting guess for the new frame.
+	static bool usePreviousStepImpulseSolutionsAsInitialGuess;
 	static bool positionCorrection;
 	static bool accumulateImpulses;
 

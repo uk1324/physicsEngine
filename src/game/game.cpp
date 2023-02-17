@@ -24,6 +24,7 @@
 #include <game/demos/doubleDominoDemo.hpp>
 #include <game/demos/hexagonalPyramidDemo.hpp>
 #include <game/demos/scissorsMechanismDemo.hpp>
+#include <game/demos/cycloidDemo.hpp>
 
 #include <filesystem>
 
@@ -33,6 +34,7 @@ Game::Game() {
 	DEMO(DoubleDominoDemo)
 	DEMO(HexagonalPyramid)
 	DEMO(ScissorsMechanism)
+	DEMO(CycloidDemo)
 	std::sort(demos.begin(), demos.end(), [](const auto& a, const auto& b) { return strcmp(a->name(), b->name()) < 0; });
 #undef DEMO
 
@@ -316,14 +318,14 @@ auto Game::drawUi() -> void {
 	}
 
 	auto disableGravity = gravity == Vec2{ 0.0f };
-	Checkbox("disableGravity", &disableGravity);
+	Checkbox("disable gravity", &disableGravity);
 	if (disableGravity) {
 		gravity = Vec2{ 0.0f };
 	} else {
 		gravity = Vec2{ 0.0f, -10.0f };
 	}
 
-	Checkbox("reuse previous contact accumulators", &reusePreviousFrameContactAccumulators);
+	Checkbox("warm starting", &usePreviousStepImpulseSolutionsAsInitialGuess);
 	InputInt("solver iterations", &physicsSolverIterations);
 	InputInt("physics substeps", &physicsSubsteps);
 	End();
@@ -448,7 +450,7 @@ auto Game::drawUi() -> void {
 	}
 
 	Begin("tool");
-	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0trail\0\0");
+	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0trail\0disable collision\0\0");
 
 	switch (selectedTool) {
 	case Game::Tool::GRAB: break;
@@ -459,14 +461,13 @@ auto Game::drawUi() -> void {
 		Combo("shape", reinterpret_cast<int*>(&selectedShape), "circle\0rectangle\0\0");
 		break;
 	case Game::Tool::TRAIL: break;
+	case Game::Tool::DISABLE_COLLISON: break;
 	}
 
 	End();
 
 	displayErrorPopupModal();
 }
-
-#include <filesystem>
 
 auto Game::openLoadLevelDialog() -> std::optional<const char*> {
 	const auto path = ImGui::openFileSelect();
@@ -522,6 +523,10 @@ auto Game::update() -> void {
 	Debug::drawPoint(cursorPos);
 
 	ent.update();
+
+	if (loadedDemo.has_value()) {
+		loadedDemo->update();
+	}
 
 	if (drawTrajectory) {
 		Vec2 previous = cursorPos;
@@ -676,6 +681,19 @@ auto Game::update() -> void {
 		ent.trail.create(Trail{ .body = *bodyUnderCursor, .anchor = bodyUnderCursorPosInSelectedObjectSpace });
 	}
 
+	if (selectedTool == Tool::DISABLE_COLLISON) {
+		if (Input::isMouseButtonDown(MouseButton::LEFT)) {
+			if (!disableCollisionBodyA.has_value()) {
+				disableCollisionBodyA = bodyUnderCursor;
+			} else if (bodyUnderCursor.has_value()) {
+				ent.collisionsToIgnore.insert(BodyPair{ *disableCollisionBodyA, *bodyUnderCursor });
+				disableCollisionBodyA = std::nullopt;
+			}
+		}
+	} else {
+		disableCollisionBodyA = std::nullopt;
+	}
+
 	auto doPhysicsUpdate = updatePhysics || doASingleStep;
 	if (doASingleStep) {
 		doASingleStep = false;
@@ -688,8 +706,6 @@ auto Game::update() -> void {
 		Timer timer;
 		const auto substepLength = Time::deltaTime() / physicsSubsteps;
 		for (i32 i = 0; i < physicsSubsteps; i++) {
-			physicsStep(substepLength, physicsSolverIterations, physicsProfile);
-
 			if (selectedTool == Tool::GRAB && grabbed.has_value()) {
 				auto body = ent.body.get(*grabbed);
 				if (body.has_value()) {
@@ -702,13 +718,15 @@ auto Game::update() -> void {
 					grabbed = std::nullopt;
 				}
 			}
+
+			physicsStep(substepLength, physicsSolverIterations, physicsProfile);
 		}
 		physicsProfile.total = timer.elapsedMilliseconds();
+	}
 
-		// Update trail after physics to get the most up to date position.
-		for (const auto& [_, trail] : ent.trail) {
-			trail.update();
-		}
+	// Update trail after physics to get the most up to date position.
+	for (const auto& [_, trail] : ent.trail) {
+		trail.update();
 	}
 
 	draw();
@@ -793,7 +811,8 @@ auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) 
 
 auto Game::draw() -> void {
 	for (const auto& [_, body] : ent.body) {
-		Debug::drawCollider(body.collider, body.transform.pos, body.transform.angle());
+		const auto color = body.isStatic() ? Vec3::WHITE / 2.0f : Vec3::WHITE;
+		Debug::drawCollider(body.collider, body.transform.pos, body.transform.angle(), color);
 	}
 
 	if (drawContacts) {
@@ -819,6 +838,8 @@ auto Game::draw() -> void {
 	case Game::Tool::CREATE_BODY:
 		break;
 	case Game::Tool::TRAIL:
+		break;
+	case Game::Tool::DISABLE_COLLISON:
 		break;
 	}
 
@@ -954,6 +975,6 @@ auto Game::selectToolDraw() -> void {
 	}, *selected);
 }
 
-bool Game::reusePreviousFrameContactAccumulators = true;
+bool Game::usePreviousStepImpulseSolutionsAsInitialGuess = true;
 bool Game::positionCorrection = true;
 bool Game::accumulateImpulses = true;
