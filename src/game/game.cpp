@@ -446,6 +446,20 @@ auto Game::drawUi() -> void {
 	case Game::Tool::REVOLUTE_JOINT: break;
 	case Game::Tool::CREATE_BODY:
 		Combo("shape", reinterpret_cast<int*>(&selectedShape), "circle\0rectangle\0\0");
+		switch (selectedShape)
+		{
+		case Game::BodyShape::CIRCLE:
+			InputFloat("radius", &circleRadius);
+			if (circleRadius < 0.05f) {
+				circleRadius = 0.05f;
+			}
+			break;
+		case Game::BodyShape::RECTANGLE:
+			InputFloat2("size", boxSize.data());
+			boxSize = boxSize.max(Vec2{ 0.05f });
+			inputAngle("orientation", &boxOrientation);
+			break;
+		}
 		break;
 	case Game::Tool::CREATE_LINE:
 		InputFloat("width", &lineWidth);
@@ -732,14 +746,22 @@ auto Game::update() -> void {
 		distanceJointBodyA = std::nullopt;
 	}
 
-	if (selectedTool == Tool::CREATE_BODY && Input::isMouseButtonDown(MouseButton::LEFT)) {
-		switch (selectedShape) {
-		case Game::BodyShape::CIRCLE:
-			ent.body.create(Body{ cursorPos, CircleCollider{ 0.5f } });
-			break;
-		case Game::BodyShape::RECTANGLE:
-			ent.body.create(Body{ cursorPos, BoxCollider{ Vec2{ 1.0f } } });
-			break;
+	if (selectedTool == Tool::CREATE_BODY) {
+		if (Input::isKeyHeld(Keycode::CTRL)) {
+			scrollOnCursorPosEnabled = false;
+			circleRadius *= pow(2.0f, 5.0f * Input::scrollDelta() * Time::deltaTime());
+		}
+
+		if (Input::isMouseButtonDown(MouseButton::LEFT)) {
+			switch (selectedShape) {
+			case Game::BodyShape::CIRCLE:
+				ent.body.create(Body{ cursorPos, CircleCollider{ circleRadius } });
+				break;
+			case Game::BodyShape::RECTANGLE:
+				const auto& [_, body] = ent.body.create(Body{ cursorPos, BoxCollider{ boxSize } });
+				body.transform.rot = Rotation{ boxOrientation };
+				break;
+			}
 		}
 	}
 
@@ -934,6 +956,16 @@ auto Game::draw(Vec2 cursorPos) -> void {
 	case Game::Tool::REVOLUTE_JOINT:
 		break;
 	case Game::Tool::CREATE_BODY:
+		switch (selectedShape) {
+		case Game::BodyShape::CIRCLE:
+			Debug::drawHollowCircle(cursorPos, circleRadius);
+			break;
+		case Game::BodyShape::RECTANGLE:
+			Debug::drawBox(cursorPos, boxOrientation, boxSize);
+			break;
+		default:
+			break;
+		}
 		break;
 	case Game::Tool::CREATE_LINE:
 		if (lineStart.has_value()) {

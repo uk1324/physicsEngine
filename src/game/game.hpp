@@ -132,6 +132,9 @@ public:
 		CIRCLE, RECTANGLE
 	};
 	BodyShape selectedShape = BodyShape::CIRCLE;
+	float circleRadius = 1.0f;
+	Vec2 boxSize{ 1.0f };
+	float boxOrientation = 0.0f;
 
 	float lineWidth = 1.0f;
 	bool isLineStatic = false;
