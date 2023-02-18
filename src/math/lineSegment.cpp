@@ -19,22 +19,32 @@ LineSegment::LineSegment(Vec2 start, Vec2 end)
 	}
 }
 
+auto LineSegment::closestPointTo(Vec2 p) const -> Vec2 {
+	const auto along = line.distanceAlong(p);
+	const auto alongClamped = std::clamp(along, minDistanceAlongLine, maxDistanceAlongLine);
+	return line.n * line.d - line.n.rotBy90deg() * alongClamped;
+}
+
+auto LineSegment::distance(Vec2 p) const -> float {
+	const auto along = line.distanceAlong(p);
+	if (along < minDistanceAlongLine || along > maxDistanceAlongLine) {
+		const auto alongClamped = std::clamp(along, minDistanceAlongLine, maxDistanceAlongLine);
+		const auto lineEdge = line.n.rotBy90deg() * alongClamped;
+		return ::distance(lineEdge, p);
+	}
+	return ::distance(line, p);
+}
+
 auto LineSegment::asBoxContains(float halfWidth, Vec2 p) const -> bool {
 	const auto along = line.distanceAlong(p);
 	if (along < minDistanceAlongLine || along > maxDistanceAlongLine)
 		return false;
 
-	return distance(line, p) < halfWidth;
+	return ::distance(line, p) < halfWidth;
 }
 
 auto LineSegment::asCapsuleContains(float thickness, Vec2 p) const -> bool {
-	const auto along = line.distanceAlong(p);
-	if (along < minDistanceAlongLine || along > maxDistanceAlongLine) {
-		const auto alongClamped = std::clamp(along, minDistanceAlongLine, maxDistanceAlongLine);
-		const auto lineEdge = line.n.rotBy90deg() * alongClamped;
-		return distance(lineEdge, p) < thickness;
-	}
-	return distance(line, p) < thickness;
+	return distance(p) < thickness;
 }
 
 auto LineSegment::aabb() const -> Aabb {

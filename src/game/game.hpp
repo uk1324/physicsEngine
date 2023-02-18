@@ -62,6 +62,7 @@ struct JointId {
 }
 */
 
+// TODO: https://youtu.be/xvAVQ6GEv-E?t=298
 class Game {
 public:
 	Game();
@@ -81,26 +82,32 @@ public:
 	auto displayErrorPopupModal() -> void;
 	auto update() -> void;
 	auto physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void;
-	auto draw() -> void;
+	auto draw(Vec2 cursorPos) -> void;
 	auto resetLevel() -> void;
 
 	std::optional<std::string> lastSavedLevelPath;
 
 	std::vector<Json::Value> levelSavestates;
 
+	// Could create a system similar to the demo system, but for tools, but some tools require getting some specific data so I am not sure if it is worth doing. Could make a struct that just contains all the data needed for tools. struct ToolData.
+	// The update method would need to be called even if the tool isn't selected to tools can create shortcuts and thing like that.
+	// There would also need to be a way to register the Buttons in Input
 	enum class Tool {
 		GRAB,
 		SELECT,
 		DISTANCE_JOINT,
 		REVOLUTE_JOINT,
+		// Maybe make something that lets you click once to choose circle center and the another time to choose a point on the circle which so the distance between the points is the radius.
 		CREATE_BODY,
+		CREATE_LINE,
 		TRAIL,
-		DISABLE_COLLISON
+		DISABLE_COLLISON,
 		// TODO: Graphing tool. 
 		// if nothing selected display "no entity selected"
 		// when selected make a combo with the possible graphs
 		// pos.x, pos.y, vel, rotation
 		// Save to level.
+		// Phase space Graphs?
 	};
 	Tool selectedTool = Tool::GRAB;
 	bool selectingJointTool = false;
@@ -125,6 +132,12 @@ public:
 		CIRCLE, RECTANGLE
 	};
 	BodyShape selectedShape = BodyShape::CIRCLE;
+
+	float lineWidth = 1.0f;
+	bool isLineStatic = false;
+	bool endpointsInside = true;
+	bool chainLine = false;
+	std::optional<Vec2> lineStart;
 
 	CollisionMap contacts;
 
@@ -157,6 +170,10 @@ public:
 	bool isGridEnabled = true;
 	bool automaticallyScaleGrid = true;
 	float gridCellSize = 1.0f;
+
+	bool snapToGrid = true;
+	bool snapToObjects = true;
+
 
 	// This is also called warm starting.
 	// The physics engine uses an iterative systems of equation solver which uses the Gauss-Seidel method. It starts with an initial guess and tries to get as close as possible to the analytical solution (if one exists else it gets it closer to satifying all equations). Enabling this makes it so the solver tries to improve convergence by expoliting temporal coherence between solutions. It uses the solution from the previous frame as the starting guess for the new frame.

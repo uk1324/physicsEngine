@@ -17,9 +17,6 @@ Maybe add a unit type system for the langage. mass * length = velocity
 To generatae angles of a convex poylgon could generate a sum of angles that are less than 90 and then normalize it.
 These ides wouldn't work, but are cool. Generating a point on a sphere. Angles or generate on cube and then normalize.
 
-.data
-Store an array of structs with enum + index that specifes the order in which thing code should be generated.
-
 Maybe make a immediate mode style interface for the editor.
 if (Circle(&pos)) {
 

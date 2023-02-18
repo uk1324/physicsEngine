@@ -37,6 +37,8 @@ auto Transform::inversed() const -> Transform {
 	return Transform{ -(pos * rotInv), rotInv };
 }
 
+const Transform Transform::identity = Transform{ Vec2{ 0.0f }, 0.0f };
+
 auto Rotation::operator*(const Rotation& other) const -> Rotation {
 	// Complex multiplication.
 	return Rotation{ cos * other.cos - sin * other.sin, cos * other.sin + other.cos * sin };

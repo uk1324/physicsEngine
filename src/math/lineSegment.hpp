@@ -9,6 +9,8 @@ struct LineSegment {
 	LineSegment(Line line, float minDistanceAlongLine, float maxDistanceAlongLine);
 	LineSegment(Vec2 start, Vec2 end);
 
+	auto closestPointTo(Vec2 p) const -> Vec2;
+	auto distance(Vec2 p) const -> float;
 	auto asBoxContains(float width, Vec2 p) const -> bool;
 	auto asCapsuleContains(float thickness, Vec2 p) const -> bool;
 	auto aabb() const -> Aabb;

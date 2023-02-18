@@ -9,7 +9,7 @@ GameSettingsManager gameSettings;
 GameSettingsManager::GameSettingsManager()
 	// Creating the path at runtime because some functions change the current working directory. For example GetOpenFileNameA.
 	// Initializing it here to ensure the correct order of static intialization.
-	: settingsPath{ (std::filesystem::current_path() / "settings.json").string() }{
+	: settingsPath{ (std::filesystem::current_path() / "settings.json").string() }  {
 	const auto fileStr = readFileToString(settingsPath.data());
 	try {
 		const auto fileJson = Json::parse(fileStr);

@@ -40,8 +40,8 @@ struct BoxCollider {
 	auto massInfo(float density) const->MassInfo;
 	auto aabb(const Transform& transform) const->Aabb;
 
-	auto getCorners(Vec2 pos, float orientation) const->std::array<Vec2, 4>;
-	auto getEdges(Vec2 pos, float orientation) const->std::array<LineSegment, 4>;
+	auto getCorners(const Transform& transform) const->std::array<Vec2, 4>;
+	auto getEdges(const Transform& transform) const->std::array<LineSegment, 4>;
 };
 
 using Collider = std::variant<BoxCollider, CircleCollider, ConvexPolygon>;

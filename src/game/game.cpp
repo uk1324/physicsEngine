@@ -343,6 +343,11 @@ auto Game::drawUi() -> void {
 			}
 			EndMenu();
 		}
+		if (BeginMenu("snapping")) {
+			MenuItem("to grid", nullptr, &snapToGrid);
+			MenuItem("to objects", nullptr, &snapToObjects);
+			EndMenu();
+		}
 		EndMainMenuBar();
 	}
 
@@ -432,7 +437,7 @@ auto Game::drawUi() -> void {
 	}
 
 	Begin("tool");
-	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0trail\0disable collision\0\0");
+	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0create line\0trail\0disable collision\0\0");
 
 	switch (selectedTool) {
 	case Game::Tool::GRAB: break;
@@ -441,6 +446,16 @@ auto Game::drawUi() -> void {
 	case Game::Tool::REVOLUTE_JOINT: break;
 	case Game::Tool::CREATE_BODY:
 		Combo("shape", reinterpret_cast<int*>(&selectedShape), "circle\0rectangle\0\0");
+		break;
+	case Game::Tool::CREATE_LINE:
+		InputFloat("width", &lineWidth);
+		if (lineWidth < 0.05f) {
+			lineWidth = 0.05f;
+		}
+		Checkbox("static", &isLineStatic);
+		Checkbox("endpoints inside", &endpointsInside);
+		Checkbox("chain", &chainLine);
+		// TODO: if chainLine { join with revolute joints }
 		break;
 	case Game::Tool::TRAIL: break;
 	case Game::Tool::DISABLE_COLLISON: break;
@@ -498,10 +513,77 @@ auto Game::update() -> void {
 	if (Input::isKeyHeld(Keycode::D)) dir.x += 1.0f;
 	if (Input::isKeyHeld(Keycode::A)) dir.x -= 1.0f;
 	camera.pos += dir.normalized() * Time::deltaTime() / camera.zoom;
-	camera.scrollOnCursorPos();
+
+	std::optional<float> gridSize;
+	if (isGridEnabled) {
+		if (automaticallyScaleGrid) {
+			gridSize = powf(2.0, round(log2f(1.0f / camera.zoom / 25.0f)));
+		} else {
+			gridSize = gridCellSize;
+		}
+	}
 
 	// For positions not not lag behind the camera has to be updated first.
 	auto cursorPos = camera.screenSpaceToCameraSpace(Input::cursorPos());
+	if (Input::isButtonHeld(GameButton::SNAP_TO_IMPORTANT_FEATURES)) {
+		bool snappedToObject = false;
+		if (snapToObjects) {
+			float minDistance = std::numeric_limits<float>::infinity();
+			Vec2 closestFeaturePos;
+			for (const auto& [_, body] : ent.body) {
+				const auto dist = distance(body.transform.pos, cursorPos);
+				if (dist < minDistance) {
+					minDistance = dist;
+					closestFeaturePos = body.transform.pos;
+				}
+
+				auto convexPolygonCase = [&](Span<const Vec2> verts) {
+					if (verts.size() <= 1)
+						return;
+
+					usize previous = verts.size() - 1;
+					for (usize i = 0; i < verts.size(); previous = i, i++) {
+						const auto cursorPosInColliderSpace = cursorPos * body.transform.inversed();
+						const auto pointOnLine = LineSegment{ verts[previous], verts[i] }.closestPointTo(cursorPosInColliderSpace);
+						const auto d = distance(pointOnLine, cursorPosInColliderSpace);
+						if (d < minDistance) {
+							minDistance = d;
+							closestFeaturePos = pointOnLine * body.transform;
+						}
+					}
+				};
+
+				std::visit(overloaded{
+					[&](const BoxCollider& box) {
+						const auto& corners = box.getCorners(Transform::identity);
+						convexPolygonCase(Span{ corners.data(), corners.size() });
+					},
+					[&](const CircleCollider& circle) {
+						const auto centerToPos = cursorPos - body.transform.pos;
+						const auto d = abs(centerToPos.length() - circle.radius);
+						if (d < minDistance) {
+							minDistance = d;
+							closestFeaturePos = body.transform.pos + circle.radius * centerToPos.normalized();
+						}
+					},
+					[&](const ConvexPolygon& polygon) {
+						convexPolygonCase(polygon.verts);
+					},
+					}, body.collider);
+			}
+			//Debug::drawPoint(closestFeaturePos, Vec3::RED);
+			//Debug::drawHollowCircle(cursorPos, 0.03f / camera.zoom);
+			// TODO: Snapping to joints?
+			if (minDistance < (0.03f / camera.zoom)) {
+				cursorPos = closestFeaturePos;
+				snappedToObject = true;
+			}
+		}
+
+		if (!snappedToObject && snapToGrid && gridSize.has_value()) {
+			cursorPos = (cursorPos / *gridSize).applied(round) * *gridSize;
+		}
+	}
 	Debug::drawPoint(cursorPos);
 
 	ent.update();
@@ -573,6 +655,8 @@ auto Game::update() -> void {
 			break;
 		}
 	}
+
+	bool scrollOnCursorPosEnabled = true;
 
 	if (selectedTool == Tool::GRAB) {
 		if (bodyUnderCursor.has_value() && Input::isMouseButtonDown(MouseButton::LEFT)) {
@@ -659,6 +743,35 @@ auto Game::update() -> void {
 		}
 	}
 
+	if (selectedTool == Tool::CREATE_LINE) {
+		if (Input::isMouseButtonDown(MouseButton::LEFT)) {
+			if (!lineStart.has_value()) {
+				lineStart = cursorPos;
+			} else {
+				const auto lineEnd = cursorPos;
+				const auto line = lineEnd - *lineStart;
+				const auto middle = (lineEnd + *lineStart) / 2.0f;
+				auto length = line.length();
+				if (endpointsInside) {
+					length += lineWidth;
+				}
+				const auto& [_, body] = ent.body.create(Body{ middle, BoxCollider{ Vec2{ length, lineWidth } }, isLineStatic });
+				body.transform.rot = Rotation{ line.angle() };
+				if (chainLine) {
+					lineStart = lineEnd;
+				} else {
+					lineStart = std::nullopt;
+				}
+			}
+		}
+
+		if (lineStart.has_value() && Input::isMouseButtonDown(MouseButton::RIGHT)) {
+			lineStart = std::nullopt;
+		}
+	} else {
+		lineStart = std::nullopt;
+	}
+
 	if (selectedTool == Tool::TRAIL && Input::isMouseButtonDown(MouseButton::LEFT) && bodyUnderCursor.has_value()) {
 		ent.trail.create(Trail{ .body = *bodyUnderCursor, .anchor = bodyUnderCursorPosInSelectedObjectSpace });
 	}
@@ -711,17 +824,12 @@ auto Game::update() -> void {
 		trail.update();
 	}
 
-	draw();
-
-	std::optional<float> cellSize;
-	if (isGridEnabled) {
-		if (automaticallyScaleGrid) {
-			cellSize = powf(2.0, round(log2f(1.0f / camera.zoom / 25.0f)));
-		} else {
-			cellSize = gridCellSize;
-		}
+	if (scrollOnCursorPosEnabled) {
+		camera.scrollOnCursorPos();
 	}
-	Renderer::update(camera, cellSize);
+	draw(cursorPos);
+
+	Renderer::update(camera, gridSize);
 }
 auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void {
 	for (const auto [_, body] : ent.body) {
@@ -799,7 +907,7 @@ auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) 
 	}
 }
 
-auto Game::draw() -> void {
+auto Game::draw(Vec2 cursorPos) -> void {
 	for (const auto& [_, body] : ent.body) {
 		const auto color = body.isStatic() ? Vec3::WHITE / 2.0f : Vec3::WHITE;
 		Debug::drawCollider(body.collider, body.transform.pos, body.transform.angle(), color);
@@ -826,6 +934,18 @@ auto Game::draw() -> void {
 	case Game::Tool::REVOLUTE_JOINT:
 		break;
 	case Game::Tool::CREATE_BODY:
+		break;
+	case Game::Tool::CREATE_LINE:
+		if (lineStart.has_value()) {
+			const auto end = cursorPos;
+			const auto center = (end + *lineStart) / 2.0f;
+			const auto line = end - *lineStart;
+			auto length = line.length();
+			if (endpointsInside) {
+				length += lineWidth;
+			}
+			Debug::drawBox(center, line.angle(), Vec2{ length, lineWidth });
+		}
 		break;
 	case Game::Tool::TRAIL:
 		break;

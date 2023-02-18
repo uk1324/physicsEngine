@@ -25,6 +25,7 @@ struct Transform {
 
 	Vec2 pos;
 	Rotation rot;
+	static const Transform identity;
 };
 
 auto operator*(const Vec2& v, const Rotation& rot) -> Vec2;
