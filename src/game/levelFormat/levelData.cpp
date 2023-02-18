@@ -1,4 +1,5 @@
 #include <game\levelFormat\levelData.hpp>
+#include <utils/serialize.hpp>
 using namespace Json;
 
 auto LevelBox::toJson() const -> Json::Value {
@@ -100,6 +101,26 @@ auto LevelIgnoredCollision::fromJson(const Json::Value& json) -> LevelIgnoredCol
 	return LevelIgnoredCollision{
 		.bodyAIndex = json.at("bodyAIndex").intNumber(),
 		.bodyBIndex = json.at("bodyBIndex").intNumber(),
+	};
+}
+
+auto Level::toJson() const -> Json::Value {
+	auto result = Json::Value::emptyObject();
+	result["bodies"] = vecToJson(bodies);
+	result["distanceJoints"] = vecToJson(distanceJoints);
+	result["trails"] = vecToJson(trails);
+	result["ignoredCollisions"] = vecToJson(ignoredCollisions);
+	result["gravity"] = { { "x", gravity.x }, { "y", gravity.y } };
+	return result;
+}
+
+auto Level::fromJson(const Json::Value& json) -> Level {
+	return Level{
+		.bodies = json.contains("bodies") ? vecFromJson<LevelBody>(json.at("bodies")) : std::vector<LevelBody>{},
+		.distanceJoints = json.contains("distanceJoints") ? vecFromJson<LevelDistanceJoint>(json.at("distanceJoints")) : std::vector<LevelDistanceJoint>{},
+		.trails = json.contains("trails") ? vecFromJson<LevelTrail>(json.at("trails")) : std::vector<LevelTrail>{},
+		.ignoredCollisions = json.contains("ignoredCollisions") ? vecFromJson<LevelIgnoredCollision>(json.at("ignoredCollisions")) : std::vector<LevelIgnoredCollision>{},
+		.gravity = json.contains("gravity") ? Vec2{ json.at("gravity").at("x").number(), json.at("gravity").at("y").number() } : Vec2{ 0.0f, -10.0f },
 	};
 }
 

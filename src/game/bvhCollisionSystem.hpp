@@ -34,7 +34,7 @@ private:
 	auto clearCrossedFlag(u32 nodeIndex) -> void;
 	auto collide(CollisionMap& collisions, const IgnoredCollisions& collisionsToIgnore, u32 nodeA, u32 nodeB) -> void;
 
-	static auto addMarginToAabb(const Aabb& aabb) -> Aabb;
+	static auto addPaddingToAabb(const Aabb& aabb) -> Aabb;
 
 	CollisionMap newCollisions;
 

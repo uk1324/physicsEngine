@@ -60,10 +60,10 @@ auto BvhCollisionSystem::updateBvh() -> void {
 		const auto updatedAabb = aabb(body->collider, body->transform);
 		if (!(node.aabb.contains(updatedAabb.min) && node.aabb.contains(updatedAabb.max))) {
 			if (leafNodes.size() == 1) {
-				node.aabb = addMarginToAabb(updatedAabb);
+				node.aabb = addPaddingToAabb(updatedAabb);
 			} else {
 				removeLeafNode(nodeIndex);
-				node.aabb = addMarginToAabb(updatedAabb);
+				node.aabb = addPaddingToAabb(updatedAabb);
 				insertHelper(rootNode, nodeIndex);
 			}
 
@@ -221,16 +221,17 @@ auto BvhCollisionSystem::collide(CollisionMap& collisions, const IgnoredCollisio
 	}
 }
 
-auto BvhCollisionSystem::addMarginToAabb(const Aabb& aabb) -> Aabb {
-	static constexpr float AABB_MARGIN = 0.2f;
-	return Aabb{ aabb.min - Vec2{ AABB_MARGIN }, aabb.max + Vec2{ AABB_MARGIN } };
+auto BvhCollisionSystem::addPaddingToAabb(const Aabb& aabb) -> Aabb {
+	// The padding is added so the tree nodes don't need to be updated as often. It allows the objects move a bit and still remain the same node with the same aabb.
+	static constexpr float AABB_PADDING = 0.2f;
+	return aabb.addedPadding(AABB_PADDING);
 }
 
 auto BvhCollisionSystem::insert(BodyId bodyId) -> void {
 
 	auto aabb = [](const Body& body) -> Aabb {
 		const auto aabb = ::aabb(body.collider, body.transform);
-		return addMarginToAabb(aabb);
+		return addPaddingToAabb(aabb);
 	};
 
 	const auto& body = ent.body.get(bodyId);

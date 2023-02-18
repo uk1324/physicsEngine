@@ -258,7 +258,16 @@ auto Dx11Renderer::update(Camera& camera, std::optional<float> gridSmallCellSize
 		return p;
 	};
 
+	auto setFullscreenQaudVertices = [this]() {
+		gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
+		gfx.ctx->IASetInputLayout(ptLayout.Get());
+		const UINT stride{ sizeof(PtVert) }, offset{ 0 };
+		gfx.ctx->IASetVertexBuffers(0, 1, fullscreenQuadPtVb.GetAddressOf(), &stride, &offset);
+	};
+
 	if (gridSmallCellSize.has_value()) {
+		setFullscreenQaudVertices();
+
 		fullscreenQuadConstantBuffer.transform = (screenScale * cameraTransform).inversed();
 		gfx.updateConstantBuffer(fullscreenQuadConstantBufferResource, &fullscreenQuadConstantBuffer, sizeof(fullscreenQuadConstantBuffer));
 		gfx.ctx->VSSetConstantBuffers(0, 1, fullscreenQuadConstantBufferResource.GetAddressOf());
@@ -271,7 +280,6 @@ auto Dx11Renderer::update(Camera& camera, std::optional<float> gridSmallCellSize
 		gfx.ctx->VSSetShader(vsFullscreenQuad.shader.Get(), nullptr, 0);
 		gfx.ctx->PSSetShader(psGrid.Get(), nullptr, 0);
 
-		// Assumes the fullscreen quad index buffer is set.
 		gfx.ctx->DrawIndexed(static_cast<UINT>(std::size(fullscreenQuadIndices)), 0, 0);
 	}
 
@@ -375,13 +383,8 @@ auto Dx11Renderer::update(Camera& camera, std::optional<float> gridSmallCellSize
 	// remember to put a draw or checkDraw after a loop.
 		// Circle
 	// !!!!!!!!!!!!! TODO: Make a templated class or a macro for dealing with drawing debug shapes. Later specifying the width might be needed.
-	gfx.ctx->IASetIndexBuffer(fullscreenQuadIb.Get(), DXGI_FORMAT_R16_UINT, 0);
-	gfx.ctx->IASetInputLayout(ptLayout.Get());
-	{
-		const UINT stride{ sizeof(PtVert) }, offset{ 0 };
-		gfx.ctx->IASetVertexBuffers(0, 1, fullscreenQuadPtVb.GetAddressOf(), &stride, &offset);
-	}
 
+	setFullscreenQaudVertices();
 	{
 		gfx.ctx->VSSetShader(vsCircle.shader.Get(), nullptr, 0);
 

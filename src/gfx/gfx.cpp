@@ -61,6 +61,8 @@ Gfx::Gfx(HWND hWnd_) {
 auto Gfx::update() -> void {
 	if (Window::resized()) {
 		backBufferRenderTargetView->Release();
+		ASSERT(Window::size().y != 0);
+		ASSERT(Window::size().x != 0);
 		CHECK_WIN_HRESULT(swapChain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, static_cast<UINT>(Window::size().x), static_cast<UINT>(Window::size().y), SWAP_CHAIN_FORMAT, SWAP_CHAIN_FLAGS));
 
 		setBackBufferRenderTargetView();

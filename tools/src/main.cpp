@@ -52,8 +52,10 @@ static auto operator<<(std::ostream& os, const Data::FieldType& type) -> std::os
 		os << ">";
 		break;
 	case FieldTypeType::VECTOR:
-		os << "std::vector<" << type.vectorType << ">";
+		os << "std::vector<" << *type.vectorType.get() << ">";
 		break;
+	case FieldTypeType::STRING: os << "std::string"; break;
+	case FieldTypeType::BOOL: os << "bool"; break;
 	}
 	return os;
 }
@@ -71,10 +73,12 @@ auto findFieldProperty(const Field& field, FieldPropertyType type) -> std::optio
 
 auto outFieldSerialize(std::ostream& os, const Field& field, const FieldType& type, std::string_view name) -> void {
 	switch (type.type) {
-	case FieldTypeType::I32: os << "Json::Value(" << field.name << ")"; break;
+	case FieldTypeType::STRING:
+	case FieldTypeType::BOOL:
+	case FieldTypeType::I32: 
 	case FieldTypeType::FLOAT:
 	case FieldTypeType::ANGLE:
-		os << "Json::Value(" << field.name << ")";
+		os << "Json::Value(" << field.name << ")"; 
 		break;
 	case FieldTypeType::VEC2: os << "{ { \"x\", " << field.name << ".x }, { \"y\", " << field.name << ".y } }"; break;
 	case FieldTypeType::VEC3: os << "{ { \"x\", " << field.name << ".x }, { \"y\", " << field.name << ".y }, { \"z\", " << field.name << ".z } }"; break;
@@ -82,6 +86,8 @@ auto outFieldSerialize(std::ostream& os, const Field& field, const FieldType& ty
 	case FieldTypeType::CPP: os << name << ".toJson()"; break;
 	case FieldTypeType::VARIANT:
 		break;
+	case FieldTypeType::VECTOR:
+		os << "vecToJson(" << field.name << ")"; break;
 	}
 }
 
@@ -111,6 +117,7 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 
 	{
 		cppOut << "#include <" << includePath << ">\n";
+		cppOut << "#include <utils/serialize.hpp>\n";
 
 		if (jsonUsed) cppOut << "using namespace Json;\n";
 
@@ -130,7 +137,11 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 			hppOut << "struct " << structure.name << " {\n";
 
 			for (const auto& field : structure.fields) {
-				hppOut << '\t' << field.type << " " << field.name << ";\n";
+				hppOut << '\t' << field.type << " " << field.name;
+				if (field.defaultValueCpp.has_value()) {
+					hppOut << " = " << *field.defaultValueCpp;
+				}
+				hppOut << ";\n";
 			}
 
 			hppOut << '\n';
@@ -196,6 +207,10 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 							return ')';
 						};
 
+						const auto hasDefault = field.defaultValueCpp.has_value();
+						if (hasDefault) {
+							cppOut << "json.contains(\"" << field.name << "\") ? ";
+						}
 						if (customProperty.has_value()) {
 							cppOut << customProperty->customDeserializeFn << "(" << jsonGet(cppOut, field.name) << ")";
 						} else {
@@ -204,6 +219,10 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 							case FieldTypeType::FLOAT:
 							case FieldTypeType::ANGLE:
 								cppOut << jsonGet(cppOut, field.name) << ".number()"; break;
+							case FieldTypeType::STRING:
+								cppOut << jsonGet(cppOut, field.name) << ".string()"; break;
+							case FieldTypeType::BOOL:
+								cppOut << jsonGet(cppOut, field.name) << ".boolean()"; break;
 
 							case FieldTypeType::VEC2: cppOut << "Vec2{ " << jsonGet(cppOut, field.name) << ".at(\"x\").number(), " << jsonGet(cppOut, field.name) << ".at(\"y\").number() }"; break;
 							case FieldTypeType::VEC3: cppOut << "Vec3{ " << jsonGet(cppOut, field.name) << ".at(\"x\").number(), " << jsonGet(cppOut, field.name) << ".at(\"y\").number(), " << jsonGet(cppOut, field.name) << ".at(\"z\").number() }"; break;
@@ -211,9 +230,12 @@ auto outputConfFileCode(const Data::DataFile& conf, std::string_view includePath
 							case FieldTypeType::USIZE: cppOut << "static_cast<usize>(" << jsonGet(cppOut, field.name) << ".intNumber())"; break;
 							case FieldTypeType::CPP: cppOut << field.type << "::fromJson(" << jsonGet(cppOut, field.name) << ")"; break;
 							case FieldTypeType::VECTOR: 
-								cppOut << "[&]{ " << field.type << "  }()";
+								cppOut << "vecFromJson<" << *field.type.vectorType.get() << ">(" << jsonGet(cppOut, field.name) << ")";
 								break;
 							}
+						}
+						if (hasDefault) {
+							cppOut << " : " << *field.defaultValueCpp;
 						}
 						cppOut << ",\n";
 					}

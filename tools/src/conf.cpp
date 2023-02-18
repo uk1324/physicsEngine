@@ -12,6 +12,9 @@ Data::FieldType::FieldType(const FieldType& type)
 		case FieldTypeType::VARIANT:
 			new (&variant) std::vector<FieldType>(type.variant);
 			break;
+		case FieldTypeType::VECTOR:
+			new (&vectorType) std::unique_ptr<FieldType>(new FieldType{ *type.vectorType.get() });
+			break;
 		default:
 			break;
 	}
@@ -31,6 +34,9 @@ auto Data::FieldType::operator=(const FieldType& type) -> FieldType& {
 	case FieldTypeType::VARIANT:
 		new (&variant) std::vector<FieldType>(type.variant);
 		break;
+	case FieldTypeType::VECTOR:
+		new (&vectorType) std::unique_ptr<FieldType>(new FieldType{ *type.vectorType.get() });
+		break;
 	default:
 		break;
 	}
@@ -41,5 +47,7 @@ auto Data::FieldType::operator=(const FieldType& type) -> FieldType& {
 Data::FieldType::~FieldType() {
 	if (type == FieldTypeType::VARIANT) {
 		variant.~vector();
+	} else if (type == FieldTypeType::VECTOR) {
+		vectorType.~unique_ptr();
 	}
 }

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <optional>
 
 namespace Data {
 
@@ -27,6 +28,8 @@ enum class FieldTypeType {
 	ANGLE,
 	VARIANT,
 	VECTOR,
+	BOOL,
+	STRING,
 };
 
 struct FieldType {
@@ -47,6 +50,8 @@ struct Field {
 	FieldType type;
 	std::string_view name;
 	std::vector<FieldProperty> properties;
+	std::optional<std::string_view> defaultValueCpp;
+
 };
 
 enum class StructPropertyType {

@@ -14,6 +14,7 @@
 #include <utils/overloaded.hpp>
 #include <engine/frameAllocator.hpp>
 #include <customImguiWidgets.hpp>
+#include <utils/fileIo.hpp>
 
 #include <sstream>
 #include <utils/io.hpp>
@@ -25,6 +26,7 @@
 #include <game/demos/hexagonalPyramidDemo.hpp>
 #include <game/demos/scissorsMechanismDemo.hpp>
 #include <game/demos/cycloidDemo.hpp>
+#include <game/gameSettingsManager.hpp>
 
 #include <filesystem>
 
@@ -48,13 +50,11 @@ Game::Game() {
 	Input::registerKeyButton(Keycode::F, GameButton::FOCUS_SELECTED_ON_OBJECT);
 	Window::maximize();
 
-	std::ifstream lastLoadedInfo{ lastLoadedLevelInfoPath };
-	std::string type;
-	std::getline(lastLoadedInfo, type);
+	
 	bool loadedOldLevel = false;
+	const auto& type = gameSettings.levelLoadedBeforeClosingType;
 	if (type == "demo") {
-		std::string name;
-		std::getline(lastLoadedInfo, name);
+		const auto& name = gameSettings.levelLoadedBeforeClosingInfo;
 		for (auto& demo : demos) {
 			if (demo->name() == name) {
 				loadDemo(*demo.get());
@@ -62,8 +62,7 @@ Game::Game() {
 			}
 		}
 	} else if (type == "level_path") {
-		std::string path;
-		std::getline(lastLoadedInfo, path);
+		const auto& path = gameSettings.levelLoadedBeforeClosingInfo;
 		if (!loadLevelFromFile(path.data()).has_value()) {
 			loadedOldLevel = true;
 		}
@@ -75,142 +74,99 @@ Game::Game() {
 }
 
 auto Game::saveLevel() const -> Json::Value {
-	auto level = Json::Value::emptyObject();
-
 	std::unordered_map<i32, i32> oldBodyIndexToNewIndex;
 
-	auto toJson = [](Vec2 v) -> Json::Value {
-		return { { "x", v.x }, { "y", v.y } };
-	};
+	Level level;
+	level.gravity = gravity;
 
-	level["gravity"] = toJson(gravity);
+	for (const auto& [id, body] : ent.body) {
+		const auto newIndex = static_cast<i32>(level.bodies.size());
+		oldBodyIndexToNewIndex[id.index()] = newIndex;
 
-	{
-		level["bodies"] = Json::Value::emptyArray();
-		auto& bodies = level["bodies"].array();
-		for (const auto& [id, body] : ent.body) {
-			const auto newIndex = static_cast<i32>(bodies.size());
-			oldBodyIndexToNewIndex[id.index()] = newIndex;
+		auto colliderToLevelCollider = [](const Collider& collider) -> LevelCollider {
+			return std::visit(overloaded{
+				[](const CircleCollider& c) -> LevelCollider { return LevelCircle{ .radius = c.radius }; },
+				[](const BoxCollider& c) -> LevelCollider { return LevelBox{ .size = c.size }; },
+				[](const ConvexPolygon& c) -> LevelCollider { return LevelConvexPolygon{ .verts = c.verts }; },
+			}, collider);
+		};
 
-			auto colliderToLevelCollider = [](const Collider& collider) -> LevelCollider {
-				return std::visit(overloaded{
-					[](const CircleCollider& c) -> LevelCollider { return LevelCircle{ .radius = c.radius }; },
-					[](const BoxCollider& c) -> LevelCollider { return LevelBox{ .size = c.size }; },
-					[](const ConvexPolygon& c) -> LevelCollider { return LevelConvexPolygon{ .verts = c.verts }; },
-				}, collider);
-			};
+		// TODO: Maybe check if the convex polygon collider has zero verts.
 
-			bodies.push_back(LevelBody{
-				.pos = body.transform.pos,
-				.orientation = body.transform.angle(),
-				.vel = body.vel,
-				.angularVel = body.angularVel,
-				.mass = body.mass,
-				.rotationalInertia = body.rotationalInertia,
-				.coefficientOfFriction = body.coefficientOfFriction,
-				.collider = colliderToLevelCollider(body.collider)
-			}.toJson());
-		}
+		level.bodies.push_back(LevelBody{
+			.pos = body.transform.pos,
+			.orientation = body.transform.angle(),
+			.vel = body.vel,
+			.angularVel = body.angularVel,
+			.mass = body.mass,
+			.rotationalInertia = body.rotationalInertia,
+			.coefficientOfFriction = body.coefficientOfFriction,
+			.collider = colliderToLevelCollider(body.collider)
+		});
+
+		
+	}
+		
+	for (const auto& [id, joint] : ent.distanceJoint) {
+		level.distanceJoints.push_back(LevelDistanceJoint{
+			.bodyAIndex = oldBodyIndexToNewIndex[joint.bodyA.index()],
+			.bodyBIndex = oldBodyIndexToNewIndex[joint.bodyB.index()],
+			.distance = joint.requiredDistance,
+			.anchorA = joint.anchorOnA,
+			.anchorB = joint.anchorOnB
+		});
 	}
 
-	{
-		level["distanceJoints"] = Json::Value::emptyArray();
-		auto& joints = level["distanceJoints"].array();
-		for (const auto& [id, joint] : ent.distanceJoint) {
-			joints.push_back(LevelDistanceJoint{
-				.bodyAIndex = oldBodyIndexToNewIndex[joint.bodyA.index()],
-				.bodyBIndex = oldBodyIndexToNewIndex[joint.bodyB.index()],
-				.distance = joint.requiredDistance,
-				.anchorA = joint.anchorOnA,
-				.anchorB = joint.anchorOnB
-			}.toJson());
-		}
+	for (const auto& [id, trail] : ent.trail) {
+		level.trails.push_back(LevelTrail{
+			.bodyIndex = oldBodyIndexToNewIndex[trail.body.index()],
+			.anchor = trail.anchor,
+			.color = trail.color,
+			.maxHistorySize = trail.maxHistorySize,
+		});
 	}
 
-	{
-		auto& trails = (level["trails"] = Json::Value::emptyArray()).array();
-		for (const auto& [id, trail] : ent.trail) {
-			trails.push_back(LevelTrail{
-				.bodyIndex = oldBodyIndexToNewIndex[trail.body.index()],
-				.anchor = trail.anchor,
-				.color = trail.color,
-				.maxHistorySize = trail.maxHistorySize,
-			}.toJson());
-		}
+	for (const auto& ignoredCollision : ent.collisionsToIgnore) {
+		level.ignoredCollisions.push_back(LevelIgnoredCollision{
+			.bodyAIndex = oldBodyIndexToNewIndex[ignoredCollision.a.index()],
+			.bodyBIndex = oldBodyIndexToNewIndex[ignoredCollision.b.index()],
+		});
 	}
 
-	{
-		auto& ignoredCollisions = (level["ignoredCollisions"] = Json::Value::emptyArray()).array();
-		for (const auto& ignoredCollision : ent.collisionsToIgnore) {
-			ignoredCollisions.push_back(LevelIgnoredCollision{
-				.bodyAIndex = oldBodyIndexToNewIndex[ignoredCollision.a.index()],
-				.bodyBIndex = oldBodyIndexToNewIndex[ignoredCollision.b.index()],
-			}.toJson());
-		}
-	}
-	return level;
+	return level.toJson();
 }
 
 auto Game::saveLevelToFile(std::string_view path) -> void {
 	std::ofstream file{ path.data() };
 	const auto levelJson = saveLevel();
 	Json::prettyPrint(file, levelJson);
-	std::ofstream info{ lastLoadedLevelInfoPath };
-	info << "level_path\n";
-	info << path;
+	auto settings = gameSettings.saveAtScopeEnd();
+	settings->levelLoadedBeforeClosingType = "level_path";
+	settings->levelLoadedBeforeClosingInfo = path;
 }
 
-auto Game::loadLevel(const Json::Value& level) -> bool {
-	auto vec2FromJson = [](const Json::Value& json) -> Vec2 {
-		return Vec2{ json.at("x").number(), json.at("y").number() };
-	};
-
-	// First loading into intermediate vectors so if the loading fails midway the old level is still loaded.
-	Vec2 levelGravity;
-	std::vector<LevelBody> levelBodies;
-	std::vector<LevelDistanceJoint> levelDistanceJoints;
-	std::vector<LevelIgnoredCollision> levelIgnoredCollisions;
-	std::vector<LevelTrail> levelTrails;
+auto Game::loadLevel(const Json::Value& levelJson) -> bool {
+	// First loading into intermediate type so if the loading fails midway the old level is still loaded.
+	Level level;
 	try {
-		levelGravity = vec2FromJson(level.at("gravity"));;
-		{
-			const auto& bodies = level.at("bodies").array();
-			for (const auto& bodyJson : bodies) {
-				levelBodies.push_back(LevelBody::fromJson(bodyJson));
-			}
-		}
-		{
-			const auto& distanceJoints = level.at("distanceJoints").array();
-			for (const auto& jointJson : distanceJoints) {
-				levelDistanceJoints.push_back(LevelDistanceJoint::fromJson(jointJson));
-			}
-		}
-		{
-			const auto& ignoredCollisions = level.at("ignoredCollisions").array();
-			for (const auto& ignoredCollision : ignoredCollisions) {
-				levelIgnoredCollisions.push_back(LevelIgnoredCollision::fromJson(ignoredCollision));
-			}
-		}
-
-		if (level.contains("trails")) {
-			const auto& trails = level.at("trails").array();
-			for (const auto& trail : trails) {
-				levelTrails.push_back(LevelTrail::fromJson(trail));
-			}
-		}
+		level = Level::fromJson(levelJson);
 	} catch (const Json::JsonError&) {
 		goto error;
 	}
 
 	resetLevel();
 
-	gravity = levelGravity;
+	gravity = level.gravity;
 
-	for (const auto& levelBody : levelBodies) {
+	for (const auto& levelBody : level.bodies) {
 		const auto collider = std::visit(overloaded{
-			[](const LevelCircle& c) -> Collider { return CircleCollider{.radius = c.radius }; },
-			[](const LevelBox& c) -> Collider { return BoxCollider{.size = c.size }; },
-			[](const LevelConvexPolygon& c) -> Collider { return ConvexPolygon{.verts = c.verts }; },
+			[](const LevelCircle& c) -> Collider { return CircleCollider{ .radius = c.radius }; },
+			[](const LevelBox& c) -> Collider { return BoxCollider{ .size = c.size }; },
+			[](const LevelConvexPolygon& c) -> Collider { 
+				ConvexPolygon polygon{ .verts = c.verts };
+				polygon.calculateNormals();
+				return polygon;  
+			},
 		}, levelBody.collider);
 		const auto& [_, body] = ent.body.create(Body{ levelBody.pos, collider, false });
 		body.transform.rot = Rotation{ levelBody.orientation };
@@ -222,7 +178,7 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 		body.updateInvMassAndInertia();
 	}
 
-	for (const auto& levelJoint : levelDistanceJoints) {
+	for (const auto& levelJoint : level.distanceJoints) {
 		const auto bodyA = ent.body.validate(levelJoint.bodyAIndex);
 		const auto bodyB = ent.body.validate(levelJoint.bodyBIndex);
 		if (!bodyA.has_value() || !bodyB.has_value()) {
@@ -237,7 +193,7 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 		});
 	}
 
-	for (const auto& levelTrail : levelTrails) {
+	for (const auto& levelTrail : level.trails) {
 		const auto body = ent.body.validate(levelTrail.bodyIndex);
 		if (!body.has_value()) {
 			goto error;
@@ -250,7 +206,7 @@ auto Game::loadLevel(const Json::Value& level) -> bool {
 		});
 	}
 
-	for (const auto& ignoredCollision : levelIgnoredCollisions) {
+	for (const auto& ignoredCollision : level.ignoredCollisions) {
 		const auto bodyA = ent.body.validate(ignoredCollision.bodyAIndex);
 		const auto bodyB = ent.body.validate(ignoredCollision.bodyBIndex);
 		if (!bodyA.has_value() || !bodyB.has_value()) {
@@ -272,10 +228,7 @@ auto Game::loadLevelFromFile(const char* path) -> std::optional<const char*> {
 		return "failed to open file";
 	}
 
-	std::stringstream buffer;
-	buffer << file.rdbuf();
-
-	const auto levelStr = buffer.str();
+	const auto levelStr = readFileToString(file);
 	Json::Value levelJson;
 	try {
 		levelJson = Json::parse(levelStr);
@@ -286,9 +239,9 @@ auto Game::loadLevelFromFile(const char* path) -> std::optional<const char*> {
 		return "failed to load level";
 	}
 
-	std::ofstream info{ lastLoadedLevelInfoPath };
-	info << "level_path\n";
-	info << path;
+	auto settings = gameSettings.saveAtScopeEnd();
+	settings->levelLoadedBeforeClosingType = "level_path";
+	settings->levelLoadedBeforeClosingInfo = path;
 	return std::nullopt;
 }
 
@@ -296,9 +249,9 @@ auto Game::loadDemo(Demo& demo) -> void {
 	resetLevel();
 	demo.load();
 	loadedDemo = demo;
-	std::ofstream info{ lastLoadedLevelInfoPath };
-	info << "demo\n";
-	info << loadedDemo->name();
+	auto settings = gameSettings.saveAtScopeEnd();
+	settings->levelLoadedBeforeClosingType = "demo";
+	settings->levelLoadedBeforeClosingInfo = loadedDemo->name();
 }
 
 auto Game::drawUi() -> void {
@@ -763,7 +716,7 @@ auto Game::update() -> void {
 	std::optional<float> cellSize;
 	if (isGridEnabled) {
 		if (automaticallyScaleGrid) {
-			cellSize = pow(2.0, round(log2(1.0 / camera.zoom / 25.0)));
+			cellSize = powf(2.0, round(log2f(1.0f / camera.zoom / 25.0f)));
 		} else {
 			cellSize = gridCellSize;
 		}
@@ -900,6 +853,9 @@ auto Game::resetLevel() -> void {
 }
 
 auto Game::selectToolGui() -> void {
+	if (!selected.has_value())
+		return;
+
 	using namespace ImGui;
 	std::visit(overloaded{
 		[&](const BodyId& bodyId) {

@@ -25,6 +25,7 @@ enum class TokenType {
 	RIGHT_PAREN,
 	LESS_THAN,
 	MORE_THAN,
+	EQUALS,
 };
 
 auto tokenTypeToString(TokenType type) -> std::string_view;

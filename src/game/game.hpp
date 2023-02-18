@@ -68,8 +68,6 @@ public:
 
 	auto saveLevel() const -> Json::Value;
 	auto saveLevelToFile(std::string_view path) -> void;
-	// Creating the path at runtime because some functions change the current working directory. For example GetOpenFileNameA.
-	std::string lastLoadedLevelInfoPath = (std::filesystem::current_path() / "data.txt").string();
 	[[nodiscard]] auto loadLevel(const Json::Value& level) -> bool;
 	auto loadLevelFromFile(const char* path) -> std::optional<const char*>;
 	auto loadDemo(Demo& demo) -> void;

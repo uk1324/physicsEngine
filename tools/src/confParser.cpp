@@ -82,6 +82,7 @@ auto Scanner::nextToken() -> std::optional<Token> {
 	case ')': return makeToken(TokenType::RIGHT_PAREN);
 	case '<': return makeToken(TokenType::LESS_THAN);
 	case '>': return makeToken(TokenType::MORE_THAN);
+	case '=': return makeToken(TokenType::EQUALS);
 	case '~': {
 		while (isAtEnd() == false && !match('~'))
 			consume();
@@ -220,6 +221,13 @@ auto Parser::parse(std::string_view text) -> std::optional<DataFile> {
 						const auto type = fieldType();
 						expect(TokenType::IDENTIFIER);
 						const auto name = previousToken.identifier;
+
+						decltype(Field::defaultValueCpp) defaultValue;
+						if (match(TokenType::EQUALS)) {
+							expect(TokenType::CPP);
+							defaultValue = previousToken.cpp;
+						}
+
 						std::vector<FieldProperty> fieldProperties;
 						while (!isAtEnd && currentToken.type != TokenType::SEMICOLON) {
 							expect(TokenType::IDENTIFIER);
@@ -247,7 +255,12 @@ auto Parser::parse(std::string_view text) -> std::optional<DataFile> {
 							}
 						}
 						expect(TokenType::SEMICOLON);
-						structure.fields.push_back(Field{ .type = type, .name = name, .properties = std::move(fieldProperties) });
+						structure.fields.push_back(Field{ 
+							.type = type, 
+							.name = name, 
+							.properties = std::move(fieldProperties),
+							.defaultValueCpp = std::move(defaultValue),
+						});
 					}
 				}
 
@@ -278,6 +291,8 @@ auto Parser::fieldType() -> FieldType {
 	else if (matchIdentifier("Vec2")) return FieldType{ FieldTypeType::VEC2 };
 	else if (matchIdentifier("Vec3")) return FieldType{ FieldTypeType::VEC3 };
 	else if (matchIdentifier("usize")) return FieldType{ FieldTypeType::USIZE };
+	else if (matchIdentifier("string")) return FieldType{ FieldTypeType::STRING };
+	else if (matchIdentifier("bool")) return FieldType{ FieldTypeType::BOOL };
 	else if (matchIdentifier("variant")) {
 		expect(TokenType::LESS_THAN);
 		FieldType type{ FieldTypeType::VARIANT };
@@ -290,8 +305,8 @@ auto Parser::fieldType() -> FieldType {
 		return type;
 	} else if (matchIdentifier("vector")) {
 		expect(TokenType::LESS_THAN);
-		FieldType type{ FieldTypeType::VARIANT };
-		new (&type.vectorType) std::vector<FieldType>{ fieldType() };
+		FieldType type{ FieldTypeType::VECTOR };
+		new (&type.vectorType) std::unique_ptr<FieldType>{ new FieldType{ fieldType() } };
 		expect(TokenType::MORE_THAN);
 		return type;
 	} else {

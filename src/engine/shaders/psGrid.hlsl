@@ -12,7 +12,7 @@ float4 main(float2 worldPos : WorldPos) : Sv_Target{
 
 	float dVertical = abs(dot(posInCell, float2(1.0, 0.0)));
 	float dHorizontal = abs(dot(posInCell, float2(0.0, 1.0)));
-	float width = 0.001 / cameraZoom;
+	float width = 0.0015 / cameraZoom;
 	float interpolationWidth = width / 5.0f;
 	// Flip colors by making the second argument to smoothstep smaller than the first one.
 	dVertical = smoothstep(width, width - interpolationWidth, dVertical);
@@ -26,5 +26,5 @@ float4 main(float2 worldPos : WorldPos) : Sv_Target{
 	colVertical *= dVertical;
 	colHorizontal *= dHorizontal;
 
-	return float4(colVertical + colHorizontal, 1);
+	return float4(max(colVertical, colHorizontal), 1);
 }

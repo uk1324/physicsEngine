@@ -34,8 +34,11 @@ static auto WINAPI windowMessageCallback(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	case WM_SIZE:
 		// Resizing sends a lot of WM_SIZE messages and blocks the game loop by sending all the messages to this callback function. This is probably better because the swap chain doesn't need to get resized on every frame that the window is being resized and only gets updated once, when the application goes back to executing the game loop. Googling "win32 resizing blocking" gives good information about it.
 		const auto size = MAKEPOINTS(lParam);
-		size_.x = size.x;
-		size_.y = size.y;
+		// The size is zero for example when wParam = SIZE_MINIMIZED. Don't know why does it work this way.
+		if (size.x != 0 && size.y != 0) {
+			size_.x = size.x;
+			size_.y = size.y;
+		}
 		resizedOnThisFrame = true;
 		break;
 

@@ -1,0 +1,4 @@
+GameSettings @Serialize {
+	string levelLoadedBeforeClosingType = ~""~;
+	string levelLoadedBeforeClosingInfo = ~""~;
+}
