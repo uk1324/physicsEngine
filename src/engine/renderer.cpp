@@ -32,8 +32,10 @@ auto Renderer::updateFrameStart() -> void {
 }
 
 auto Renderer::updateFrameEnd(bool enableVsync) -> void {
-	ImGui::Render();
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	if (drawImGui) {
+		ImGui::Render();
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+	}
 	gfx->present(enableVsync);
 }
 
@@ -82,3 +84,5 @@ DynamicTexture::~DynamicTexture() {
 		Renderer::destroyDynamicTexture(textureHandle);
 	}
 }
+
+bool Renderer::drawImGui = true;

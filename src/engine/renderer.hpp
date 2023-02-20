@@ -27,6 +27,8 @@ public:
 	static auto drawDynamicTexture(Vec2 pos, float height, DynamicTexture& dynamicTexture, bool interpolate = false) -> void;
 	static auto outputTextureHandle() -> void*;
 	static auto textureSize() -> Vec2;
+
+	static bool drawImGui;
 private:
 
 	static auto createDynamicTexture(Vec2T<i64> size) -> u64;

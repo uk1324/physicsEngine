@@ -198,7 +198,7 @@ auto EntityArray<Entity>::validate(u32 index) -> std::optional<Id> {
 template<typename Entity>
 auto EntityArray<Entity>::reset() -> void {
 	freeEntities.clear();
-	// Iterating backwards so the ids a given out in order, which is requires for level loading.
+	// Iterating backwards so the ids a given out in order, which is required for level loading.
 	for (i32 i = static_cast<i32>(entities.size()) - 1; i >= 0; i--) {
 		freeEntities.push_back(i);
 		entityIsFree[i] = true;

@@ -84,6 +84,7 @@ public:
 	auto physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void;
 	auto draw(Vec2 cursorPos) -> void;
 	auto resetLevel() -> void;
+	auto afterLoad() -> void;
 
 	std::optional<std::string> lastSavedLevelPath;
 
@@ -91,7 +92,8 @@ public:
 
 	// Could create a system similar to the demo system, but for tools, but some tools require getting some specific data so I am not sure if it is worth doing. Could make a struct that just contains all the data needed for tools. struct ToolData.
 	// The update method would need to be called even if the tool isn't selected to tools can create shortcuts and thing like that.
-	// There would also need to be a way to register the Buttons in Input
+	// There would also need to be a way to register the Buttons in Input.
+	// Instead of passing the arguments in a function could store fields in the base demo class. 
 	enum class Tool {
 		GRAB,
 		SELECT,
@@ -108,6 +110,7 @@ public:
 		// pos.x, pos.y, vel, rotation
 		// Save to level.
 		// Phase space Graphs?
+		// PIN_CONSTRAINT
 	};
 	Tool selectedTool = Tool::GRAB;
 	bool selectingJointTool = false;

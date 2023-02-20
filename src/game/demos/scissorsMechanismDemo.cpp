@@ -54,11 +54,15 @@ auto ScissorsMechanism::load() -> void {
 
 	// Attach the endpoints to a prismatic joint?
 	for (usize i = 0; i < bodies.size(); i += 2) {
-		auto b0 = ent.body.get(bodies[i + 1]);
-		const auto a = PI<float> / 10.0f;
-		const auto b = PI<float> - a;
+		auto b0 = ent.body.get(bodies[i]);
+		auto a = PI<float> / 10.0f;
+		auto b = -a;
+		if ((i / 2) % 2 == 0) {
+			a = -a;
+			b = -b;
+		}
 		b0->transform.rot = Rotation{ a };
-		auto b1 = ent.body.get(bodies[i]);
+		auto b1 = ent.body.get(bodies[i + 1]);
 		b1->transform.rot = Rotation{ b };
 	}
 	ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });

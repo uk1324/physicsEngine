@@ -26,6 +26,7 @@
 #include <game/demos/hexagonalPyramidDemo.hpp>
 #include <game/demos/scissorsMechanismDemo.hpp>
 #include <game/demos/cycloidDemo.hpp>
+#include <game/demos/leaningTowerOfLireDemo.hpp>
 #include <game/gameSettingsManager.hpp>
 
 #include <filesystem>
@@ -37,6 +38,7 @@ Game::Game() {
 	DEMO(HexagonalPyramid)
 	DEMO(ScissorsMechanism)
 	DEMO(CycloidDemo)
+	DEMO(LeaningTowerOfLireDemo)
 	std::sort(demos.begin(), demos.end(), [](const auto& a, const auto& b) { return strcmp(a->name(), b->name()) < 0; });
 #undef DEMO
 
@@ -71,6 +73,8 @@ Game::Game() {
 	if (!loadedOldLevel) {
 		ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
 	}
+	Game::physicsSolverIterations = 50;
+	Game::physicsSubsteps = 50;
 }
 
 auto Game::saveLevel() const -> Json::Value {
@@ -214,6 +218,7 @@ auto Game::loadLevel(const Json::Value& levelJson) -> bool {
 		}
 		ent.collisionsToIgnore.insert({ *bodyA, *bodyB });
 	}
+	afterLoad();
 
 	return true;
 
@@ -248,6 +253,7 @@ auto Game::loadLevelFromFile(const char* path) -> std::optional<const char*> {
 auto Game::loadDemo(Demo& demo) -> void {
 	resetLevel();
 	demo.load();
+	afterLoad();
 	loadedDemo = demo;
 	auto settings = gameSettings.saveAtScopeEnd();
 	settings->levelLoadedBeforeClosingType = "demo";
@@ -536,6 +542,8 @@ auto Game::update() -> void {
 			gridSize = gridCellSize;
 		}
 	}
+	ent.update();
+
 
 	// For positions not not lag behind the camera has to be updated first.
 	auto cursorPos = camera.screenSpaceToCameraSpace(Input::cursorPos());
@@ -599,8 +607,27 @@ auto Game::update() -> void {
 		}
 	}
 	Debug::drawPoint(cursorPos);
+	/*const auto s = 0.01f / camera.zoom;
+	Debug::drawLine(cursorPos - Vec2{ s, 0.0f }, cursorPos + Vec2{ s, 0.0f });
+	Debug::drawLine(cursorPos - Vec2{ 0.0f, s }, cursorPos + Vec2{ 0.0f, s });*/
 
-	ent.update();
+	
+	drawUi();
+	if (Input::isKeyDown(Keycode::X)) updatePhysics = !updatePhysics;
+	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::S)) {
+		if (lastSavedLevelPath.has_value()) {
+			saveLevelToFile(*lastSavedLevelPath);
+		} else {
+			openSaveLevelDialog();
+		}
+	}
+
+	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::O)) {
+		const auto error = openLoadLevelDialog();
+		if (error.has_value()) {
+			openErrorPopupModal(*error);
+		}
+	}
 
 	if (loadedDemo.has_value()) {
 		loadedDemo->update();
@@ -632,23 +659,6 @@ auto Game::update() -> void {
 	}
 
 	if (Input::isKeyDown(Keycode::Z)) __debugbreak();
-
-	drawUi();
-	if (Input::isKeyDown(Keycode::X)) updatePhysics = !updatePhysics;
-	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::S)) {
-		if (lastSavedLevelPath.has_value()) {
-			saveLevelToFile(*lastSavedLevelPath);
-		} else {
-			openSaveLevelDialog();
-		}
-	}
-
-	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::O)) {
-		const auto error = openLoadLevelDialog();
-		if (error.has_value()) {
-			openErrorPopupModal(*error);
-		}
-	}
 
 	if (Input::isMouseButtonDown(MouseButton::RIGHT)) {
 		grabStart = cursorPos;
@@ -749,7 +759,15 @@ auto Game::update() -> void {
 	if (selectedTool == Tool::CREATE_BODY) {
 		if (Input::isKeyHeld(Keycode::CTRL)) {
 			scrollOnCursorPosEnabled = false;
-			circleRadius *= pow(2.0f, 5.0f * Input::scrollDelta() * Time::deltaTime());
+			const auto scaling = pow(2.0f, 5.0f * Input::scrollDelta() * Time::deltaTime());
+			switch (selectedShape) {
+			case Game::BodyShape::CIRCLE:
+				circleRadius *= scaling;
+				break;
+			case Game::BodyShape::RECTANGLE:
+				boxSize *= scaling;
+				break;
+			}
 		}
 
 		if (Input::isMouseButtonDown(MouseButton::LEFT)) {
@@ -810,6 +828,7 @@ auto Game::update() -> void {
 	} else {
 		disableCollisionBodyA = std::nullopt;
 	}
+
 
 	auto doPhysicsUpdate = updatePhysics || doASingleStep;
 	if (doASingleStep) {
@@ -1002,6 +1021,14 @@ auto Game::resetLevel() -> void {
 	gravity = Vec2{ 0.0f, -10.0f };
 	loadedDemo = std::nullopt;
 	selected = std::nullopt;
+}
+
+auto Game::afterLoad() -> void {
+	// For the simulation to be deterministic and to make reloading demos deterministic this code needs to run before before the physics step. If it doesn't there is going to be one step in which collision isn't checked, because the bodies aren't registered in the collisionSystem and won't be untill the next frame, because then they will be accessible throught entitiesAddedThisFrame. So the bodies will get integrated without detecting collisions. 
+	// One way to make sure this works is to call ent.update after all the functions that create entites, but it seems simpler to just call it right after loading a level.
+	// Hopefully there aren't any errors in this logic.
+	/*ent.update();
+	collisionSystem.update();*/
 }
 
 auto Game::selectToolGui() -> void {
