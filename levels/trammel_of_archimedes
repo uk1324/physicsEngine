@@ -1,0 +1,308 @@
+{
+    "bodies": [
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": 0,
+                "y": -50
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 200,
+                        "y": 100
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 1200,
+            "orientation": 0,
+            "pos": {
+                "x": -30,
+                "y": 13
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": 3600,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 3,
+                        "y": 2
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -30,
+                "y": 10
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 4
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -30,
+                "y": 16
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 4
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -24,
+                "y": 10
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 4
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -24,
+                "y": 16
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 4
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 2745.58,
+            "orientation": -0.79034,
+            "pos": {
+                "x": -28.4991,
+                "y": 11.4883
+            },
+            "vel": {
+                "x": 0.0910071,
+                "y": -0.14068
+            },
+            "rotationalInertia": 43118.5,
+            "angularVel": -0.0622609,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 13.7279,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 1200,
+            "orientation": 0,
+            "pos": {
+                "x": -27,
+                "y": 10
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": 3600,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 2,
+                        "y": 3
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        }
+    ],
+    "distanceJoints": [
+        {
+            "bodyAIndex": 6,
+            "bodyBIndex": 7,
+            "anchorB": {
+                "x": 0,
+                "y": 0
+            },
+            "distance": 0,
+            "anchorA": {
+                "x": 2.11235,
+                "y": 0.0180753
+            }
+        },
+        {
+            "bodyAIndex": 1,
+            "bodyBIndex": 6,
+            "anchorB": {
+                "x": -2.13024,
+                "y": -0.00289106
+            },
+            "distance": 0,
+            "anchorA": {
+                "x": 0,
+                "y": 0
+            }
+        }
+    ],
+    "trails": [
+        {
+            "bodyIndex": 6,
+            "anchor": {
+                "x": -6.37283,
+                "y": -0.0238576
+            },
+            "color": {
+                "x": 0.911032,
+                "y": 1,
+                "z": 0
+            },
+            "maxHistorySize": 200
+        },
+        {
+            "bodyIndex": 6,
+            "anchor": {
+                "x": -4.95863,
+                "y": -0.0168688
+            },
+            "color": {
+                "x": 0,
+                "y": 0.0925269,
+                "z": 1
+            },
+            "maxHistorySize": 200
+        },
+        {
+            "bodyIndex": 6,
+            "anchor": {
+                "x": -3.54444,
+                "y": -0.00987995
+            },
+            "color": {
+                "x": 0.014235,
+                "y": 1,
+                "z": 0
+            },
+            "maxHistorySize": 200
+        },
+        {
+            "bodyIndex": 1,
+            "anchor": {
+                "x": 0,
+                "y": 0
+            },
+            "color": {
+                "x": 1,
+                "y": 0,
+                "z": 0
+            },
+            "maxHistorySize": 200
+        }
+    ],
+    "ignoredCollisions": [
+        {
+            "bodyAIndex": 3,
+            "bodyBIndex": 6
+        },
+        {
+            "bodyAIndex": 6,
+            "bodyBIndex": 7
+        },
+        {
+            "bodyAIndex": 5,
+            "bodyBIndex": 6
+        },
+        {
+            "bodyAIndex": 1,
+            "bodyBIndex": 6
+        },
+        {
+            "bodyAIndex": 4,
+            "bodyBIndex": 6
+        },
+        {
+            "bodyAIndex": 2,
+            "bodyBIndex": 6
+        }
+    ],
+    "gravity": {
+        "x": 0,
+        "y": 0
+    }
+}

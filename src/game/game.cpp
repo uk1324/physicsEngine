@@ -73,6 +73,8 @@ Game::Game() {
 	if (!loadedOldLevel) {
 		ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
 	}
+	Game::physicsSolverIterations = 20;
+	Game::physicsSubsteps = 20;
 }
 
 auto Game::saveLevel() const -> Json::Value {
@@ -532,6 +534,14 @@ auto Game::update() -> void {
 	if (Input::isKeyHeld(Keycode::A)) dir.x -= 1.0f;
 	camera.pos += dir.normalized() * Time::deltaTime() / camera.zoom;
 
+	if (Input::isKeyDown(Keycode::F3)) {
+		Renderer::drawImGui = !Renderer::drawImGui;
+	}
+
+	if (Input::isKeyDown(Keycode::R)) {
+		loadDemo(*loadedDemo);
+	}
+
 	std::optional<float> gridSize;
 	if (isGridEnabled) {
 		if (automaticallyScaleGrid) {
@@ -668,6 +678,10 @@ auto Game::update() -> void {
 	std::optional<BodyId> bodyUnderCursor;
 	Vec2 bodyUnderCursorPosInSelectedObjectSpace;
 	for (const auto [id, body] : ent.body) {
+		// @Hack
+		if (distanceJointBodyA.has_value() && id == *distanceJointBodyA) {
+			continue;
+		}
 		if (contains(cursorPos, body.transform.pos, body.transform.angle(), body.collider)) {
 			bodyUnderCursor = id;
 			bodyUnderCursorPosInSelectedObjectSpace = (cursorPos - body.transform.pos) * body.transform.rot.inversed();
