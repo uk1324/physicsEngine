@@ -73,8 +73,6 @@ Game::Game() {
 	if (!loadedOldLevel) {
 		ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
 	}
-	Game::physicsSolverIterations = 50;
-	Game::physicsSubsteps = 50;
 }
 
 auto Game::saveLevel() const -> Json::Value {
@@ -542,8 +540,6 @@ auto Game::update() -> void {
 			gridSize = gridCellSize;
 		}
 	}
-	ent.update();
-
 
 	// For positions not not lag behind the camera has to be updated first.
 	auto cursorPos = camera.screenSpaceToCameraSpace(Input::cursorPos());
@@ -611,7 +607,6 @@ auto Game::update() -> void {
 	Debug::drawLine(cursorPos - Vec2{ s, 0.0f }, cursorPos + Vec2{ s, 0.0f });
 	Debug::drawLine(cursorPos - Vec2{ 0.0f, s }, cursorPos + Vec2{ 0.0f, s });*/
 
-	
 	drawUi();
 	if (Input::isKeyDown(Keycode::X)) updatePhysics = !updatePhysics;
 	if (Input::isKeyHeld(Keycode::CTRL) && Input::isKeyDown(Keycode::S)) {
@@ -829,6 +824,7 @@ auto Game::update() -> void {
 		disableCollisionBodyA = std::nullopt;
 	}
 
+	ent.update();
 
 	auto doPhysicsUpdate = updatePhysics || doASingleStep;
 	if (doASingleStep) {
@@ -1027,8 +1023,8 @@ auto Game::afterLoad() -> void {
 	// For the simulation to be deterministic and to make reloading demos deterministic this code needs to run before before the physics step. If it doesn't there is going to be one step in which collision isn't checked, because the bodies aren't registered in the collisionSystem and won't be untill the next frame, because then they will be accessible throught entitiesAddedThisFrame. So the bodies will get integrated without detecting collisions. 
 	// One way to make sure this works is to call ent.update after all the functions that create entites, but it seems simpler to just call it right after loading a level.
 	// Hopefully there aren't any errors in this logic.
-	/*ent.update();
-	collisionSystem.update();*/
+	ent.update();
+	collisionSystem.update();
 }
 
 auto Game::selectToolGui() -> void {
