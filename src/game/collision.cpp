@@ -7,7 +7,7 @@
 
 // When a collision between 2 bodies happens and a collision between the same bodies happened on last frame too, the frame accumulators of contacts with the same features are transfered over.
 auto Collision::update(const Collision& newCollision) -> void {
-	if (!Game::usePreviousStepImpulseSolutionsAsInitialGuess) {
+	if (!Game::warmStarting) {
 		*this = newCollision;
 		for (i8 i = 0; i < contactCount; i++) {
 			contacts[i].invNormalEffectiveMass = 0.0f;
@@ -113,6 +113,7 @@ auto Collision::preStep(Body& a, Body& b, float invDeltaTime) -> void {
 		//c.bias = std::max(0.0f, c.bias);
 
 
+		// Warm starting does nothing without accumulate impulses, but accumulate impulses transfers impulses between applyImpulse calls.
 		if (Game::accumulateImpulses) {
 			// Apply normal + friction impulse
 			Vec2 P = c.accumulatedNormalImpluse * normal + c.accumulatedTangentImpulse * tangent;

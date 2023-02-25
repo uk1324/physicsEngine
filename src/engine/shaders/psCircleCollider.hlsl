@@ -22,7 +22,7 @@ float4 main(float2 texturePos : TexturePos, float widthScale : WidthScale, float
 		float projectionLength = dot(pos, direction); // Could just use determinant.
 		if (projectionLength > 0.0 && projectionLength < 1.0 - interpolationWidth) {
 			float distance = abs(dot(pos, normal));
-			circleColor += lerp(color, colorTransparent, smoothstep(size - interpolationWidth, size, distance));
+			circleColor = max(circleColor, lerp(color, colorTransparent, smoothstep(size - interpolationWidth, size, distance)));
 		}
 	}
 

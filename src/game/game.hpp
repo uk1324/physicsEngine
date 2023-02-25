@@ -122,7 +122,7 @@ public:
 	auto selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnderCursor) -> void;
 	auto selectToolDraw() -> void;
 
-	using Entity = std::variant<BodyId, DistanceJointId, TrailId>;
+	using Entity = std::variant<BodyId, DistanceJointId, RevoluteJointId, TrailId>;
 	std::optional<Entity> selected;
 	bool focusingOnSelected = false;
 	float elapsedSinceFocusStart = 0.0f;
@@ -183,7 +183,8 @@ public:
 
 	// This is also called warm starting.
 	// The physics engine uses an iterative systems of equation solver which uses the Gauss-Seidel method. It starts with an initial guess and tries to get as close as possible to the analytical solution (if one exists else it gets it closer to satifying all equations). Enabling this makes it so the solver tries to improve convergence by expoliting temporal coherence between solutions. It uses the solution from the previous frame as the starting guess for the new frame.
-	static bool usePreviousStepImpulseSolutionsAsInitialGuess;
+	/*static bool usePreviousStepImpulseSolutionsAsInitialGuess;*/
+	static bool warmStarting;
 	static bool positionCorrection;
 	static bool accumulateImpulses;
 

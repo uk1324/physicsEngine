@@ -119,8 +119,6 @@ auto Game::saveLevel() const -> Json::Value {
 			.coefficientOfFriction = body.coefficientOfFriction,
 			.collider = colliderToLevelCollider(body.collider)
 		});
-
-		
 	}
 		
 	for (const auto& [id, joint] : ent.distanceJoint) {
@@ -297,7 +295,8 @@ auto Game::drawUi() -> void {
 		gravity = Vec2{ 0.0f, -10.0f };
 	}
 
-	Checkbox("warm starting", &usePreviousStepImpulseSolutionsAsInitialGuess);
+	Checkbox("warm starting", &warmStarting);
+	Checkbox("accumulate impulses", &accumulateImpulses);
 	InputInt("solver iterations", &physicsSolverIterations);
 	InputInt("physics substeps", &physicsSubsteps);
 	End();
@@ -754,18 +753,25 @@ auto Game::update() -> void {
 				}
 
 				if (aId != bId && a.has_value() && b.has_value()) {
-					const auto& [joint, _] = ent.distanceJoint.create(DistanceJoint{
-						aId, bId,
-						distance,
-						aAnchor, bAnchor
-					});
-					distanceJointBodyA = std::nullopt;
-
-					if (selectedTool == Tool::REVOLUTE_JOINT) {
+					if (selectedTool == Tool::DISTANCE_JOINT) {
+						ent.distanceJoint.create(DistanceJoint{
+							aId, bId,
+							distance,
+							aAnchor, bAnchor
+						});
+					} else if (selectedTool == Tool::REVOLUTE_JOINT) {
+						ent.revoluteJoint.create(RevoluteJoint{
+							aId, bId,
+							aAnchor, bAnchor
+						});
 						BodyPair bodyPair{ aId, bId };
 						ent.collisionsToIgnore.insert(bodyPair);
-						ent.revoluteJointsWithIgnoredCollisions.push_back(std::pair{ joint, bodyPair });
+						//ent.revoluteJointsWithIgnoredCollisions.push_back(std::pair{ joint, bodyPair });
 					}
+
+					distanceJointBodyA = std::nullopt;
+
+					
 				}
 			}
 		}
@@ -860,6 +866,14 @@ auto Game::update() -> void {
 	auto doPhysicsUpdate = updatePhysics || doASingleStep;
 	if (doASingleStep) {
 		doASingleStep = false;
+	}
+
+	// TODO: Find out what is setting the vel of static bodies.
+	for (auto body : ent.body) {
+		if (body->isStatic()) {
+			body->angularVel = 0.0f;
+			body->vel = Vec2{ 0.0f };
+		}
 	}
 
 	// The collisions system has to be updated because even if the physics isn't updated, because it registres new entities.
@@ -1063,9 +1077,6 @@ auto Game::resetLevel() -> void {
 	selected = std::nullopt;
 }
 
-static Aabb bbaa{ Vec2{ 0.0f }, Vec2{ 0.0f } };
-static std::vector<Aabb> aabbs;
-
 auto Game::afterLoad() -> void {
 	// For the simulation to be deterministic and to make reloading demos deterministic this code needs to run before before the physics step. If it doesn't there is going to be one step in which collision isn't checked, because the bodies aren't registered in the collisionSystem and won't be untill the next frame, because then they will be accessible throught entitiesAddedThisFrame. So the bodies will get integrated without detecting collisions. 
 	// One way to make sure this works is to call ent.update after all the functions that create entites, but it seems simpler to just call it right after loading a level.
@@ -1087,7 +1098,6 @@ auto Game::afterLoad() -> void {
 		} else {
 			levelAabb = box;
 		}
-		aabbs.push_back(box);
 	}
 	if (levelAabb.has_value()) {
 		camera.fitAabbInView((*levelAabb).addedPadding(levelAabb->size().x / 2.0f));
@@ -1098,14 +1108,19 @@ auto Game::afterLoad() -> void {
 }
 
 auto Game::selectToolGui() -> void {
-	for (const auto aabb : aabbs) {
-		Debug::drawAabb(aabb, Vec3::RED);
-		Debug::drawPoint(aabb.center(), Vec3::RED);
-	}
 	if (!selected.has_value())
 		return;
 
 	using namespace ImGui;
+	
+	// Pushing the index because without this swithing to a different object would preserve the values from the previous object. So you could click on one distance joint set it's length then click on another and it would also change it's length to the previous selected one's length.
+	std::visit(overloaded{
+		[&](const BodyId& id) { PushID(id.index()); },
+		[&](const DistanceJointId& id) { PushID(id.index()); },
+		[&](const RevoluteJointId& id) { PushID(id.index()); },
+		[&](const TrailId& id) { PushID(id.index()); }
+	}, *selected);
+
 	std::visit(overloaded{
 		[&](const BodyId& bodyId) {
 			auto body = ent.body.get(bodyId);
@@ -1128,6 +1143,13 @@ auto Game::selectToolGui() -> void {
 
 			InputFloat("required distance", &joint->requiredDistance);
 		},
+		[&](const RevoluteJointId& jointId) {
+			auto joint = ent.revoluteJoint.get(jointId);
+			if (!joint.has_value())
+				return;
+			
+			InputFloat("motor speed", &joint->motorSpeedInRadiansPerSecond);
+		},
 		[&](const TrailId& trailId) {
 			auto trail = ent.trail.get(trailId);
 			if (!trail.has_value())
@@ -1143,6 +1165,7 @@ auto Game::selectToolGui() -> void {
 			}
 		}
 	}, *selected);
+	PopID();
 }
 
 auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnderCursor) -> void {
@@ -1164,6 +1187,13 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 				const auto jointCollider = LineSegment{ endpoints[0], endpoints[1] };
 				if (jointCollider.asCapsuleContains(colliderThickness, cursorPos)) {
 					return id;
+				}
+			}
+
+			for (const auto& joint : ent.revoluteJoint) {
+				const auto anchors = joint->anchorsWorldSpace();
+				if (distance(anchors[0], cursorPos) <= colliderThickness) {
+					return joint.id;
 				}
 			}
 
@@ -1190,6 +1220,7 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 	bool isAlive = std::visit(overloaded{
 		[&](const BodyId& body) { return ent.body.isAlive(body); },
 		[&](const DistanceJointId& joint) { return ent.distanceJoint.isAlive(joint); },
+		[&](const RevoluteJointId& joint) { return ent.revoluteJoint.isAlive(joint); },
 		[&](const TrailId& trail) { return ent.trail.isAlive(trail); }
 	}, *selected);
 	if (!isAlive) {
@@ -1201,6 +1232,7 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 		std::visit(overloaded{
 			[&](const BodyId& body) { ent.body.destroy(body); },
 			[&](const DistanceJointId& joint) { ent.distanceJoint.destroy(joint); },
+			[&](const RevoluteJointId& joint) { ent.revoluteJoint.destroy(joint); },
 			[&](const TrailId& trail) { ent.trail.destroy(trail); }
 		}, *selected);
 		selected = std::nullopt;
@@ -1233,6 +1265,9 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 					return std::nullopt;
 				const auto endpoints = joint->getEndpoints();
 				return Aabb::fromCorners(endpoints[0], endpoints[1]);
+			},
+			[&](const RevoluteJointId&) -> std::optional<Aabb> {
+				return std::nullopt;
 			},
 			[&](const TrailId& traildId) -> std::optional<Aabb> {
 				const auto trail = ent.trail.get(traildId);
@@ -1283,6 +1318,13 @@ auto Game::selectToolDraw() -> void {
 				Debug::drawPoint(endpoint, Vec3::RED);
 			}
 		},
+		[&](const RevoluteJointId& jointId) {
+			const auto joint = ent.revoluteJoint.get(jointId);
+			if (!joint.has_value())
+				return;
+			const auto anchors = joint->anchorsWorldSpace();
+			Debug::drawPoint(anchors[0], Vec3::RED);
+		},
 		[&](const TrailId& traildId) {
 			const auto trail = ent.trail.get(traildId);
 			if (!trail.has_value())
@@ -1293,6 +1335,5 @@ auto Game::selectToolDraw() -> void {
 	}, *selected);
 }
 
-bool Game::usePreviousStepImpulseSolutionsAsInitialGuess = true;
-bool Game::positionCorrection = true;
+bool Game::warmStarting = true;
 bool Game::accumulateImpulses = true;
