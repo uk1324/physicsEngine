@@ -1,6 +1,7 @@
 #pragma once
 
 #include <math/mat3x2.hpp>
+#include <math/aabb.hpp>
 
 // When zoom is 1 the width goes from -1 to 1. So the width is 2.
 struct Camera {
@@ -15,6 +16,8 @@ struct Camera {
 	auto height() const -> float;
 	auto width() const -> float;
 	auto setWidth(float width) -> void;
+	auto setHeight(float height) -> void;
+	auto fitAabbInView(const Aabb& aabb) -> void;
 	auto cursorPos() const -> Vec2;
 	auto scrollOnCursorPos() -> void;
 

@@ -47,6 +47,7 @@ auto DistanceJoint::applyImpluse() -> void {
 		vn = std::min(vn, 0.0f);
 	}
 	/*float dPn = (distanceToFix * bias - vn) / kNormal / 4.0f;*/
+	/*float dPn = (distanceToFix - vn) / kNormal;*/
 	float dPn = (distanceToFix - vn) / kNormal;
 	/*float dPn = (distanceToFix - vn) / kNormal;*/
 	//float dPn = (distanceToFix * bias - vn) / kNormal;

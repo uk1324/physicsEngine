@@ -3,6 +3,7 @@
 #include <game/entityArray.hpp>
 #include <game/body.hpp>
 #include <game/distanceJoint.hpp>
+#include <game/revoluteJoint.hpp>
 #include <game/collisionSystem.hpp>
 #include <game/trail.hpp>
 #include <math/vec3.hpp>
@@ -14,6 +15,7 @@ using IgnoredCollisions = std::unordered_set<BodyPair, BodyPairHasher>;
 struct Entites {
 	EntityArray<Body> body;
 	EntityArray<DistanceJoint> distanceJoint;
+	EntityArray<RevoluteJoint> revoluteJoint;
 	EntityArray<Trail> trail;
 
 	IgnoredCollisions collisionsToIgnore;

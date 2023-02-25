@@ -100,8 +100,17 @@ auto Collision::preStep(Body& a, Body& b, float invDeltaTime) -> void {
 		/*c->bias = std::max(c->bias, -dot(b->vel - a->vel, c->normal)) * 0.5f;*/
 		
 		//TODO: Slops
-		/*c.bias = std::max(c.bias, -dot(relativeVelAtContact, normal) * 0.7f);
-		c.bias = std::max(0.0f, c.bias);*/
+		/*auto im = -dot(relativeVelAtContact, normal) * 0.7f;
+		if (im < 1.0f) {
+			im = 0.0f;
+		}
+		c.bias = std::max(c.bias, im);*/
+
+
+
+
+
+		//c.bias = std::max(0.0f, c.bias);
 
 
 		if (Game::accumulateImpulses) {

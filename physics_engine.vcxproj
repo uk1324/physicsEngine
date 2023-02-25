@@ -295,6 +295,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\game\revoluteJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\game\trail.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -482,6 +486,7 @@
     <ClInclude Include="src\game\demo.hpp" />
     <ClInclude Include="src\game\levelFormat\levelData.hpp" />
     <ClInclude Include="src\game\physicsProfile.hpp" />
+    <ClInclude Include="src\game\revoluteJoint.hpp" />
     <ClInclude Include="src\game\trail.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
     <ClInclude Include="src\math\bits.hpp" />

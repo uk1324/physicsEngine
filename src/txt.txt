@@ -31,3 +31,5 @@ and so on.
 
 This can also be done using recursive and base cases, but this would probably be slow to compile. This is how std::tuple is implemented.
 A better option might be to use macros. This would allow to create iterators with the actual names of the fields. 
+
+If a n x n matrix has n distinct real eigenvectors then it can be converted into a scaling matrix in some basis which means that it is stable if the determinant of this matrix is < 1 and unstable it it is > 1. I think.

@@ -40,6 +40,18 @@ auto Camera::setWidth(float width) -> void {
 	zoom = 2.0f / width;
 }
 
+auto Camera::setHeight(float height) -> void {
+	setWidth(height * aspectRatio);
+}
+
+auto Camera::fitAabbInView(const Aabb& aabb) -> void {
+	pos = aabb.center();
+	setWidth(aabb.size().x);
+	if (aabb.size().y > height()) {
+		setHeight(aabb.size().y);
+	}
+}
+
 auto Camera::cursorPos() const -> Vec2 {
 	return screenSpaceToCameraSpace(Input::cursorPos());
 }

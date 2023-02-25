@@ -247,6 +247,9 @@
     <ClCompile Include="src\game\demos\leaningTowerOfLireDemo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\game\revoluteJoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -535,6 +538,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\game\demos\leaningTowerOfLireDemo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\revoluteJoint.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

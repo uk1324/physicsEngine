@@ -41,9 +41,6 @@ Game::Game() {
 	DEMO(LeaningTowerOfLireDemo)
 	std::sort(demos.begin(), demos.end(), [](const auto& a, const auto& b) { return strcmp(a->name(), b->name()) < 0; });
 #undef DEMO
-
-	camera.zoom = 0.125f / 2.0f;
-	camera.pos = Vec2{ 0.0f, 6.0f };
 	Input::registerKeyButton(Keycode::G, GameButton::SELECT_GRAB_TOOL);
 	Input::registerKeyButton(Keycode::Q, GameButton::SELECT_SELECT_TOOL);
 	Input::registerKeyButton(Keycode::J, GameButton::START_SELECT_JOINT_TOOL);
@@ -69,12 +66,27 @@ Game::Game() {
 			loadedOldLevel = true;
 		}
 	} 
-
+	
+	loadedOldLevel = false;
 	if (!loadedOldLevel) {
+		resetLevel();
 		ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
+		/*const auto a = ent.body.create(Body{ Vec2{ 1.0f, 1.0f }, BoxCollider{ Vec2{ 1.0f } } });
+		const auto b = ent.body.create(Body{ Vec2{ 1.0f, 1.0f }, BoxCollider{ Vec2{ 1.0f } } });*/
+		const auto a = ent.body.create(Body{ Vec2{ 2.0f, 1.0f }, BoxCollider{ Vec2{ 3.0f, 1.0f } } });
+		const auto b = ent.body.create(Body{ Vec2{ 1.0f, 1.0f }, BoxCollider{ Vec2{ 3.0f, 1.0f } } });
+		ent.revoluteJoint.create(RevoluteJoint{ a.id, b.id, Vec2{ 1.0f, 0.0f }, Vec2{ 1.0f, 0.0f } });
+		ent.collisionsToIgnore.insert({ a.id, b.id });
+
+		{
+			/*const auto a = ent.body.create(Body{ Vec2{ 5.0f, 1.0f }, BoxCollider{ Vec2{ 3.0f, 1.0f } } });
+			const auto b = ent.body.create(Body{ Vec2{ 5.0f, 1.0f }, BoxCollider{ Vec2{ 3.0f, 1.0f } } });
+			ent.distanceJoint.create(DistanceJoint{ a.id, b.id, 3.0f, Vec2{ 0.0f }, Vec2{ 0.0f } });
+			ent.collisionsToIgnore.insert({ a.id, b.id });*/
+		}
 	}
-	Game::physicsSolverIterations = 20;
-	Game::physicsSubsteps = 20;
+	/*Game::physicsSolverIterations = 20;
+	Game::physicsSubsteps = 20;*/
 }
 
 auto Game::saveLevel() const -> Json::Value {
@@ -682,6 +694,11 @@ auto Game::update() -> void {
 		if (distanceJointBodyA.has_value() && id == *distanceJointBodyA) {
 			continue;
 		}
+
+		if (selectedTool == Tool::GRAB && body.isStatic()) {
+			continue;
+		}
+
 		if (contains(cursorPos, body.transform.pos, body.transform.angle(), body.collider)) {
 			bodyUnderCursor = id;
 			bodyUnderCursorPosInSelectedObjectSpace = (cursorPos - body.transform.pos) * body.transform.rot.inversed();
@@ -928,6 +945,10 @@ auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) 
 		for (const auto& [_, joint] : ent.distanceJoint) {
 			joint.preStep(invDt);
 		}
+
+		for (auto joint : ent.revoluteJoint) {
+			joint->preStep(invDt);
+		}
 		profile.solvePrestep += timer.elapsedMilliseconds();
 	}
 
@@ -944,6 +965,9 @@ auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) 
 			}
 			for (const auto& [_, joint] : ent.distanceJoint) {
 				joint.applyImpluse();
+			}
+			for (auto joint : ent.revoluteJoint) {
+				joint->applyImpluse();
 			}
 		}
 		profile.solveVelocities = timer.elapsedMilliseconds();
@@ -1019,6 +1043,12 @@ auto Game::draw(Vec2 cursorPos) -> void {
 		Debug::drawRay(endpoints[0], (endpoints[1] - endpoints[0]).normalized() * joint.requiredDistance);
 	}
 
+	for (const auto& joint : ent.revoluteJoint) {
+		const auto anchors = joint->anchorsWorldSpace();
+		Debug::drawPoint(anchors[0]);
+		Debug::drawPoint(anchors[1]);
+	}
+
 	for (const auto& [_, trail] : ent.trail) {
 		trail.draw();
 	}
@@ -1033,15 +1063,45 @@ auto Game::resetLevel() -> void {
 	selected = std::nullopt;
 }
 
+static Aabb bbaa{ Vec2{ 0.0f }, Vec2{ 0.0f } };
+static std::vector<Aabb> aabbs;
+
 auto Game::afterLoad() -> void {
 	// For the simulation to be deterministic and to make reloading demos deterministic this code needs to run before before the physics step. If it doesn't there is going to be one step in which collision isn't checked, because the bodies aren't registered in the collisionSystem and won't be untill the next frame, because then they will be accessible throught entitiesAddedThisFrame. So the bodies will get integrated without detecting collisions. 
 	// One way to make sure this works is to call ent.update after all the functions that create entites, but it seems simpler to just call it right after loading a level.
 	// Hopefully there aren't any errors in this logic.
 	ent.update();
 	collisionSystem.update();
+
+	const auto NOT_IGNORED_MAX_AREA = 1000.0f;
+	// Using optional because any amount of bodies in the loop can be ignored.
+	std::optional<Aabb> levelAabb;
+	for (auto body = ++ent.body.begin(); body != ent.body.end(); ++body) {
+		const auto box = aabb(body->collider, body->transform);
+		if (box.area() > NOT_IGNORED_MAX_AREA) {
+			continue;
+		}
+
+		if (levelAabb.has_value()) {
+			levelAabb = (*levelAabb).combined(box);
+		} else {
+			levelAabb = box;
+		}
+		aabbs.push_back(box);
+	}
+	if (levelAabb.has_value()) {
+		camera.fitAabbInView((*levelAabb).addedPadding(levelAabb->size().x / 2.0f));
+	} else {
+		camera.zoom = 0.125f / 2.0f;
+		camera.pos = Vec2{ 0.0f, 6.0f };
+	}
 }
 
 auto Game::selectToolGui() -> void {
+	for (const auto aabb : aabbs) {
+		Debug::drawAabb(aabb, Vec3::RED);
+		Debug::drawPoint(aabb.center(), Vec3::RED);
+	}
 	if (!selected.has_value())
 		return;
 

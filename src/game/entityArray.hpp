@@ -21,9 +21,12 @@ struct EntityArray {
 		u32 version_;
 	};
 
+	// TODO: Maybe make iterator and pair the same thing. They essentially do the same thing. One issues is that you wouldn't be able to do structured bindings on the object, because it contains array (which you wouldn't want). It uses the index so you would need to call a function to get the id. It also can't store a reference to the entity only a pointer because it needs to modify it. Technically you could reinterpret the reference as a pointer.
 	struct Pair {
 		Id id;
 		Entity& entity;
+		auto operator->() -> Entity*;
+		auto operator->() const -> const Entity*;
 	};
 
 	auto update() -> void;
@@ -36,11 +39,13 @@ struct EntityArray {
 	auto destroy(const Entity& entity) -> void;	
 	auto validate(u32 index) -> std::optional<Id>;
 	auto reset() -> void;
+	auto aliveCount() -> i64 { return aliveCount_; };
 
 	struct Iterator {
 		auto operator++() -> Iterator&;
 		auto operator!=(const Iterator& other) const -> bool;
 		auto operator->() -> Entity*;
+		auto operator->() const -> const Entity*;
 		auto operator*() -> Pair;
 
 		u32 index;
@@ -54,6 +59,8 @@ struct EntityArray {
 	// Could use a set instead of entityIsFree and freeEntities, but it would probably be slower. Don't want to do a red-black tree search for each iterator increment.
 	std::vector<bool> entityIsFree;
 private:
+
+	i64 aliveCount_ = 0;
 
 	std::vector<u32> freeEntities;
 	// To make pooling more efficient could make a templated function that wouold reset the state of an object. So for example if the type stored a vector it would just clear it instead of calling the constructor, which would cause a reallocation.
@@ -107,6 +114,7 @@ auto EntityArray<Entity>::update() -> void {
 		freeEntities.push_back(id.index_);
 		entityVersions[id.index_]++;
 		entityIsFree[id.index_] = true;
+		aliveCount_--;
 	}
 	entitiesToRemove.clear();
 }
@@ -162,6 +170,7 @@ auto EntityArray<Entity>::create(Entity&& entity) -> Pair {
 		new (&entities[index]) Entity{ std::move(entity) };
 	}
 
+	aliveCount_++;
 	entitiesAddedThisFrame.push_back(id);
 	return { id, entities[id.index_] };
 }
@@ -246,6 +255,11 @@ auto EntityArray<Entity>::Iterator::operator->() -> Entity* {
 }
 
 template<typename Entity>
+inline auto EntityArray<Entity>::Iterator::operator->() const -> const Entity* {
+	return &array.entities[index];
+}
+
+template<typename Entity>
 auto EntityArray<Entity>::Iterator::operator*() -> Pair {
 	return Pair{ Id{ index, array.entityVersions[index] }, array.entities[index] };
 }
@@ -258,4 +272,14 @@ auto EntityArray<Entity>::Id::index() const -> i32 {
 template<typename Entity>
 auto EntityArray<Entity>::Id::version() const -> i32 {
 	return version_;
+}
+
+template<typename Entity>
+auto EntityArray<Entity>::Pair::operator->() -> Entity* {
+	return &entity;
+}
+
+template<typename Entity>
+auto EntityArray<Entity>::Pair::operator->() const -> const Entity* {
+	return &entity;
 }
