@@ -543,6 +543,12 @@
     <ClInclude Include="src\game\revoluteJoint.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\game\entMacro.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\game\entMacroUndef.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\engine\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />

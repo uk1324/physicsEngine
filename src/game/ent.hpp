@@ -26,3 +26,17 @@ struct Entites {
 };
 
 extern Entites ent;
+
+#include <game/entMacro.hpp>
+
+#define ID(Name, name) Name##Id
+using Entity = std::variant<
+	ENTITY_TYPE_LIST_COMMA_SEPARATED(ID)
+>;
+#undef ID
+
+#include <game/entMacroUndef.hpp>
+
+auto entityIsAlive(const Entity& entity) -> bool;
+auto entityDestroy(const Entity& entity) -> void;
+auto entityIdIndex(const Entity& entity) -> int;

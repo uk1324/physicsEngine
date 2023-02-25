@@ -122,7 +122,6 @@ public:
 	auto selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnderCursor) -> void;
 	auto selectToolDraw() -> void;
 
-	using Entity = std::variant<BodyId, DistanceJointId, RevoluteJointId, TrailId>;
 	std::optional<Entity> selected;
 	bool focusingOnSelected = false;
 	float elapsedSinceFocusStart = 0.0f;

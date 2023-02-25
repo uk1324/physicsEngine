@@ -1114,12 +1114,7 @@ auto Game::selectToolGui() -> void {
 	using namespace ImGui;
 	
 	// Pushing the index because without this swithing to a different object would preserve the values from the previous object. So you could click on one distance joint set it's length then click on another and it would also change it's length to the previous selected one's length.
-	std::visit(overloaded{
-		[&](const BodyId& id) { PushID(id.index()); },
-		[&](const DistanceJointId& id) { PushID(id.index()); },
-		[&](const RevoluteJointId& id) { PushID(id.index()); },
-		[&](const TrailId& id) { PushID(id.index()); }
-	}, *selected);
+	PushID(entityIdIndex(*selected));
 
 	std::visit(overloaded{
 		[&](const BodyId& bodyId) {
@@ -1216,25 +1211,13 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 		return;
 	}
 
-	// TODO: Maybe move this into a function inside ent and use first class macros.
-	bool isAlive = std::visit(overloaded{
-		[&](const BodyId& body) { return ent.body.isAlive(body); },
-		[&](const DistanceJointId& joint) { return ent.distanceJoint.isAlive(joint); },
-		[&](const RevoluteJointId& joint) { return ent.revoluteJoint.isAlive(joint); },
-		[&](const TrailId& trail) { return ent.trail.isAlive(trail); }
-	}, *selected);
-	if (!isAlive) {
+	if (!entityIsAlive(*selected)) {
 		selected = std::nullopt;
 		return;
 	}
 
 	if (Input::isKeyDown(Keycode::DEL)) {
-		std::visit(overloaded{
-			[&](const BodyId& body) { ent.body.destroy(body); },
-			[&](const DistanceJointId& joint) { ent.distanceJoint.destroy(joint); },
-			[&](const RevoluteJointId& joint) { ent.revoluteJoint.destroy(joint); },
-			[&](const TrailId& trail) { ent.trail.destroy(trail); }
-		}, *selected);
+		entityDestroy(*selected);
 		selected = std::nullopt;
 		return;
 	}

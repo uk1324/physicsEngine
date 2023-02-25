@@ -476,6 +476,7 @@
     <ClInclude Include="src\game\demos\pyramidDemo.hpp" />
     <ClInclude Include="src\game\ent.hpp" />
     <ClInclude Include="src\game\entityArray.hpp" />
+    <ClInclude Include="src\game\entMacro.hpp" />
     <ClInclude Include="src\game\game.hpp" />
     <ClInclude Include="src\game\gameMain.hpp" />
     <ClInclude Include="src\game\gameSettingsData.hpp" />
@@ -488,6 +489,7 @@
     <ClInclude Include="src\game\physicsProfile.hpp" />
     <ClInclude Include="src\game\revoluteJoint.hpp" />
     <ClInclude Include="src\game\trail.hpp" />
+    <ClInclude Include="src\game\entMacroUndef.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
     <ClInclude Include="src\math\bits.hpp" />
     <ClInclude Include="src\math\collision.hpp" />
