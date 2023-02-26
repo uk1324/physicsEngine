@@ -44,6 +44,14 @@ LevelDistanceJoint @Serialize {
 	Vec2 anchorB;
 }
 
+LevelRevoluteJoint @Serialize {
+	i32 bodyAIndex;
+	i32 bodyBIndex;
+	Vec2 anchorA;
+	Vec2 anchorB;
+	float motorSpeed;
+}
+
 LevelTrail @Serialize {
 	i32 bodyIndex;
 	Vec2 anchor;
@@ -59,6 +67,7 @@ LevelIgnoredCollision @Serialize {
 Level @Serialize {
 	vector<~LevelBody~> bodies = ~std::vector<LevelBody>{}~;
 	vector<~LevelDistanceJoint~> distanceJoints = ~std::vector<LevelDistanceJoint>{}~;
+	vector<~LevelRevoluteJoint~> revoluteJoints = ~std::vector<LevelRevoluteJoint>{}~;
 	vector<~LevelTrail~> trails = ~std::vector<LevelTrail>{}~;
 	vector<~LevelIgnoredCollision~> ignoredCollisions = ~std::vector<LevelIgnoredCollision>{}~;
 	Vec2 gravity = ~Vec2{ 0.0f, -10.0f }~;

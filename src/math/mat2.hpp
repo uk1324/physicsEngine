@@ -27,6 +27,7 @@ struct Mat2T {
 	static constexpr auto COLS = 2;
 	static constexpr int ROWS = 2;
 	float m[ROWS][COLS];
+	static const Mat2T identity;
 };
 
 using Mat2 = Mat2T<float>;
@@ -120,3 +121,6 @@ auto operator*=(Vec2T<T>& v, const Mat2T<T>& m) -> Vec2T<T>& {
 	v = v * m;
 	return v;
 }
+
+template<typename T>
+const Mat2T<T> Mat2T<T>::identity = Mat2T<T>{ Vec2T<T>{ 1, 0 }, Vec2T<T>{ 0, 1 } };

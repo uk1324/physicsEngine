@@ -72,6 +72,26 @@ auto LevelDistanceJoint::fromJson(const Json::Value& json) -> LevelDistanceJoint
 	};
 }
 
+auto LevelRevoluteJoint::toJson() const -> Json::Value {
+	auto result = Json::Value::emptyObject();
+	result["bodyAIndex"] = Json::Value(bodyAIndex);
+	result["bodyBIndex"] = Json::Value(bodyBIndex);
+	result["anchorA"] = { { "x", anchorA.x }, { "y", anchorA.y } };
+	result["anchorB"] = { { "x", anchorB.x }, { "y", anchorB.y } };
+	result["motorSpeed"] = Json::Value(motorSpeed);
+	return result;
+}
+
+auto LevelRevoluteJoint::fromJson(const Json::Value& json) -> LevelRevoluteJoint {
+	return LevelRevoluteJoint{
+		.bodyAIndex = json.at("bodyAIndex").intNumber(),
+		.bodyBIndex = json.at("bodyBIndex").intNumber(),
+		.anchorA = Vec2{ json.at("anchorA").at("x").number(), json.at("anchorA").at("y").number() },
+		.anchorB = Vec2{ json.at("anchorB").at("x").number(), json.at("anchorB").at("y").number() },
+		.motorSpeed = json.at("motorSpeed").number(),
+	};
+}
+
 auto LevelTrail::toJson() const -> Json::Value {
 	auto result = Json::Value::emptyObject();
 	result["bodyIndex"] = Json::Value(bodyIndex);
@@ -108,6 +128,7 @@ auto Level::toJson() const -> Json::Value {
 	auto result = Json::Value::emptyObject();
 	result["bodies"] = vecToJson(bodies);
 	result["distanceJoints"] = vecToJson(distanceJoints);
+	result["revoluteJoints"] = vecToJson(revoluteJoints);
 	result["trails"] = vecToJson(trails);
 	result["ignoredCollisions"] = vecToJson(ignoredCollisions);
 	result["gravity"] = { { "x", gravity.x }, { "y", gravity.y } };
@@ -118,6 +139,7 @@ auto Level::fromJson(const Json::Value& json) -> Level {
 	return Level{
 		.bodies = json.contains("bodies") ? vecFromJson<LevelBody>(json.at("bodies")) : std::vector<LevelBody>{},
 		.distanceJoints = json.contains("distanceJoints") ? vecFromJson<LevelDistanceJoint>(json.at("distanceJoints")) : std::vector<LevelDistanceJoint>{},
+		.revoluteJoints = json.contains("revoluteJoints") ? vecFromJson<LevelRevoluteJoint>(json.at("revoluteJoints")) : std::vector<LevelRevoluteJoint>{},
 		.trails = json.contains("trails") ? vecFromJson<LevelTrail>(json.at("trails")) : std::vector<LevelTrail>{},
 		.ignoredCollisions = json.contains("ignoredCollisions") ? vecFromJson<LevelIgnoredCollision>(json.at("ignoredCollisions")) : std::vector<LevelIgnoredCollision>{},
 		.gravity = json.contains("gravity") ? Vec2{ json.at("gravity").at("x").number(), json.at("gravity").at("y").number() } : Vec2{ 0.0f, -10.0f },

@@ -6,14 +6,21 @@ auto RevoluteJoint::preStep(float invDeltaTime) -> void {
 	auto a = ent.body.get(bodyA);
 	auto b = ent.body.get(bodyB);
 	if (!a.has_value() || !b.has_value()) {
+		ent.revoluteJoint.destroy(*this);
 		return;
 	}
 	const auto rA = localAnchorA * a->transform.rot;
 	const auto rB = localAnchorB * b->transform.rot;
-	m[0][0] = rA.y * rA.y * a->invRotationalInertia + rB.y * rB.y * b->invRotationalInertia + a->invMass + b->invMass;
-	m[1][0] = m[0][1] = -rA.y * rA.x * a->invRotationalInertia - rB.y * rB.x * b->invRotationalInertia;
-	m[1][1] = rA.x * rA.x * a->invRotationalInertia + rB.x * rB.x * b->invRotationalInertia + a->invMass + b->invMass;
-	m = m.inversed();
+	if (a->isStatic() && b->isStatic()) {
+		// Without this it creates a zero matrix. 
+		m = Mat2::identity;
+	} else {
+		m[0][0] = rA.y * rA.y * a->invRotationalInertia + rB.y * rB.y * b->invRotationalInertia + a->invMass + b->invMass;
+		m[1][0] = m[0][1] = -rA.y * rA.x * a->invRotationalInertia - rB.y * rB.x * b->invRotationalInertia;
+		m[1][1] = rA.x * rA.x * a->invRotationalInertia + rB.x * rB.x * b->invRotationalInertia + a->invMass + b->invMass;
+		m = m.inversed();
+	}
+	
 }
 
 auto RevoluteJoint::applyImpluse() -> void {
@@ -36,7 +43,8 @@ auto RevoluteJoint::applyImpluse() -> void {
 
 	if (motorSpeedInRadiansPerSecond != 0.0f) {
 		const auto lambda = 1.0f / (a->invRotationalInertia + b->invRotationalInertia);
-		const auto motorImpulse = (a->angularVel - b->angularVel + motorSpeedInRadiansPerSecond) * lambda;
+		auto motorImpulse = (a->angularVel - b->angularVel + motorSpeedInRadiansPerSecond) * lambda;
+		motorImpulse = std::clamp(motorImpulse, -1000.0f, 1000.0f);
 		a->angularVel -= motorImpulse * a->invMass;
 		b->angularVel += motorImpulse * b->invMass;
 	}

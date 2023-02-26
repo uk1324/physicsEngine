@@ -48,7 +48,6 @@ Game::Game() {
 	Input::registerKeyButton(Keycode::SHIFT, GameButton::SNAP_TO_IMPORTANT_FEATURES);
 	Input::registerKeyButton(Keycode::F, GameButton::FOCUS_SELECTED_ON_OBJECT);
 	Window::maximize();
-
 	
 	bool loadedOldLevel = false;
 	const auto& type = gameSettings.levelLoadedBeforeClosingType;
@@ -67,26 +66,9 @@ Game::Game() {
 		}
 	} 
 	
-	loadedOldLevel = false;
 	if (!loadedOldLevel) {
-		resetLevel();
 		ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
-		/*const auto a = ent.body.create(Body{ Vec2{ 1.0f, 1.0f }, BoxCollider{ Vec2{ 1.0f } } });
-		const auto b = ent.body.create(Body{ Vec2{ 1.0f, 1.0f }, BoxCollider{ Vec2{ 1.0f } } });*/
-		const auto a = ent.body.create(Body{ Vec2{ 2.0f, 1.0f }, BoxCollider{ Vec2{ 3.0f, 1.0f } } });
-		const auto b = ent.body.create(Body{ Vec2{ 1.0f, 1.0f }, BoxCollider{ Vec2{ 3.0f, 1.0f } } });
-		ent.revoluteJoint.create(RevoluteJoint{ a.id, b.id, Vec2{ 1.0f, 0.0f }, Vec2{ 1.0f, 0.0f } });
-		ent.collisionsToIgnore.insert({ a.id, b.id });
-
-		{
-			/*const auto a = ent.body.create(Body{ Vec2{ 5.0f, 1.0f }, BoxCollider{ Vec2{ 3.0f, 1.0f } } });
-			const auto b = ent.body.create(Body{ Vec2{ 5.0f, 1.0f }, BoxCollider{ Vec2{ 3.0f, 1.0f } } });
-			ent.distanceJoint.create(DistanceJoint{ a.id, b.id, 3.0f, Vec2{ 0.0f }, Vec2{ 0.0f } });
-			ent.collisionsToIgnore.insert({ a.id, b.id });*/
-		}
 	}
-	/*Game::physicsSolverIterations = 20;
-	Game::physicsSubsteps = 20;*/
 }
 
 auto Game::saveLevel() const -> Json::Value {
@@ -96,6 +78,10 @@ auto Game::saveLevel() const -> Json::Value {
 	level.gravity = gravity;
 
 	for (const auto& [id, body] : ent.body) {
+		// @Hack:
+		if (abs(body.transform.pos.x) > 2000.0f || abs(body.transform.pos.y) > 2000.0f) {
+			continue;
+		}
 		const auto newIndex = static_cast<i32>(level.bodies.size());
 		oldBodyIndexToNewIndex[id.index()] = newIndex;
 
@@ -128,6 +114,16 @@ auto Game::saveLevel() const -> Json::Value {
 			.distance = joint.requiredDistance,
 			.anchorA = joint.anchorOnA,
 			.anchorB = joint.anchorOnB
+		});
+	}
+
+	for (const auto& joint : ent.revoluteJoint) {
+		level.revoluteJoints.push_back(LevelRevoluteJoint{
+			.bodyAIndex = oldBodyIndexToNewIndex[joint->bodyA.index()],
+			.bodyBIndex = oldBodyIndexToNewIndex[joint->bodyB.index()],
+			.anchorA = joint->localAnchorA,
+			.anchorB = joint->localAnchorB,
+			.motorSpeed = joint->motorSpeedInRadiansPerSecond,
 		});
 	}
 
@@ -204,6 +200,21 @@ auto Game::loadLevel(const Json::Value& levelJson) -> bool {
 			.requiredDistance = levelJoint.distance,
 			.anchorOnA = levelJoint.anchorA,
 			.anchorOnB = levelJoint.anchorB,
+		});
+	}
+
+	for (const auto& levelJoint : level.revoluteJoints) {
+		const auto bodyA = ent.body.validate(levelJoint.bodyAIndex);
+		const auto bodyB = ent.body.validate(levelJoint.bodyBIndex);
+		if (!bodyA.has_value() || !bodyB.has_value()) {
+			goto error;
+		}
+		ent.revoluteJoint.create(RevoluteJoint{
+			.bodyA = *bodyA,
+			.bodyB = *bodyB,
+			.localAnchorA = levelJoint.anchorA,
+			.localAnchorB = levelJoint.anchorB,
+			.motorSpeedInRadiansPerSecond = levelJoint.motorSpeed,
 		});
 	}
 
@@ -1175,26 +1186,32 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 
 	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
 		const auto colliderThickness = 0.02f / camera.zoom;
-		selected = std::nullopt;
 		auto select = [&]() -> std::optional<Entity> {
 			for (const auto& [id, joint] : ent.distanceJoint) {
 				const auto endpoints = joint.getEndpoints();
 				const auto jointCollider = LineSegment{ endpoints[0], endpoints[1] };
 				if (jointCollider.asCapsuleContains(colliderThickness, cursorPos)) {
-					return id;
+					if (selected != Entity{ id }) {
+						return id;
+					}
 				}
 			}
 
 			for (const auto& joint : ent.revoluteJoint) {
 				const auto anchors = joint->anchorsWorldSpace();
 				if (distance(anchors[0], cursorPos) <= colliderThickness) {
-					return joint.id;
+					if (selected != Entity{ joint.id }) {
+						return joint.id;
+					}
 				}
 			}
 
-			for (const auto& [id, trail] : ent.trail) {
-				if (trail.history.size() > 0 && distance(trail.history.back(), cursorPos) < colliderThickness) {
-					return id;
+			for (const auto& trail : ent.trail) {
+				if (trail->history.size() > 0 && distance(trail->history.back(), cursorPos) < colliderThickness) {
+					if (selected != Entity{ trail.id }) {
+						return trail.id;
+					}
+					return trail.id;
 				}
 			}
 

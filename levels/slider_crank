@@ -1,0 +1,260 @@
+{
+    "bodies": [
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": 0,
+                "y": -50
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 200,
+                        "y": 100
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -30,
+                "y": 14
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelCircle",
+                "value": {
+                    "radius": 1
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 11309.7,
+            "orientation": -2.19266,
+            "pos": {
+                "x": -30,
+                "y": 14
+            },
+            "vel": {
+                "x": -4.57768e-05,
+                "y": 2.28873e-05
+            },
+            "rotationalInertia": 50893.8,
+            "angularVel": -2.93817,
+            "collider": {
+                "type": "LevelCircle",
+                "value": {
+                    "radius": 3
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 2000,
+            "orientation": 1.38616,
+            "pos": {
+                "x": -30.8075,
+                "y": 19.5958
+            },
+            "vel": {
+                "x": 1.65525,
+                "y": 5.24369
+            },
+            "rotationalInertia": 16666.7,
+            "angularVel": 0.383998,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 10,
+                        "y": 1
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 8000,
+            "orientation": 6.81586e-05,
+            "pos": {
+                "x": -29.9948,
+                "y": 27.9043
+            },
+            "vel": {
+                "x": 0.00202159,
+                "y": 5.56367
+            },
+            "rotationalInertia": 1.06667e+06,
+            "angularVel": 5.42402e-05,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 4,
+                        "y": 10
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -27,
+                "y": 30.5
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 2,
+                        "y": 21
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": inf,
+            "orientation": 0,
+            "pos": {
+                "x": -33,
+                "y": 30.5
+            },
+            "vel": {
+                "x": 0,
+                "y": 0
+            },
+            "rotationalInertia": inf,
+            "angularVel": 0,
+            "collider": {
+                "type": "LevelBox",
+                "value": {
+                    "size": {
+                        "x": 2,
+                        "y": 21
+                    }
+                }
+            },
+            "coefficientOfFriction": 0.2
+        },
+        {
+            "mass": 4536.46,
+            "orientation": -0.027379,
+            "pos": {
+                "x": -29.9495,
+                "y": 34.7922
+            },
+            "vel": {
+                "x": 0.00396858,
+                "y": 5.57363
+            },
+            "rotationalInertia": 8188.31,
+            "angularVel": -0.00210442,
+            "collider": {
+                "type": "LevelCircle",
+                "value": {
+                    "radius": 1.9
+                }
+            },
+            "coefficientOfFriction": 0.2
+        }
+    ],
+    "distanceJoints": [],
+    "revoluteJoints": [
+        {
+            "bodyAIndex": 2,
+            "bodyBIndex": 3,
+            "anchorA": {
+                "x": 0,
+                "y": -2
+            },
+            "anchorB": {
+                "x": -4.5,
+                "y": 1.96701e-07
+            },
+            "motorSpeed": 0
+        },
+        {
+            "bodyAIndex": 2,
+            "bodyBIndex": 1,
+            "anchorA": {
+                "x": 0,
+                "y": 0
+            },
+            "anchorB": {
+                "x": 0,
+                "y": 0
+            },
+            "motorSpeed": 3
+        },
+        {
+            "bodyAIndex": 4,
+            "bodyBIndex": 3,
+            "anchorA": {
+                "x": -0.000340713,
+                "y": -3.99967
+            },
+            "anchorB": {
+                "x": 4.38455,
+                "y": -0.00781136
+            },
+            "motorSpeed": 0
+        }
+    ],
+    "trails": [],
+    "ignoredCollisions": [
+        {
+            "bodyAIndex": 2,
+            "bodyBIndex": 3
+        },
+        {
+            "bodyAIndex": 3,
+            "bodyBIndex": 6
+        },
+        {
+            "bodyAIndex": 3,
+            "bodyBIndex": 4
+        },
+        {
+            "bodyAIndex": 1,
+            "bodyBIndex": 3
+        },
+        {
+            "bodyAIndex": 1,
+            "bodyBIndex": 2
+        },
+        {
+            "bodyAIndex": 3,
+            "bodyBIndex": 5
+        }
+    ],
+    "gravity": {
+        "x": 0,
+        "y": -10
+    }
+}
