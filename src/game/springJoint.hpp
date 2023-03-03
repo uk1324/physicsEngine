@@ -2,20 +2,17 @@
 
 #include <game/body.hpp>
 
-struct RevoluteJoint {
+struct SpringJoint {
 	BodyId bodyA, bodyB;
+	float restLength = 1.0f;
 	Vec2 localAnchorA{ 0.0f }, localAnchorB{ 0.0f };
-	float motorSpeedInRadiansPerSecond = 0.0f;
-
-	float bias;
 
 	auto preStep(float invDeltaTime) -> void;
 	auto applyImpluse() -> void;
 
-	auto anchorsWorldSpace() const -> std::array<Vec2, 2>;
+	float invDt;
 
 	Mat2 m;
 };
 
-using RevoluteJointId = EntityArray<RevoluteJoint>::Id;
-
+using SpringJointId = EntityArray<SpringJoint>::Id;

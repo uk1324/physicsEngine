@@ -1,0 +1,2 @@
+#undef JOINT_TYPE_LIST
+#undef COMMA

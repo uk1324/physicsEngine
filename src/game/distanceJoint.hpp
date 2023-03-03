@@ -6,7 +6,7 @@ struct DistanceJoint {
 	BodyId bodyA, bodyB;
 	float requiredDistance;
 	// In the body's object space.
-	Vec2 anchorOnA, anchorOnB;
+	Vec2 anchorOnA{ 0.0f }, anchorOnB{ 0.0f };
 
 	float bias;
 

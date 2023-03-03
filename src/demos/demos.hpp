@@ -7,6 +7,7 @@
 #include <demos/waterDemo.hpp>
 #include <demos/testDemo.hpp>
 #include <demos/marchingSquaresDemo.hpp>
+#include <demos/integrationDemo.hpp>
 
 struct Demos {
 	auto update() -> void;
@@ -18,4 +19,5 @@ struct Demos {
 	WaterDemo waterDemo;
 	TestDemo testDemo;
 	MarchingSquaresDemo marchingSquaresDemo;
+	IntegrationDemo integrationDemo;
 };

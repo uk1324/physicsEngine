@@ -27,6 +27,8 @@
 #include <game/demos/scissorsMechanismDemo.hpp>
 #include <game/demos/cycloidDemo.hpp>
 #include <game/demos/leaningTowerOfLireDemo.hpp>
+#include <game/demos/theoJansenLinkageDemo.hpp>
+#include <game/demos/testingDemo.hpp>
 #include <game/gameSettingsManager.hpp>
 
 #include <filesystem>
@@ -39,6 +41,8 @@ Game::Game() {
 	DEMO(ScissorsMechanism)
 	DEMO(CycloidDemo)
 	DEMO(LeaningTowerOfLireDemo)
+	DEMO(TheoJansenLinkageDemo)
+	DEMO(TestingDemo)
 	std::sort(demos.begin(), demos.end(), [](const auto& a, const auto& b) { return strcmp(a->name(), b->name()) < 0; });
 #undef DEMO
 	Input::registerKeyButton(Keycode::G, GameButton::SELECT_GRAB_TOOL);
@@ -422,7 +426,7 @@ auto Game::drawUi() -> void {
 		selectingJointTool = true;
 	} else if (selectingJointTool) {
 		if (Input::isButtonDown(GameButton::SELECT_DISTANCE_JOINT_TOOL)) {
-			selectedTool = Tool::DISTANCE_JOINT;
+			selectedJointType = JointType::DISTANCE;
 		} else if (Input::anyKeyPressed()) {
 			selectingJointTool = false;
 		}
@@ -465,13 +469,23 @@ auto Game::drawUi() -> void {
 	}
 
 	Begin("tool");
-	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0distance joint\0revolute joint\0create body\0create line\0trail\0disable collision\0\0");
+	Combo("selected tool", reinterpret_cast<int*>(&selectedTool), "grab\0select\0create joint\0create body\0create line\0trail\0disable collision\0\0");
 
 	switch (selectedTool) {
 	case Game::Tool::GRAB: break;
 	case Game::Tool::SELECT: selectToolGui(); break;
-	case Game::Tool::DISTANCE_JOINT: break;
-	case Game::Tool::REVOLUTE_JOINT: break;
+	case Game::Tool::CREATE_JOINT: {
+		#include <game/jointTypeMacro.hpp>
+		#define STRING(TYPE, typeString) typeString,
+		static constexpr const char* jointNames[]{
+			JOINT_TYPE_LIST(STRING)
+		};
+		#undef STRING
+		#include <game/jointTypeMacroUndef.hpp>
+		Combo("type", reinterpret_cast<int*>(&selectedJointType), jointNames, std::size(jointNames));
+		break;
+	}
+		
 	case Game::Tool::CREATE_BODY:
 		Combo("shape", reinterpret_cast<int*>(&selectedShape), "circle\0rectangle\0\0");
 		switch (selectedShape)
@@ -701,7 +715,7 @@ auto Game::update() -> void {
 	Vec2 bodyUnderCursorPosInSelectedObjectSpace;
 	for (const auto [id, body] : ent.body) {
 		// @Hack
-		if (distanceJointBodyA.has_value() && id == *distanceJointBodyA) {
+		if (jointBodyA.has_value() && id == *jointBodyA) {
 			continue;
 		}
 
@@ -746,57 +760,59 @@ auto Game::update() -> void {
 
 	selectToolUpdate(cursorPos, bodyUnderCursor);
 
-	if (selectedTool == Tool::DISTANCE_JOINT || selectedTool == Tool::REVOLUTE_JOINT) {
+	if (selectedTool == Tool::CREATE_JOINT) {
 		if (bodyUnderCursor.has_value() && Input::isMouseButtonDown(MouseButton::LEFT)) {
-			if (!distanceJointBodyA.has_value()) {
-				distanceJointBodyA = bodyUnderCursor;
-				distanceJointBodyAAnchor = bodyUnderCursorPosInSelectedObjectSpace;
+			if (!jointBodyA.has_value()) {
+				jointBodyA = bodyUnderCursor;
+				jointBodyALocalAnchor = bodyUnderCursorPosInSelectedObjectSpace;
 			} else {
-				const auto aId = *distanceJointBodyA;
+				const auto aId = *jointBodyA;
 				const auto bId = *bodyUnderCursor;
 				const auto a = ent.body.get(aId);
 				const auto b = ent.body.get(bId);
-				const auto aAnchor = distanceJointBodyAAnchor;
+				const auto aAnchor = jointBodyALocalAnchor;
 				const auto bAnchor = bodyUnderCursorPosInSelectedObjectSpace;
-				float distance = 0.0f;
-				if (selectedTool == Tool::DISTANCE_JOINT) {
-					distance = ::distance(a->transform.pos + aAnchor * a->transform.rot, b->transform.pos + bAnchor * b->transform.rot);
-				}
+				float distance = ::distance(a->transform.pos + aAnchor * a->transform.rot, b->transform.pos + bAnchor * b->transform.rot);
 
 				if (aId != bId && a.has_value() && b.has_value()) {
-					if (selectedTool == Tool::DISTANCE_JOINT) {
+					switch (selectedJointType) {
+					case Game::JointType::DISTANCE:
 						ent.distanceJoint.create(DistanceJoint{
 							aId, bId,
 							distance,
 							aAnchor, bAnchor
 						});
-					} else if (selectedTool == Tool::REVOLUTE_JOINT) {
+						break;
+					case Game::JointType::REVOLUTE:
 						ent.revoluteJoint.create(RevoluteJoint{
 							aId, bId,
 							aAnchor, bAnchor
+							});
+						ent.collisionsToIgnore.insert(BodyPair{ aId, bId });
+						break;
+					case Game::JointType::SPRING:
+						ent.springJoint.create(SpringJoint{
+							aId, bId,
+							distance,
+							aAnchor, bAnchor
 						});
-						BodyPair bodyPair{ aId, bId };
-						ent.collisionsToIgnore.insert(bodyPair);
-						//ent.revoluteJointsWithIgnoredCollisions.push_back(std::pair{ joint, bodyPair });
+						break;
 					}
-
-					distanceJointBodyA = std::nullopt;
-
-					
+					jointBodyA = std::nullopt;
 				}
 			}
 		}
 
-		if (distanceJointBodyA.has_value()) {
-			auto body = ent.body.get(*distanceJointBodyA);
+		if (jointBodyA.has_value()) {
+			auto body = ent.body.get(*jointBodyA);
 			if (body.has_value()) {
-				Debug::drawPoint(body->transform.pos + distanceJointBodyAAnchor * body->transform.rot, Vec3::RED);
+				Debug::drawPoint(body->transform.pos + jointBodyALocalAnchor * body->transform.rot, Vec3::RED);
 			} else {
-				distanceJointBodyA = std::nullopt;
+				jointBodyA = std::nullopt;
 			}
 		}
 	} else {
-		distanceJointBodyA = std::nullopt;
+		jointBodyA = std::nullopt;
 	}
 
 	if (selectedTool == Tool::CREATE_BODY) {
@@ -974,6 +990,10 @@ auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) 
 		for (auto joint : ent.revoluteJoint) {
 			joint->preStep(invDt);
 		}
+
+		for (auto joint : ent.springJoint) {
+			joint->preStep(invDt);
+		}
 		profile.solvePrestep += timer.elapsedMilliseconds();
 	}
 
@@ -992,6 +1012,9 @@ auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) 
 				joint.applyImpluse();
 			}
 			for (auto joint : ent.revoluteJoint) {
+				joint->applyImpluse();
+			}
+			for (auto joint : ent.springJoint) {
 				joint->applyImpluse();
 			}
 		}
@@ -1029,9 +1052,7 @@ auto Game::draw(Vec2 cursorPos) -> void {
 	case Game::Tool::SELECT:
 		selectToolDraw();
 		break;
-	case Game::Tool::DISTANCE_JOINT:
-		break;
-	case Game::Tool::REVOLUTE_JOINT:
+	case Game::Tool::CREATE_JOINT:
 		break;
 	case Game::Tool::CREATE_BODY:
 		switch (selectedShape) {
@@ -1072,6 +1093,15 @@ auto Game::draw(Vec2 cursorPos) -> void {
 		const auto anchors = joint->anchorsWorldSpace();
 		Debug::drawPoint(anchors[0]);
 		Debug::drawPoint(anchors[1]);
+	}
+
+	for (const auto& joint : ent.springJoint) {
+		/*const auto anchors = joint->anchorsWorldSpace();
+		Debug::drawPoint(anchors[0]);
+		Debug::drawPoint(anchors[1]);*/
+		const auto a = ent.body.get(joint->bodyA);
+		const auto b = ent.body.get(joint->bodyB);
+		Debug::drawLine(a->transform.pos, b->transform.pos);
 	}
 
 	for (const auto& [_, trail] : ent.trail) {
@@ -1155,6 +1185,11 @@ auto Game::selectToolGui() -> void {
 				return;
 			
 			InputFloat("motor speed", &joint->motorSpeedInRadiansPerSecond);
+		},
+		[&](const SpringJointId& jointId) {
+			auto joint = ent.springJoint.get(jointId);
+			if (!joint.has_value())
+				return;
 		},
 		[&](const TrailId& trailId) {
 			auto trail = ent.trail.get(trailId);
@@ -1269,6 +1304,9 @@ auto Game::selectToolUpdate(Vec2 cursorPos, const std::optional<BodyId>& bodyUnd
 			[&](const RevoluteJointId&) -> std::optional<Aabb> {
 				return std::nullopt;
 			},
+			[&](const SpringJointId&) -> std::optional<Aabb> {
+				return std::nullopt;
+			},
 			[&](const TrailId& traildId) -> std::optional<Aabb> {
 				const auto trail = ent.trail.get(traildId);
 				if (!trail.has_value())
@@ -1324,6 +1362,13 @@ auto Game::selectToolDraw() -> void {
 				return;
 			const auto anchors = joint->anchorsWorldSpace();
 			Debug::drawPoint(anchors[0], Vec3::RED);
+		},
+		[&](const SpringJointId& jointId) {
+			const auto joint = ent.springJoint.get(jointId);
+			if (!joint.has_value())
+				return;
+			/*const auto anchors = joint->anchorsWorldSpace();
+			Debug::drawPoint(anchors[0], Vec3::RED);*/
 		},
 		[&](const TrailId& traildId) {
 			const auto trail = ent.trail.get(traildId);

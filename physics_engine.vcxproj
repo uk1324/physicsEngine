@@ -168,6 +168,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\demos\integrationDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\game\demos\leaningTowerOfLireDemo.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -263,6 +267,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\game\demos\testingDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\demos\theoJansenLinkageDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\game\ent.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -296,6 +308,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\game\revoluteJoint.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\game\springJoint.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -451,6 +467,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\game\demos\cycloidDemo.hpp" />
+    <ClInclude Include="src\demos\integrationDemo.hpp" />
     <ClInclude Include="src\game\demos\leaningTowerOfLireDemo.hpp" />
     <ClInclude Include="src\game\demos\scissorsMechanismDemo.hpp" />
     <ClInclude Include="src\game\demos\hexagonalPyramidDemo.hpp" />
@@ -474,6 +491,8 @@
     <ClInclude Include="src\game\contactConstraint.hpp" />
     <ClInclude Include="src\game\demos\doubleDominoDemo.hpp" />
     <ClInclude Include="src\game\demos\pyramidDemo.hpp" />
+    <ClInclude Include="src\game\demos\testingDemo.hpp" />
+    <ClInclude Include="src\game\demos\theoJansenLinkageDemo.hpp" />
     <ClInclude Include="src\game\ent.hpp" />
     <ClInclude Include="src\game\entityArray.hpp" />
     <ClInclude Include="src\game\entMacro.hpp" />
@@ -488,8 +507,11 @@
     <ClInclude Include="src\game\levelFormat\levelData.hpp" />
     <ClInclude Include="src\game\physicsProfile.hpp" />
     <ClInclude Include="src\game\revoluteJoint.hpp" />
+    <ClInclude Include="src\game\springJoint.hpp" />
     <ClInclude Include="src\game\trail.hpp" />
     <ClInclude Include="src\game\entMacroUndef.hpp" />
+    <ClInclude Include="src\game\jointTypeMacro.hpp" />
+    <ClInclude Include="src\game\jointTypeMacroUndef.hpp" />
     <ClInclude Include="src\math\aabb.hpp" />
     <ClInclude Include="src\math\bits.hpp" />
     <ClInclude Include="src\math\collision.hpp" />

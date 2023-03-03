@@ -63,6 +63,7 @@ struct JointId {
 */
 
 // TODO: https://youtu.be/xvAVQ6GEv-E?t=298
+
 class Game {
 public:
 	Game();
@@ -97,8 +98,8 @@ public:
 	enum class Tool {
 		GRAB,
 		SELECT,
-		DISTANCE_JOINT,
-		REVOLUTE_JOINT,
+		CREATE_JOINT,
+		//REVOLUTE_JOINT,
 		// Maybe make something that lets you click once to choose circle center and the another time to choose a point on the circle which so the distance between the points is the radius.
 		CREATE_BODY,
 		CREATE_LINE,
@@ -126,9 +127,16 @@ public:
 	bool focusingOnSelected = false;
 	float elapsedSinceFocusStart = 0.0f;
 	Vec2 lastFrameFocusPos;
-
-	std::optional<BodyId> distanceJointBodyA;
-	Vec2 distanceJointBodyAAnchor;
+#include <game/jointTypeMacro.hpp>
+#define TYPE(TYPE, typeString) TYPE,
+	enum class JointType {
+		JOINT_TYPE_LIST(TYPE)
+	};
+#undef TYPE
+#include <game/jointTypeMacroUndef.hpp>
+	JointType selectedJointType;
+	std::optional<BodyId> jointBodyA;
+	Vec2 jointBodyALocalAnchor;
 
 	enum class BodyShape {
 		CIRCLE, RECTANGLE

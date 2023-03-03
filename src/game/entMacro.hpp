@@ -2,6 +2,7 @@
 	macro(Body, body) separator \
 	macro(DistanceJoint, distanceJoint) separator \
 	macro(RevoluteJoint, revoluteJoint) separator \
+	macro(SpringJoint, springJoint) separator \
 	macro(Trail, trail)
 
 #define COMMA ,

@@ -32,6 +32,12 @@ enum class ContactPointFeature : u8 {
 	FACE, VERTEX
 };
 
+// BELOW IS WRONG.
+// Using just a index for the collider doesn't allow the colliders to have different materials like in box2d. They have the same friction and resitution. Would need to make colliders entities and then store 
+// TODO: Could store the properites like bounciness and friction insde the shape instead of the body. 
+// The issue with using pairs of shapes as the keys in the collision system like in box2d is that body ids would also need to be stored somewere.
+// If use use the BodyIds and shape indexes as the keys you get an issue with storing duplicate data because the collision also needs to store things like the id's of the shape in contact point id. 
+// The box2d soution seems better. One issue with it is that it introduces 
 struct ContactPointId {
 	ContactPointFeature featureOnA;
 	i16 featureOnAIndex;
