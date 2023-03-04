@@ -134,7 +134,7 @@ public:
 	};
 #undef TYPE
 #include <game/jointTypeMacroUndef.hpp>
-	JointType selectedJointType;
+	JointType selectedJointType = JointType::DISTANCE;
 	std::optional<BodyId> jointBodyA;
 	Vec2 jointBodyALocalAnchor;
 

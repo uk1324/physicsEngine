@@ -16,8 +16,12 @@ auto SpringJoint::preStep(float invDeltaTime) -> void {
 
 	const auto distanceAb = ::distance(a->transform.pos, b->transform.pos);
 	const auto error = distanceAb - restLength;
-	a->vel += (b->transform.pos - a->transform.pos) * error * invDeltaTime * 0.6f;
-	b->vel -= (b->transform.pos - a->transform.pos) * error * invDeltaTime * 0.6f;
+	/*a->vel += (b->transform.pos - a->transform.pos) * error * invDeltaTime * 1.0f;
+	b->vel -= (b->transform.pos - a->transform.pos) * error * invDeltaTime * 1.0f;*/
+	const auto normal = (b->transform.pos - a->transform.pos).normalized();
+	const auto k = 500.9f;
+	a->vel += normal * error * k / a->mass;
+	b->vel -= normal * error * k / b->mass;
 }
 
 auto SpringJoint::applyImpluse() -> void {
