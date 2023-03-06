@@ -8,4 +8,5 @@ public:
 	virtual auto load() -> void {};
 	virtual auto settingsGui() -> void {};
 	virtual auto update() -> void {};
+	virtual auto physicsStep() -> void {};
 };

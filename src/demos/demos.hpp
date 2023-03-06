@@ -8,6 +8,7 @@
 #include <demos/testDemo.hpp>
 #include <demos/marchingSquaresDemo.hpp>
 #include <demos/integrationDemo.hpp>
+#include <demos/polygonHull.hpp>
 
 struct Demos {
 	auto update() -> void;
@@ -20,4 +21,5 @@ struct Demos {
 	TestDemo testDemo;
 	MarchingSquaresDemo marchingSquaresDemo;
 	IntegrationDemo integrationDemo;
+	PolygonHullDemo polygonHullDemo;
 };

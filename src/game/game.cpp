@@ -73,6 +73,7 @@ Game::Game() {
 	if (!loadedOldLevel) {
 		ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
 	}
+	physicsSubsteps = 10;
 }
 
 auto Game::saveLevel() const -> Json::Value {
@@ -923,6 +924,10 @@ auto Game::update() -> void {
 				}
 			}
 
+			if (loadedDemo.has_value()) {
+				loadedDemo->physicsStep();
+			}
+
 			physicsStep(substepLength, physicsSolverIterations, physicsProfile);
 		}
 		physicsProfile.total = timer.elapsedMilliseconds();
@@ -1096,9 +1101,6 @@ auto Game::draw(Vec2 cursorPos) -> void {
 	}
 
 	for (const auto& joint : ent.springJoint) {
-		/*const auto anchors = joint->anchorsWorldSpace();
-		Debug::drawPoint(anchors[0]);
-		Debug::drawPoint(anchors[1]);*/
 		const auto a = ent.body.get(joint->bodyA);
 		const auto b = ent.body.get(joint->bodyB);
 		Debug::drawLine(a->transform.pos, b->transform.pos);

@@ -19,7 +19,8 @@ auto SpringJoint::preStep(float invDeltaTime) -> void {
 	/*a->vel += (b->transform.pos - a->transform.pos) * error * invDeltaTime * 1.0f;
 	b->vel -= (b->transform.pos - a->transform.pos) * error * invDeltaTime * 1.0f;*/
 	const auto normal = (b->transform.pos - a->transform.pos).normalized();
-	const auto k = 500.9f;
+	/*const auto k = 500.9f;*/
+	const auto k = 50.9f;
 	a->vel += normal * error * k / a->mass;
 	b->vel -= normal * error * k / b->mass;
 }

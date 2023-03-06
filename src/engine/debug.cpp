@@ -51,7 +51,7 @@ auto Debug::drawLines(Span<const Vec2> vertices, const Vec3& color) -> void {
 	if (vertices.size() == 2)
 		return;
 
-	for (usize i = 1; i < lines.size() - 1; i++)
+	for (usize i = 1; i < vertices.size() - 1; i++)
 		drawLine(vertices[i], vertices[i + 1], color);
 	drawLine(vertices.back(), vertices[0], color);
 }

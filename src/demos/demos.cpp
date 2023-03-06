@@ -10,5 +10,6 @@ auto Demos::update() -> void {
 	//eulerianFluid.update();
 	//waterDemo.update();
 	//testDemo.update();
-	integrationDemo.update();
+	//integrationDemo.update();
+	polygonHullDemo.update();
 }

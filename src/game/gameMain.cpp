@@ -2,8 +2,8 @@
 #include <engine/input.hpp>
 
 auto GameMain::update() -> void {
-	/*demos.update();
-	return;*/
+	demos.update();
+	return;
 
-	game.update();
+	//game.update();
 }

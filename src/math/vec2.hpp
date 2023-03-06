@@ -249,8 +249,7 @@ auto Vec2T<T>::operator*=(const Vec2T& v) -> Vec2T& {
 }
 
 template<typename T>
-auto Vec2T<T>::operator/(T s) const -> Vec2T
-{
+auto Vec2T<T>::operator/(T s) const -> Vec2T {
 	return Vec2T{ x / s, y / s };
 }
 
