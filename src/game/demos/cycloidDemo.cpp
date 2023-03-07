@@ -65,7 +65,7 @@ auto CycloidDemo::settingsGui() -> void {
 	}
 }
 
-auto CycloidDemo::update() -> void {
+auto CycloidDemo::update(const DemoData&) -> void {
 	const auto t = circleT;
 	const auto circleCenter = Vec2{ t * cycloidRadius * TAU<float>, 0.0f };
 	if (showCircle) {

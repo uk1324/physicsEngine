@@ -9,7 +9,7 @@ public:
 	auto loadSettingsGui() -> void override;
 	auto load() -> void override;
 	auto settingsGui() -> void;
-	auto update() -> void override;
+	auto update(const DemoData&) -> void override;
 
 	auto posOnCycloid(float t) const -> Vec2;
 

@@ -66,3 +66,6 @@ auto simplePolygonContainsSimplePolygon(Span<const Vec2> enclosed, Span<const Ve
 // It might be better to not remove holes, but just to do a subract operation on the shape, because some simplification algorithms might produce shapes that intersect with holes, which means that the shape is not contained inside any other shape so these shapes are ignored by this algorithm.
 // Using the smallest cut possible produces better result and doesn't lead to glitchy cuts as often. So it is better to set useTheFirstCutFound = false, but this does slow down the algorithm quite a bit.
 auto removeHoles(std::vector<std::vector<Vec2>>& polygons, bool useTheFirstCutFound = true) -> void;
+
+namespace { static thread_local std::vector<Vec2> complexPolygonOtlineResult; }
+auto complexPolygonOutline(Span<const Vec2> vertices, std::vector<Vec2>& result = complexPolygonOtlineResult) -> const std::vector<Vec2>&;

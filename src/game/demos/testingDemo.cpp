@@ -130,7 +130,7 @@ auto softbodyGrid(Vec2 pos) -> void {
 			/*grid[x][y] = ent.body.create(Body{ Vec2(x, y) * scale + pos, CircleCollider{ 0.1f * scale }, false }).id;*/
 			auto body = ent.body.create(Body{ Vec2(x, y) * scale + pos, CircleCollider{ 0.1f * scale }, false });
 			/*body->mass /= 4.0f;*/
-			body->mass *= 4.0f;
+			body->mass /= 4.0f;
 			grid[x][y] = body.id;
 			/*grid[x][y] = ent.body.create(Body{ Vec2(x, y) * scale + Vec2{ 1.0f }, BoxCollider{ Vec2{ scale } }, false }).id;*/
 		}
@@ -242,15 +242,15 @@ auto TestingDemo::load() -> void {
 	body.initialVolume = body.volume();
 	connect(body.bodies);*/
 
-	softbodyGrid(Vec2{ 0.0f, 1.0f });
+	//softbodyGrid(Vec2{ 0.0f, 1.0f });
 	//softbodyGrid(Vec2{ 4.0f, 1.0f });
 
-	const auto a = ent.body.create(Body{ Vec2{ 5.0f, 5.0f }, CircleCollider{ 1.0f }, false });
-	const auto b = ent.body.create(Body{ Vec2{ 5.0f, 5.0f }, CircleCollider{ 1.0f }, false });
-	for (const auto body : ent.body) {
-		ent.collisionsToIgnore.insert({ a.id, body.id });
-		ent.collisionsToIgnore.insert({ b.id, body.id });
-	}
+	//const auto a = ent.body.create(Body{ Vec2{ 5.0f, 5.0f }, CircleCollider{ 1.0f }, false });
+	//const auto b = ent.body.create(Body{ Vec2{ 5.0f, 5.0f }, CircleCollider{ 1.0f }, false });
+	//for (const auto body : ent.body) {
+	//	ent.collisionsToIgnore.insert({ a.id, body.id });
+	//	ent.collisionsToIgnore.insert({ b.id, body.id });
+	//}
 
 	ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
 }
@@ -262,26 +262,118 @@ auto TestingDemo::settingsGui() -> void {
 	Text("now: %g", softbodies[0].volume());
 }
 
-auto TestingDemo::update() -> void {
+#include <numeric>
+
+
+struct ShapeMatchingSoftbody {
+	std::vector<Vec2> shape;
+	std::vector<BodyId> bodies;
+
+	auto matchShape() const -> std::vector<Vec2> {
+		std::vector<Vec2> verticesNow;
+		for (auto& b : bodies) {
+			verticesNow.push_back(ent.body.get(b)->transform.pos);
+		}
+
+		std::vector<Vec2> orientedVertices;
+		const auto centroid = std::accumulate(verticesNow.begin(), verticesNow.end(), Vec2{ 0.0f }) / verticesNow.size();
+		//Debug::drawPoint(centroid, Vec3::RED);
+		auto angle = 0.0f;
+		for (int i = 0; i < verticesNow.size(); i++) {
+			const auto cos = std::clamp(dot((verticesNow[i] - centroid).normalized(), shape[i].normalized()), -1.0f, 1.0f);
+			const auto sin = std::clamp(det((verticesNow[i] - centroid).normalized(), shape[i].normalized()), -1.0f, 1.0f);
+			/*const auto cos = std::clamp(dot((centroid - verticesNow[i]).normalized(), shape[i].normalized()), -1.0f, 1.0f);
+			const auto sin = std::clamp(dot((centroid - verticesNow[i]).normalized().rotBy90deg(), shape[i].normalized()), -1.0f, 1.0f);*/
+			angle += atan2(sin, cos);			
+			/*const auto a = (centroid - verticesNow[i]);
+			const auto b = shape[i].normalized();
+			angle += b.angle() - a.angle();*/
+			//const auto sin = std::clamp(dot((verticesNow[i] - centroid).normalized().rotBy90deg(), shape[i].normalized()), -1.0f, 1.0f);
+			//angle += abs(atan2(sin, cos));
+			/*const auto cos = std::clamp(dot((verticesNow[i] - centroid).normalized(), shape[i].normalized()), -1.0f, 1.0f);
+			angle += acos(cos);*/
+		}
+		angle /= shape.size();
+		/*for (const auto vertex : shape) {
+			orientedVertices.push_back(vertex * Rotation{ angle } + centroid);
+		}*/
+		for (const auto vertex : shape) {
+			orientedVertices.push_back(vertex * Rotation{ angle } + centroid);
+		}
+		return orientedVertices;
+	}
+};
+
+std::vector<ShapeMatchingSoftbody> shapeMatchingSoftbodies;
+
+std::vector<Vec2> vertices;
+
+#include <game/input.hpp>
+
+auto TestingDemo::update(const DemoData& data) -> void {
+
+	if (Input::isMouseButtonDown(MouseButton::LEFT)) {
+		vertices.push_back(data.cursorPos);
+	}
+
+	if (vertices.size() == 1) {
+		Debug::drawPoint(vertices[0]);
+	} else if (vertices.size() > 1) {
+		for (int i = 0; i < vertices.size() - 1; i++) {
+			Debug::drawLine(vertices[i], vertices[i + 1]);
+		}
+	}
+
+	if (Input::isKeyDown(Keycode::C) && vertices.size() != 0) {
+		ShapeMatchingSoftbody body{ .shape = vertices };
+		for (const auto& vertex : body.shape) {
+			body.bodies.push_back(ent.body.create(Body{ vertex, CircleCollider{ 0.1f } }).id);
+		}
+		const auto centroid = std::accumulate(body.shape.begin(), body.shape.end(), Vec2{ 0.0f }) / body.shape.size();
+		for (auto& vertex : body.shape) {
+			vertex -= centroid;
+		}
+		vertices.clear();
+		shapeMatchingSoftbodies.push_back(std::move(body));
+		const auto& b = shapeMatchingSoftbodies.back();
+
+		int previousI = b.bodies.size() - 1;
+		for (int i = 0; i < b.bodies.size(); previousI = i, i++) {
+			const auto d = distance(b.shape[i], b.shape[previousI]);
+			ent.distanceJoint.create(DistanceJoint{ b.bodies[i], b.bodies[previousI], d });
+		}
+
+	}
+
+
+	for (const auto& body : shapeMatchingSoftbodies) {
+		Debug::drawLines(body.matchShape(), Vec3::RED);
+		/*std::vector<Vec2> verticesNow;
+		for (auto& b : body.bodies) {
+			verticesNow.push_back(ent.body.get(b)->transform.pos);
+		}
+		Debug::drawLines(verticesNow);*/
+	}
+
 	for (const auto& softbody : softbodies) {
 		
 		std::vector<Vec2> pos;
 		for (const auto body : softbody.bodies) {
 			pos.push_back(ent.body.get(body)->transform.pos);
 		}
-		/*const auto& newPos = computeHull(pos);
+		const auto& newPos = complexPolygonOutline(pos);
 		int previous = newPos.size() - 1;
 		for (int i = 0; i < newPos.size(); previous = i, i++) {
 			const auto n = (newPos[i] - newPos[previous]).rotBy90deg().normalized();
 			Debug::drawLine(newPos[i], newPos[previous], Vec3::RED);
-		}*/
-		int previous = softbody.bodies.size() - 1;
-		for (int i = 0; i < softbody.bodies.size(); previous = i, i++) {
-			const auto a = ent.body.get(softbody.bodies[i])->transform.pos;
-			const auto b = ent.body.get(softbody.bodies[previous])->transform.pos;
-			const auto n = (a - b).rotBy90deg().normalized();
-			Debug::drawLine(a + n * 0.1f, b + n * 0.1f, Vec3::RED);
 		}
+		//int previous = softbody.bodies.size() - 1;
+		//for (int i = 0; i < softbody.bodies.size(); previous = i, i++) {
+		//	const auto a = ent.body.get(softbody.bodies[i])->transform.pos;
+		//	const auto b = ent.body.get(softbody.bodies[previous])->transform.pos;
+		//	const auto n = (a - b).rotBy90deg().normalized();
+		//	Debug::drawLine(a + n * 0.1f, b + n * 0.1f, Vec3::RED);
+		//}
 	}
 }
 
@@ -301,6 +393,16 @@ auto TestingDemo::physicsStep() -> void {
 			//Debug::drawRay((pos[i] + pos[previous]) / 2.0f, n);
 			ent.body.get(body.bodies[i])->vel += n * volumeDifference * length * force;
 			ent.body.get(body.bodies[previous])->vel += n * volumeDifference * length * force;
+		}
+	}
+
+	for (const auto& body : shapeMatchingSoftbodies) {
+		const auto shape = body.matchShape();
+		for (int i = 0; i < shape.size(); i++) {
+			const auto d = (shape[i] - ent.body.get(body.bodies[i])->transform.pos);
+			ent.body.get(body.bodies[i])->vel += d * 4.0f;
+			ent.body.get(body.bodies[i])->angularVel = 0.0f;
+			//ent.body.get(body.bodies[i])->vel -= d.normalized() * dot(ent.body.get(body.bodies[i])->vel, d.normalized()) * 0.5f;
 		}
 	}
 }

@@ -672,7 +672,11 @@ auto Game::update() -> void {
 	}
 
 	if (loadedDemo.has_value()) {
-		loadedDemo->update();
+		DemoData demoData{
+			.camera = camera,
+			.cursorPos = cursorPos
+		};
+		loadedDemo->update(demoData);
 	}
 
 	if (drawTrajectory) {
