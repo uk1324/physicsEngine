@@ -268,8 +268,9 @@ auto TestingDemo::settingsGui() -> void {
 struct ShapeMatchingSoftbody {
 	std::vector<Vec2> shape;
 	std::vector<BodyId> bodies;
+	float lastAngle = 0.0f;
 
-	auto matchShape() const -> std::vector<Vec2> {
+	auto matchShape() -> std::vector<Vec2> {
 		std::vector<Vec2> verticesNow;
 		for (auto& b : bodies) {
 			verticesNow.push_back(ent.body.get(b)->transform.pos);
@@ -278,13 +279,41 @@ struct ShapeMatchingSoftbody {
 		std::vector<Vec2> orientedVertices;
 		const auto centroid = std::accumulate(verticesNow.begin(), verticesNow.end(), Vec2{ 0.0f }) / verticesNow.size();
 		//Debug::drawPoint(centroid, Vec3::RED);
-		auto angle = 0.0f;
+		Mat2 m;
+		auto sqrtM = [](const Mat2& m) {
+			const auto delta = m[0][0] * m[1][1] - m[1][0] * m[0][1];
+			const auto tau = m[0][0] + m[1][1];
+			const auto s = sqrt(delta);
+			const auto t = sqrt(tau);
+			/*return Mat2{ Vec2{ m[0][0] + s, m[0][1] }, Vec2{ m[1][0], m[1][1] + s } } * (1.0f / t);*/
+			return Mat2{ Vec2{ m[0][0] + s, m[0][1] }, Vec2{ m[1][0], m[1][1] + s } } * (1.0f / t);
+		};
+
+		Mat2 pq{ Vec2{ 0.0f }, Vec2{ 0.0f } };
+		//Mat2 pq{ Vec2{ 0.0f }, Vec2{ 0.0f } };
+		
 		for (int i = 0; i < verticesNow.size(); i++) {
-			const auto cos = std::clamp(dot((verticesNow[i] - centroid).normalized(), shape[i].normalized()), -1.0f, 1.0f);
-			const auto sin = std::clamp(det((verticesNow[i] - centroid).normalized(), shape[i].normalized()), -1.0f, 1.0f);
+			const auto p = (verticesNow[i] - centroid);
+			const auto q = shape[i];
+			/*Mat2 pq0{ Vec2{ p.x * q.x, p.x * q.y }, Vec2{ p.y * q.x, p.y * q.y } };*/
+			Mat2 pq0{ Vec2{ p.x * q.x, p.y * q.x }, Vec2{ p.x * q.y, p.y * q.y } };
+			pq = Mat2{ pq.x() + pq0.x(), pq.y() + pq0.y() };
+			//Mat2 qq{ Vec2{ q.x * q.x, q.x * q.y }, Vec2{ q.y * q.x, q.y * q.y } };
+
+			//const auto c = a * b.inversed();
+
+			
+			
+			/*angle += dot(p, q);*/	
+			/*const auto cos = std::clamp(, , -1.0f, 1.0f);*/
+
 			/*const auto cos = std::clamp(dot((centroid - verticesNow[i]).normalized(), shape[i].normalized()), -1.0f, 1.0f);
 			const auto sin = std::clamp(dot((centroid - verticesNow[i]).normalized().rotBy90deg(), shape[i].normalized()), -1.0f, 1.0f);*/
-			angle += atan2(sin, cos);			
+			/*ASSERT(!isnan(cos));
+			ASSERT(!isnan(sin));
+			auto x = atan2(sin, cos);
+			ASSERT(!isnan(x));
+			angle += atan2(sin, cos);			*/
 			/*const auto a = (centroid - verticesNow[i]);
 			const auto b = shape[i].normalized();
 			angle += b.angle() - a.angle();*/
@@ -293,14 +322,59 @@ struct ShapeMatchingSoftbody {
 			/*const auto cos = std::clamp(dot((verticesNow[i] - centroid).normalized(), shape[i].normalized()), -1.0f, 1.0f);
 			angle += acos(cos);*/
 		}
-		angle /= shape.size();
+		const auto s = sqrtM(pq.transposed() * pq);
+		auto r = pq * s.inversed();
+		r = Mat2{ r.x().normalized(), r.y().normalized() };
+
+
+		//float a = 0.0f;
+		//for (const auto& v : shape) {
+		//	a += dot(v, v);
+		//}
+		///*angle /= shape.size();*/
+		//angle /= a;
 		/*for (const auto vertex : shape) {
 			orientedVertices.push_back(vertex * Rotation{ angle } + centroid);
 		}*/
+		//for (const auto vertex : shape) {
+		//	/*orientedVertices.push_back(vertex * Rotation{ -angle } + centroid);*/
+		//	orientedVertices.push_back(vertex * Rotation{ angle } + centroid);
+		//}
+		float angle = 0.0f;
+		for (int i = 0; i < verticesNow.size(); i++) {
+			const auto p = (verticesNow[i] - centroid);
+			const auto q = shape[i];
+			const auto sin = det(p, q);
+			/*const auto cos = std::clamp(dot(p.normalized(), q.normalized()), -1.0f, 1.0f);*/
+			const auto cos = dot(p, q);
+			angle += atan2(sin, cos);
+			//angle += acos(cos);
+		}
+		angle /= verticesNow.size();
+
+		auto angleDifference = angle - lastAngle;
+		if (angleDifference >= 180.0f) {
+			if (angleDifference < 0.0f)
+				angleDifference += 360.0f;
+			else
+				angleDifference -= 360.0f;
+		}
+
+
 		for (const auto vertex : shape) {
-			orientedVertices.push_back(vertex * Rotation{ angle } + centroid);
+			//orientedVertices.push_back(vertex * Rotation{ -angle } + centroid);
+			orientedVertices.push_back(vertex * r.inversed() + centroid);
+			/*orientedVertices.push_back(vertex * r.inversed() + centroid);*/
 		}
 		return orientedVertices;
+
+		lastAngle = angle;
+		for (const auto body : bodies) {
+			auto b = ent.body.get(body);
+			const auto rotation = (b->transform.pos - centroid).normalized().rotBy90deg();
+			b->vel -= rotation * dot(b->vel, rotation);
+			b->vel += angleDifference * rotation * (b->transform.pos - centroid).length();
+		}
 	}
 };
 
@@ -337,22 +411,21 @@ auto TestingDemo::update(const DemoData& data) -> void {
 		shapeMatchingSoftbodies.push_back(std::move(body));
 		const auto& b = shapeMatchingSoftbodies.back();
 
-		int previousI = b.bodies.size() - 1;
+		/*int previousI = b.bodies.size() - 1;
 		for (int i = 0; i < b.bodies.size(); previousI = i, i++) {
 			const auto d = distance(b.shape[i], b.shape[previousI]);
 			ent.distanceJoint.create(DistanceJoint{ b.bodies[i], b.bodies[previousI], d });
-		}
+		}*/
 
 	}
 
-
-	for (const auto& body : shapeMatchingSoftbodies) {
-		Debug::drawLines(body.matchShape(), Vec3::RED);
-		/*std::vector<Vec2> verticesNow;
+	for (auto& body : shapeMatchingSoftbodies) {
+		//Debug::drawLines(body.matchShape(), Vec3::RED);
+		std::vector<Vec2> verticesNow;
 		for (auto& b : body.bodies) {
 			verticesNow.push_back(ent.body.get(b)->transform.pos);
 		}
-		Debug::drawLines(verticesNow);*/
+		Debug::drawLines(verticesNow);
 	}
 
 	for (const auto& softbody : softbodies) {
@@ -396,11 +469,11 @@ auto TestingDemo::physicsStep() -> void {
 		}
 	}
 
-	for (const auto& body : shapeMatchingSoftbodies) {
-		const auto shape = body.matchShape();
+	for (auto& body : shapeMatchingSoftbodies) {
+		const auto& shape = body.matchShape();
 		for (int i = 0; i < shape.size(); i++) {
 			const auto d = (shape[i] - ent.body.get(body.bodies[i])->transform.pos);
-			ent.body.get(body.bodies[i])->vel += d * 4.0f;
+			ent.body.get(body.bodies[i])->vel += d * 5.0f;
 			ent.body.get(body.bodies[i])->angularVel = 0.0f;
 			//ent.body.get(body.bodies[i])->vel -= d.normalized() * dot(ent.body.get(body.bodies[i])->vel, d.normalized()) * 0.5f;
 		}

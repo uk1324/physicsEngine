@@ -21,6 +21,7 @@ struct Mat2T {
 	auto y() const -> Vec2T<T>;
 
 	auto operator*(const Mat2T& other) const -> Mat2T;
+	auto operator*(T s) const -> Mat2T;
 	auto operator[](isize i);
 	auto operator[](isize i) const;
 
@@ -95,6 +96,14 @@ auto Mat2T<T>::operator*(const Mat2T& other) const -> Mat2T {
 	return Mat2{
 		x() * other,
 		y() * other,
+	};
+}
+
+template<typename T>
+auto Mat2T<T>::operator*(T s) const -> Mat2T {
+	return Mat2{
+		x() * s,
+		y() * s
 	};
 }
 
