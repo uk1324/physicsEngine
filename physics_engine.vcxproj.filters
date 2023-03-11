@@ -265,6 +265,12 @@
     <ClCompile Include="src\demos\polygonHull.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\demos\imageToSdf.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\demos\gravityInDifferentMetricsDemo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -583,6 +589,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\demos\polygonHull.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\imageToSdf.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\gravityInDifferentMetricsDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

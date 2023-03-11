@@ -68,6 +68,9 @@ auto Camera::scrollOnCursorPos() -> void {
 	}
 }
 
+auto Camera::moveOnWasd() -> void {
+}
+
 auto Camera::screenSpaceToCameraSpace(Vec2 screenSpacePos) const -> Vec2 {
 	return (screenSpacePos * Vec2{ 1.0f, 1.0f / aspectRatio } / zoom) + pos;
 }

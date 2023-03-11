@@ -114,6 +114,10 @@ auto ImageRgba::dataSizeBytes() const -> usize {
 	return 4 * size_.x * size_.y;
 }
 
+auto ImageRgba::pixelCount() const -> usize {
+	return size_.x * size_.y;
+}
+
 auto ImageRgba::begin() -> PixelRgba* {
 	return data_;
 }

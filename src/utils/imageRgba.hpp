@@ -45,6 +45,7 @@ public:
 	auto size() const -> const Vec2T<i64>&;
 	auto data() -> PixelRgba*;
 	auto dataSizeBytes() const -> usize;
+	auto pixelCount() const -> usize;
 
 	auto begin() -> PixelRgba*;
 	auto end() -> PixelRgba*;

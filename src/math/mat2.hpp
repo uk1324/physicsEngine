@@ -15,18 +15,24 @@ struct Mat2T {
 	auto orthonormalInv() const -> Mat2T;
 	auto inversed() const -> Mat2T;
 
-	auto det() const -> float;
+	auto det() const -> T;
+	auto trace() const -> T;
+	auto sqrt() const -> Mat2T;
+	auto removedScaling() const -> Mat2T;
 	
 	auto x() const -> Vec2T<T>;
 	auto y() const -> Vec2T<T>;
 
 	auto operator*(const Mat2T& other) const -> Mat2T;
+	auto operator+(const Mat2T& other) const -> Mat2T;
+	auto operator+=(const Mat2T& other) -> Mat2T&;
 	auto operator*(T s) const -> Mat2T;
 	auto operator[](isize i);
 	auto operator[](isize i) const;
 
 	static constexpr auto COLS = 2;
 	static constexpr int ROWS = 2;
+	// Next time maybe store x, y vector instead of an array and implement the array access using operator[]. Could even just reinterpret cast the memory of the vectors. Using the basis vectors instead of indices seems more intuitive in many cases.
 	float m[ROWS][COLS];
 	static const Mat2T identity;
 };
@@ -77,8 +83,31 @@ auto Mat2T<T>::inversed() const -> Mat2T {
 }
 
 template<typename T>
-auto Mat2T<T>::det() const -> float {
+auto Mat2T<T>::det() const -> T {
 	return m[0][0] * m[1][1] - m[1][0] * m[0][1];
+}
+
+template<typename T>
+auto Mat2T<T>::trace() const -> T {
+	return m[0][0] + m[1][1];
+}
+
+template<typename T>
+auto Mat2T<T>::sqrt() const -> Mat2T {
+	// https://en.wikipedia.org/wiki/Square_root_of_a_2_by_2_matrix
+	const auto delta = det();
+	const auto tau = trace();
+	const auto s = ::sqrt(delta);
+	const auto t = ::sqrt(tau);
+	return Mat2{ Vec2{ m[0][0] + s, m[0][1] }, Vec2{ m[1][0], m[1][1] + s } } * (1.0f / t);
+}
+
+template<typename T>
+auto Mat2T<T>::removedScaling() const -> Mat2T {
+	return Mat2T{
+		x().normalized(),
+		y().normalized()
+	};
 }
 
 template<typename T>
@@ -97,6 +126,20 @@ auto Mat2T<T>::operator*(const Mat2T& other) const -> Mat2T {
 		x() * other,
 		y() * other,
 	};
+}
+
+template<typename T>
+auto Mat2T<T>::operator+(const Mat2T& other) const -> Mat2T {
+	return Mat2T{
+		x() + other.x(),
+		y() + other.y()
+	};
+}
+
+template<typename T> 
+auto Mat2T<T>::operator+=(const Mat2T& other) -> Mat2T& {
+	*this = *this + other;
+	return *this;
 }
 
 template<typename T>

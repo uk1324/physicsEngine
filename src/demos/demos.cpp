@@ -11,5 +11,7 @@ auto Demos::update() -> void {
 	//waterDemo.update();
 	//testDemo.update();
 	//integrationDemo.update();
-	polygonHullDemo.update();
+	//polygonHullDemo.update();'
+	imageToSdfDemo.update();
+	//gravityInDifferentMetricsDemo.update();
 }

@@ -300,6 +300,7 @@ auto Dx11Renderer::update(Camera& camera, std::optional<float> gridSmallCellSize
 
 	// Dynamic textures
 	{
+		setFullscreenQaudVertices();
 		gfx.updateConstantBuffer(texturedQuadConstantBufferResource, &texturedQuadConstantBuffer, sizeof(texturedQuadConstantBuffer));
 		gfx.ctx->VSSetShader(vsTexturedQuad.shader.Get(), nullptr, 0);
 
@@ -626,7 +627,8 @@ Dx11Renderer::DynamicTextureData::DynamicTextureData(Gfx& gfx, Vec2T<i64> size) 
 		.Height = static_cast<UINT>(size.y),
 		.MipLevels = 1,
 		.ArraySize = 1,
-		.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+		/*.Format = DXGI_FORMAT_R8G8B8A8_UNORM,*/
+		.Format = DXGI_FORMAT_R32_FLOAT,
 		.SampleDesc = {
 			.Count = 1,
 			.Quality = 0,

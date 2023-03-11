@@ -164,6 +164,14 @@
     <None Include="visualStudioSnippets\demoHpp.snippet" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\demos\gravityInDifferentMetricsDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="src\demos\imageToSdf.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\demos\polygonHull.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -470,6 +478,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\demos\gravityInDifferentMetricsDemo.hpp" />
+    <ClInclude Include="src\demos\imageToSdf.hpp" />
     <ClInclude Include="src\demos\polygonHull.hpp" />
     <ClInclude Include="src\game\demos\cycloidDemo.hpp" />
     <ClInclude Include="src\demos\integrationDemo.hpp" />

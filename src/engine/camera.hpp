@@ -20,6 +20,7 @@ struct Camera {
 	auto fitAabbInView(const Aabb& aabb) -> void;
 	auto cursorPos() const -> Vec2;
 	auto scrollOnCursorPos() -> void;
+	auto moveOnWasd() -> void;
 
 	Vec2 pos;
 	float zoom;

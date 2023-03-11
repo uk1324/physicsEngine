@@ -52,7 +52,8 @@ static auto get(const T& array, i64 index) -> auto {
 auto MarchingSquaresDemo::update() -> void {
 	const auto gridSize = Vec2{ texture.size() };
 	const auto gridCenter = gridSize / 2.0f;
-
+	camera.pos = gridCenter;
+	camera.setWidth(gridSize.x);
 	camera.scrollOnCursorPos();
 
 	Begin("marching squares");
