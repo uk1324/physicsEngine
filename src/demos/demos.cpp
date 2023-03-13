@@ -12,6 +12,6 @@ auto Demos::update() -> void {
 	//testDemo.update();
 	//integrationDemo.update();
 	//polygonHullDemo.update();'
-	imageToSdfDemo.update();
-	//gravityInDifferentMetricsDemo.update();
+	//imageToSdfDemo.update();
+	gravityInDifferentMetricsDemo.update();
 }

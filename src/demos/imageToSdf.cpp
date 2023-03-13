@@ -10,13 +10,69 @@ ImageToSdfDemo::ImageToSdfDemo()
  : texture {
 	[]() {
 		const auto image = ImageRgba::fromFile(PATH "out1.png");
-		DynamicTexture texture{ image->size() * 2 };
+		DynamicTexture texture{ image->size() / 1 };
 		if (image.has_value()) {
 			//texture.copyAndResize(*image);
 		}
 		return texture;
 	}() } {
 	Window::setSize(Vec2{ 480, 360 } * 3.0f);
+}
+
+#include <numeric>
+
+auto floatToRatio(float x)-> std::pair<int, int> {
+	if (isnan(x)) {
+		return { 0, 0 };
+	}
+	float integralPart;
+	auto fractionalPart = modf(x, &integralPart);
+
+	int n = 0;
+	if (fractionalPart < 0.0f) {
+		fractionalPart = -fractionalPart;
+		integralPart = -integralPart;
+	}
+
+	float p = fractionalPart;
+	float _;
+	while (modf(p, &_) != 0.0f) {
+		p = p * 10.0f;
+		n++;
+	}
+	const auto decimalNumerator = static_cast<int>(p);
+	const auto decimalDenominator = static_cast<int>(pow(10.0f, n));
+	const auto gdc = std::gcd(decimalNumerator, decimalDenominator);
+	const auto denominator = decimalDenominator / gdc;
+	return { decimalNumerator / gdc + denominator * static_cast<float>(integralPart), denominator };
+	/*findFraction("1249.12490124");
+findFraction("1.3");
+findFraction("4212.2");
+findFraction("11.1");*/
+}
+
+int p = 13;
+
+auto g(int m) -> int {
+	return (m % p) == 0 ? (g(m / p) * p) : 1;
+};
+
+auto padic(int m, int n) -> float {
+	if (m == 0) {
+		return 0;
+	}
+	auto gcd = std::gcd(m, n);
+	return static_cast<float>(g(n / gcd)) / g(m / gcd);
+}
+
+auto padic(float m) -> float {
+	if (isnan(m))
+		return 0;
+	if (m == 0) {
+		return 0;
+	}
+	const auto fraction = floatToRatio(m);
+	return padic(fraction.first, fraction.second);
 }
 
 #include <functional>
@@ -27,6 +83,13 @@ using namespace std;// We use 64-bit integers to avoid some annoying integer mat
 using Metric = function<float(int64_t, int64_t)>; 
 float euclidian(int64_t dx, int64_t dy) {
 	return sqrt(dx * dx + dy * dy);
+	/*return padic(abs(dx)) + padic(abs(dy));*/
+	/*return max(padic(abs(dx)), padic(abs(dy)));*/
+	/*return max(padic(abs(dx)), padic(abs(dy)));*/
+	//return sqrt(pow(padic(abs(dx)), 2.0f) + pow(padic(abs(dy)), 2.0f));
+	/*return abs(dx) + abs(dy);*/
+	//return sqrt(abs(dx)) + sqrt(abs(dy));
+	//return pow(pow(abs(dx), 0.5f) + pow(abs(dy), 0.5f), 2.0f);
 }
 void sdf_partial(
 	const vector<bool>& in_filled, int width,

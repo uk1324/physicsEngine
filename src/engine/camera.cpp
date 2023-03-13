@@ -36,6 +36,11 @@ auto Camera::width() const -> float {
 	return 2.0f / zoom;
 }
 
+auto Camera::aabb() -> Aabb {
+	const auto halfSize = Vec2{ width(), height() } / 2.0f;
+	return Aabb::fromCorners(pos - halfSize, pos + halfSize);
+}
+
 auto Camera::setWidth(float width) -> void {
 	zoom = 2.0f / width;
 }
@@ -69,6 +74,12 @@ auto Camera::scrollOnCursorPos() -> void {
 }
 
 auto Camera::moveOnWasd() -> void {
+	Vec2 dir{ 0.0f };
+	if (Input::isKeyHeld(Keycode::W)) dir.y += 1.0f;
+	if (Input::isKeyHeld(Keycode::S)) dir.y -= 1.0f;
+	if (Input::isKeyHeld(Keycode::D)) dir.x += 1.0f;
+	if (Input::isKeyHeld(Keycode::A)) dir.x -= 1.0f;
+	pos += dir.normalized() * Time::deltaTime() / zoom;
 }
 
 auto Camera::screenSpaceToCameraSpace(Vec2 screenSpacePos) const -> Vec2 {

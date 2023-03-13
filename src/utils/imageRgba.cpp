@@ -214,6 +214,10 @@ auto PixelRgba::grayscaled() const -> PixelRgba {
 	return PixelRgba{ v, a };
 }
 
+auto PixelRgba::toVec3() const -> Vec3 {
+	return Vec3{ static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f };
+}
+
 auto ImageRgba::IndexedPixelRange::begin() -> IndexedPixelIterator {
 	return IndexedPixelIterator{ .pos = Vec2T{ 0 }, .data = image.data_, .rowWidth = static_cast<i64>(image.size_.x) };
 }

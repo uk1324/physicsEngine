@@ -564,12 +564,7 @@ auto Game::displayErrorPopupModal() -> void {
 
 auto Game::update() -> void {
 	camera.aspectRatio = Window::aspectRatio();
-	Vec2 dir{ 0.0f };
-	if (Input::isKeyHeld(Keycode::W)) dir.y += 1.0f;
-	if (Input::isKeyHeld(Keycode::S)) dir.y -= 1.0f;
-	if (Input::isKeyHeld(Keycode::D)) dir.x += 1.0f;
-	if (Input::isKeyHeld(Keycode::A)) dir.x -= 1.0f;
-	camera.pos += dir.normalized() * Time::deltaTime() / camera.zoom;
+	camera.moveOnWasd();
 
 	if (Input::isKeyDown(Keycode::F3)) {
 		Renderer::drawImGui = !Renderer::drawImGui;

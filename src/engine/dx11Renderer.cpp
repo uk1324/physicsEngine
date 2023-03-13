@@ -453,6 +453,7 @@ auto Dx11Renderer::update(Camera& camera, std::optional<float> gridSmallCellSize
 		draw();
 	}
 
+	const auto cameraAabb = camera.aabb();
 	// Line
 	{
 		gfx.ctx->VSSetShader(vsLine.shader.Get(), nullptr, 0);
@@ -486,6 +487,10 @@ auto Dx11Renderer::update(Camera& camera, std::optional<float> gridSmallCellSize
 		};
 
 		for (const auto& line : Debug::lines) {
+			const auto lineAabb = Aabb::fromCorners(line.start, line.end);
+			if (!cameraAabb.collides(lineAabb)) {
+				continue;
+			}
 			const auto lineVector = line.end - line.start;
 			const auto length = lineVector.length();
 			const auto orientation = atan2(lineVector.y, lineVector.x);

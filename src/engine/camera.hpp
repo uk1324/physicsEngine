@@ -15,6 +15,7 @@ struct Camera {
 	auto heightIfWidthIs(float width) const -> float;
 	auto height() const -> float;
 	auto width() const -> float;
+	auto aabb() -> Aabb;
 	auto setWidth(float width) -> void;
 	auto setHeight(float height) -> void;
 	auto fitAabbInView(const Aabb& aabb) -> void;

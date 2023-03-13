@@ -14,6 +14,7 @@ struct PixelRgba {
 	static auto fromHsv(float h, float s, float v) -> PixelRgba;
 
 	auto grayscaled() const -> PixelRgba;
+	auto toVec3() const -> Vec3;
 
 	static const PixelRgba RED;
 	static const PixelRgba GREEN;
