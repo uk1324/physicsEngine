@@ -14,6 +14,6 @@ public:
 	virtual auto loadSettingsGui() -> void {};
 	virtual auto load() -> void {};
 	virtual auto settingsGui() -> void {};
-	virtual auto update(const DemoData& data) -> void {};
+	virtual auto update(const DemoData&) -> void {};
 	virtual auto physicsStep() -> void {};
 };

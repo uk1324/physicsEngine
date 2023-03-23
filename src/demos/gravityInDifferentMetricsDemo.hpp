@@ -37,6 +37,8 @@ struct GravityInDifferentMetricsDemo {
 	// Which is just a nonlinear spring.
 	// Equations like x'' = -x|x| or  x'' = -x^3 can be solved in wolfram alpha, but they aren't algebraic.
 	// It might be possible to solve the system of the spring in 2d, because you can rotate it to align with the axis (is this possible if the current velocity moves in a different direction?), but it would also require scaling, because the metric isn't symmetric.
+
+	// The triangle unit circle is drawn when coolValue = 1
 	bool cool = false;
 	float coolValue = 2.0f;
 	
@@ -52,6 +54,11 @@ struct GravityInDifferentMetricsDemo {
 		SIN,
 		// Could also implement https://en.wikipedia.org/wiki/F-space.
 	};
+
+	// to understand 
+	// https://en.wikipedia.org/wiki/Metric_tensor_(general_relativity)
+	// https://en.wikipedia.org/wiki/Schwarzschild_metric
+	// https://en.wikipedia.org/wiki/Schwarzschild_geodesics
 
 	Metric selectedMetric = Metric::LP_NORM;
 	float pNormP = 2.0f;

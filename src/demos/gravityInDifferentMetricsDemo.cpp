@@ -158,6 +158,7 @@ auto GravityInDifferentMetricsDemo::update() -> void {
 
 	Place one body with zero velocity and for the second one select a velocity to make the preview orbit the other planet. The planets will trochoid like orbits which are perodic functions. Not sure if they are exacly trochoid, because there are can get offset a bit.
 	This is best visible when the mass difference isn't too big. And the object with bigger mass is created first. Masses can also be equal.
+	It also looks cool when the eccentricity of the start orbit is high.
 
 	The simplest way to get a working moon I found is to first create a static massive planet. Then make a planet with the same mass orbit it. Then create a planet with a small mass near the orbiting planet and make it have a lot of velocity. The mass difference shouldn't be too big. 5555 and 10 fine for me.
 	*/

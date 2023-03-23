@@ -122,3 +122,38 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     //vec3 col = texture(iChannel0, uv + 0.5f).xyz;
     fragColor = vec4(col, 1.0);
 }
+
+Shader system with instancing and constant buffer.
+The user would create a .data file with an instance
+ParticleInstance @Istance {
+    Vec3 color;
+}
+
+It generates the vertex shader that takes the instance and return the values to the pixel shader. 
+A pixel shader could also be generated one way would be to generate a include inside the main file so updating is easier.
+
+#define parameters (Vec3 color)
+
+#include <parameters.h>
+
+float4 main parameters {
+
+}
+
+A better option might be to just create a header with a hlsl struct PixelInstance that gets included into both files and gets returned.
+
+Generating the pixel shader main if it doesn't exist yet is also a good idea.
+
+Renderer::createShader();
+return the shader and creates a constant buffer that is mapped to the address of the constant buffer object inside the renderer. (or maybe store it in the shader struct?). The renderer would also need to have a dynamically resizable array (constant buffers aren't resizable) that would store the instances before rendering. When copying to the constant buffer copy directly from the dynamic array at <= constant buffer size incremenets).
+In the renderer the dynamic arrays will be in a map from a address of the shader to an array of bytes.
+
+The vertex shader will just draw a quad. Is there any reason the have a vertex shader constant buffer? Most things probably can be done using a pixel shader constant buffer.
+
+Renderer::drawShader(Shader, Transform, Instance);
+
+A shader would store both a vertex and a fragment shader and if needed constant buffers. Could make it a virtual type. Shader and ShaderWithConstantBuffer.
+
+Could have a function preRender that sets all the needed state.
+
+Textures could be an another type of state. Unfortunately they aren't handled the same as constant buffers.

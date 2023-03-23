@@ -17,13 +17,13 @@ struct Demos {
 
 	//FourierTransformDemo fourierTransformDemo;
 	//EulerianFluidDemo eulerianFluid;
-	//PixelPhysics pixelPhysics;
+	PixelPhysics pixelPhysics;
 	//TriangulationDemo triangulationDemo;
 	//WaterDemo waterDemo;
 	//TestDemo testDemo;
 	//MarchingSquaresDemo marchingSquaresDemo;
 	//IntegrationDemo integrationDemo;
 	//PolygonHullDemo polygonHullDemo;
-	ImageToSdfDemo imageToSdfDemo;
-	GravityInDifferentMetricsDemo gravityInDifferentMetricsDemo;
+	//ImageToSdfDemo imageToSdfDemo;
+	//GravityInDifferentMetricsDemo gravityInDifferentMetricsDemo;
 };

@@ -627,13 +627,13 @@ auto Dx11Renderer::screenshot() -> ImageRgba {
 }
 
 Dx11Renderer::DynamicTextureData::DynamicTextureData(Gfx& gfx, Vec2T<i64> size) {
+	// This might be stupid because it creates a new texture for every image. It would be simpler to just create a single piece of memory that is used for drawing dynamic textures. The issue is that I think the only way to do it would be to create a shader that takes the dimensions of the uploaded as input and samples it (it would need to also account for row padding). This does prevent instancing and also allows only a single texture to be bound at a time. I am also not sure how are the textures synchornized, which might have an effect on performance.
 	const D3D11_TEXTURE2D_DESC textureDesc{
 		.Width = static_cast<UINT>(size.x),
 		.Height = static_cast<UINT>(size.y),
 		.MipLevels = 1,
 		.ArraySize = 1,
-		/*.Format = DXGI_FORMAT_R8G8B8A8_UNORM,*/
-		.Format = DXGI_FORMAT_R32_FLOAT,
+		.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
 		.SampleDesc = {
 			.Count = 1,
 			.Quality = 0,

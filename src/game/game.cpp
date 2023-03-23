@@ -483,7 +483,7 @@ auto Game::drawUi() -> void {
 		};
 		#undef STRING
 		#include <game/jointTypeMacroUndef.hpp>
-		Combo("type", reinterpret_cast<int*>(&selectedJointType), jointNames, std::size(jointNames));
+		Combo("type", reinterpret_cast<int*>(&selectedJointType), jointNames, static_cast<int>(std::size(jointNames)));
 		break;
 	}
 		

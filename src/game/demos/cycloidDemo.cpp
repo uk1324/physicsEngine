@@ -23,9 +23,9 @@ auto CycloidDemo::load() -> void {
 		const auto diff = p1 - p0;
 		Vec2 size{ diff.length(), 1.0f };
 		const Rotation rotation{ (diff).angle() };
-		const auto [_, body] = ent.body.create(Body{ (p0 + p1) / 2.0f - (Vec2{ size.y / 2.0f, 0.0f } * rotation * Rotation{ PI<float> / 2.0f }), BoxCollider{ size }, true });
-		body.transform.rot = rotation;
-		body.coefficientOfFriction = 0.0f;
+		auto b = ent.body.create(Body{ (p0 + p1) / 2.0f - (Vec2{ size.y / 2.0f, 0.0f } * rotation * Rotation{ PI<float> / 2.0f }), BoxCollider{ size }, true });
+		b->transform.rot = rotation;
+		b->coefficientOfFriction = 0.0f;
 		if (spawnCircle) {
 			const auto [id, body] = ent.body.create(Body{ (p0 + p1) / 2.0f + (Vec2{ 1.0f, 0.0f } *rotation * Rotation{ PI<float> / 2.0f }), CircleCollider{ 1.0f }, false });
 			spawnedCircles.push_back(id);

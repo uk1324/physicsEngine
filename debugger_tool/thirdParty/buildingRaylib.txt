@@ -1,0 +1,6 @@
+Clone the official raylib repository.
+Run cmake -B build.
+Build some example project.
+There might be errors, but the raylib.lib file should be somewhere.
+Add the raylib.lib and other libraries that the example project has included in linker settings to the additional libraries to the project.
+The version of raylib should match the version of the additional libraries like raygui.

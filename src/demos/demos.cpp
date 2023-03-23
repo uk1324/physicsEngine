@@ -3,7 +3,7 @@
 
 auto Demos::update() -> void {
 	ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_NoDockingInCentralNode | ImGuiDockNodeFlags_PassthruCentralNode);
-	//pixelPhysics.update();
+	pixelPhysics.update();
 	//triangulationDemo.update();
 	//fourierTransformDemo.update();
 	//marchingSquaresDemo.update();
@@ -13,5 +13,5 @@ auto Demos::update() -> void {
 	//integrationDemo.update();
 	//polygonHullDemo.update();'
 	//imageToSdfDemo.update();
-	gravityInDifferentMetricsDemo.update();
+	//gravityInDifferentMetricsDemo.update();
 }
