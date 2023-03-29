@@ -8,7 +8,7 @@ static auto getErrorMessage(long errorCode) -> std::string {
 	ASSERT(errorCode != 0);
 
 	char* message;
-	const auto messageLength = FormatMessage(
+	const auto messageLength = FormatMessageA(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 		nullptr,
 		errorCode,
@@ -33,7 +33,7 @@ static auto getErrorMessage(long errorCode) -> std::string {
 }
 
 auto onWinError(long errorCode, const char*, int) -> void {
-	const auto result = MessageBox(nullptr, getErrorMessage(errorCode).c_str(), nullptr, MB_ICONEXCLAMATION);
+	const auto result = MessageBoxA(nullptr, getErrorMessage(errorCode).c_str(), nullptr, MB_ICONEXCLAMATION);
 	ASSERT(result != 0);
 	DebugBreak();
 	exit(EXIT_FAILURE);

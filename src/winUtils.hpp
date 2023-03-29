@@ -18,3 +18,10 @@
 			onWinError(expr, __FILE__, __LINE__); \
 		} \
 	} while (false)
+
+#define CHECK_WIN_HANDLE(expr) \
+	do { \
+		if (expr == INVALID_HANDLE_VALUE) { \
+			onWinError(GetLastError(), __FILE__, __LINE__); \
+		} \
+	} while (false)

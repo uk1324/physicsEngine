@@ -46,7 +46,14 @@ static auto setCustomImGuiStyle() -> void {
 	style.WindowRounding = 5.0f;
 };
 
+#include <../debugger_tool/src/client.hpp>
+
 auto appMain() -> int {
+	std::optional<DebuggerClient> client;
+	while (!client.has_value()) {
+		client = DebuggerClient::connect();
+	}
+
 	Window::init("game", Vec2(640, 480));
 	Audio::init();
 	ImGui::CreateContext();

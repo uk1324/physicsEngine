@@ -157,3 +157,11 @@ A shader would store both a vertex and a fragment shader and if needed constant 
 Could have a function preRender that sets all the needed state.
 
 Textures could be an another type of state. Unfortunately they aren't handled the same as constant buffers.
+
+Maybe save images in a different format to make it faster
+
+Regular polygons in different metrics
+d\left(A,\ B\right)=\left(\left|A.x-B.x\right|^{a}+\left|A.y-B.y\right|^{a}\right)^{\frac{1}{a}}
+lim n -> -Infinity = min(a, b)
+Use geometric constructions?
+Line defined as a set of points that are equally distant too two points.

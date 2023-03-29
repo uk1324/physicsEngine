@@ -419,7 +419,7 @@ auto PixelPhysics::update() -> void {
 			break;
 		}
 		case Block::WOOD: p = PixelRgba{ 215, 186, 137 }; break;
-		case Block::TERMITE: p = PixelRgba{ 64 };
+		case Block::TERMITE: p = PixelRgba{ 64 }; break;
 		default: ASSERT_NOT_REACHED(); break;
 		}
 	}
