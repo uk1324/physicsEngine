@@ -35,6 +35,8 @@ auto PixelPhysics::update() -> void {
 		camera.setWidth(gridSize.y * camera.aspectRatio);
 	}
 
+	Debug::debugImage(&texture);
+
 	Begin("pixels");
 	Checkbox("paused", &paused);
 	doSingleStep = false;

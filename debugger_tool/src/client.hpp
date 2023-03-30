@@ -1,6 +1,8 @@
 #pragma once
 
 #include <utils/int.hpp>
+#include <messages.hpp>
+
 #include <optional>
 
 struct DebuggerClient {

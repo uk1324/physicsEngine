@@ -18,9 +18,6 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="thirdParty\raygui.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\utils\asserts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -33,12 +30,36 @@
     <ClCompile Include="..\src\utils\imageRgba.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\thirdParty\imgui\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdParty\imgui\imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdParty\imgui\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdParty\imgui\imgui_impl_opengl3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdParty\imgui\imgui_impl_win32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdParty\imgui\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\thirdParty\imgui\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\init.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\math\aabb.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="thirdParty\raylib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="thirdParty\raygui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\math\vec2.hpp">
@@ -51,6 +72,36 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\messages.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdParty\imgui\imconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdParty\imgui\imgui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdParty\imgui\imgui_impl_opengl3.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdParty\imgui\imgui_impl_win32.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdParty\imgui\imgui_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdParty\imgui\imstb_rectpack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdParty\imgui\imstb_textedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdParty\imgui\imstb_truetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\init.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\math\aabb.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

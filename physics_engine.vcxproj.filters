@@ -600,6 +600,9 @@
     <ClInclude Include="src\demos\gravityInDifferentMetricsDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="thirdParty\imgui\imgui_impl_opengl3_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="src\engine\shaders\debugShapesPixelShaderConstantBuffer.hlsl" />

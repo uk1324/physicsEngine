@@ -46,13 +46,8 @@ static auto setCustomImGuiStyle() -> void {
 	style.WindowRounding = 5.0f;
 };
 
-#include <../debugger_tool/src/client.hpp>
-
 auto appMain() -> int {
-	std::optional<DebuggerClient> client;
-	while (!client.has_value()) {
-		client = DebuggerClient::connect();
-	}
+	// ImGui_ImplWin32_WndProcHandler is called inside the window proc handler.
 
 	Window::init("game", Vec2(640, 480));
 	Audio::init();
@@ -72,8 +67,7 @@ auto appMain() -> int {
 
 	auto accumulated = previousFrameStart - previousFrameStart;
 	while (Window::running()) {
-		/*auto frameLength = duration_cast<nanoseconds>(16670000ns / Time::timeScale);*/
-		auto frameLength = duration_cast<nanoseconds>(16670000ns / 1 / Time::timeScale);
+		auto frameLength = duration_cast<nanoseconds>(16670000ns / Time::timeScale);
 		const auto frameStart = high_resolution_clock::now();
 		auto elapsed = frameStart - previousFrameStart;
 		if (elapsed > frameLength * 2) {

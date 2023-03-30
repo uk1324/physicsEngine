@@ -1,8 +1,15 @@
 #include <engine/debug.hpp>
 #include <math/mat2.hpp>
 #include <engine/frameAllocator.hpp>
+#include <../debugger_tool/src/client.hpp>
+
+std::optional<DebuggerClient> client;
 
 auto Debug::update() -> void {
+	// Istead of using an optional could have a check isConnected which would check if the handle is valid. This would allow the server to be closed and reopened.
+	if (!client.has_value()) {
+		client = DebuggerClient::connect();
+	}
 	lines.clear();
 	circles.clear();
 	points.clear();
@@ -115,6 +122,14 @@ auto Debug::drawStr(Vec2 pos, const char* txt, const Vec3& color, float height) 
 	auto t = frameAllocator.alloc(length);
 	memcpy(t, txt, length);
 	Debug::text.push_back(Text{ pos, reinterpret_cast<char*>(t), color, height });
+}
+
+auto Debug::debugImage(const ImageRgba* img) -> void {
+	if (!client.has_value())
+		return;
+
+	RefreshImageMessage message{ .img = img };
+	client->send(message);
 }
 
 std::vector<Debug::Line> Debug::lines;

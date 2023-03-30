@@ -147,19 +147,36 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\src\math\aabb.cpp" />
     <ClCompile Include="..\src\utils\asserts.cpp" />
     <ClCompile Include="..\src\utils\imageRgba.cpp" />
     <ClCompile Include="..\src\winUtils.cpp" />
+    <ClCompile Include="..\thirdParty\imgui\imgui.cpp" />
+    <ClCompile Include="..\thirdParty\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\thirdParty\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\thirdParty\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\thirdParty\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="..\thirdParty\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\thirdParty\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\client.cpp" />
+    <ClCompile Include="src\init.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="thirdParty\raygui.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\math\aabb.hpp" />
     <ClInclude Include="..\src\math\vec2.hpp" />
     <ClInclude Include="..\src\utils\asserts.hpp" />
+    <ClInclude Include="..\thirdParty\imgui\imconfig.h" />
+    <ClInclude Include="..\thirdParty\imgui\imgui.h" />
+    <ClInclude Include="..\thirdParty\imgui\imgui_impl_opengl3.h" />
+    <ClInclude Include="..\thirdParty\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="..\thirdParty\imgui\imgui_internal.h" />
+    <ClInclude Include="..\thirdParty\imgui\imstb_rectpack.h" />
+    <ClInclude Include="..\thirdParty\imgui\imstb_textedit.h" />
+    <ClInclude Include="..\thirdParty\imgui\imstb_truetype.h" />
     <ClInclude Include="src\client.hpp" />
+    <ClInclude Include="src\init.hpp" />
     <ClInclude Include="src\messages.hpp" />
-    <ClInclude Include="thirdParty\raygui.h" />
     <ClInclude Include="thirdParty\raylib.h" />
   </ItemGroup>
   <ItemGroup>

@@ -578,6 +578,7 @@
     <ClInclude Include="thirdParty\imgui\imconfig.h" />
     <ClInclude Include="thirdParty\imgui\imgui.h" />
     <ClInclude Include="thirdParty\imgui\imgui_impl_dx11.h" />
+    <ClInclude Include="thirdParty\imgui\imgui_impl_opengl3_loader.h" />
     <ClInclude Include="thirdParty\imgui\imgui_impl_win32.h" />
     <ClInclude Include="thirdParty\imgui\imgui_internal.h" />
     <ClInclude Include="thirdParty\imgui\imstb_rectpack.h" />

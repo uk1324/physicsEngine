@@ -1,6 +1,10 @@
 Clone the official raylib repository.
 Run cmake -B build.
-Build some example project.
+Build some example project in the raylib solution.
 There might be errors, but the raylib.lib file should be somewhere.
 Add the raylib.lib and other libraries that the example project has included in linker settings to the additional libraries to the project.
 The version of raylib should match the version of the additional libraries like raygui.
+
+The raygui library is very limited. There can only be a single text input displayed at a time. The input state is stored in local static variables that can only be accessed internally. The inputs don't support copy pasting or selecting. The windows are not resizable. Implementing anything complex using it would basically require creating a new library gui from scratch. It seems that it would work fine for making a game settings gui.
+
+Some raygui function names collide with windows.h names.

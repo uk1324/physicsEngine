@@ -29,9 +29,21 @@ auto DebuggerClient::connect() -> std::optional<DebuggerClient> {
 }
 
 auto DebuggerClient::send(const void* message, usize messageByteSize) -> void {
+	if (handle == INVALID_HANDLE_VALUE) {
+		return;
+	}
+
 	DWORD bytesWritten;
-	CHECK_WIN_BOOL(WriteFile(handle, message, static_cast<DWORD>(messageByteSize), &bytesWritten, nullptr));
-	ASSERT(bytesWritten == messageByteSize);
+	if (!WriteFile(handle, message, static_cast<DWORD>(messageByteSize), &bytesWritten, nullptr)) {
+		if (GetLastError() == ERROR_BROKEN_PIPE) { // Server closed.
+			handle = INVALID_HANDLE_VALUE;
+		} else {
+			CHECK_WIN_BOOL(false);
+		}
+	} else {
+		ASSERT(bytesWritten == messageByteSize);
+	}
+	
 }
 
 DebuggerClient::~DebuggerClient() {

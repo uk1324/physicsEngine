@@ -6,6 +6,7 @@
 #include <math/triangulate.hpp>
 #include <game/collider.hpp>
 #include <utils/span.hpp>
+#include <utils/imageRgba.hpp>
 
 #include <vector>
 #include <sstream>
@@ -31,6 +32,8 @@ namespace Debug {
 	auto drawStr(Vec2 pos, const char* text, const Vec3& color = DEFAULT_COLOR, float height = 0.1f) -> void;
 	template<typename T>
 	auto drawText(Vec2 pos, const T& value, const Vec3& color = DEFAULT_COLOR, float height = 0.1f) -> void;
+
+	auto debugImage(const ImageRgba* img) -> void;
 
 	struct Line {
 		Vec2 start;
