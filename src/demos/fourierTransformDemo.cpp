@@ -35,14 +35,26 @@ auto FourierTransformDemo::update() -> void {
 			displayMagnitudeIfFalsePhaseIfTrue = !displayMagnitudeIfFalsePhaseIfTrue;
 			redraw = true;
 		}
-	} else {
-		if (const auto image = imageFileSelect("load image")) {
-			texture.copyAndResize(*image);
-			texture.grayscale();
+	}
+
+	if (const auto image = imageFileSelect("load image")) {
+		texture.copyAndResize(*image);
+		texture.grayscale();
+		for (auto p : texture.indexed()) {
+			auto& v = fourierTransform[p.pos.x][p.pos.y];
+			double arg, abs;
+			if (displayMagnitudeIfFalsePhaseIfTrue) {
+				arg = std::arg(v);
+				abs = static_cast<double>(p->r) / 255.0f * TAU<double>;
+			} else {
+				arg = static_cast<double>(p->r);
+				abs = std::abs(v);
+			}
+			v = std::polar(abs, arg);
 		}
 	}
 	imageSaveFileSelect(texture, "save image");
-	SliderInt("brush size", &brushSize, 0, 10);
+	SliderInt("brush size", &brushSize, 0, 30);
 	DragScalar("brush color", ImGuiDataType_U8, &brushColor);
 	if (Button("clear")) {
 		for (auto pixel : texture.indexed()) {

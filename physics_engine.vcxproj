@@ -176,6 +176,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\demos\maxwell.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\demos\polygonHull.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -423,6 +427,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\utils\stringStream.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\utils\timer.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -484,6 +492,7 @@
   <ItemGroup>
     <ClInclude Include="src\demos\gravityInDifferentMetricsDemo.hpp" />
     <ClInclude Include="src\demos\imageToSdf.hpp" />
+    <ClInclude Include="src\demos\maxwell.hpp" />
     <ClInclude Include="src\demos\polygonHull.hpp" />
     <ClInclude Include="src\game\demos\cycloidDemo.hpp" />
     <ClInclude Include="src\demos\integrationDemo.hpp" />
@@ -556,6 +565,7 @@
     <ClInclude Include="src\demos\fourierTransformDemo.hpp" />
     <ClInclude Include="src\demos\demos.hpp" />
     <ClInclude Include="src\demos\pixelPhysics.hpp" />
+    <ClInclude Include="src\utils\array2d.hpp" />
     <ClInclude Include="src\utils\dbg.hpp" />
     <ClInclude Include="src\utils\fileIo.hpp" />
     <ClInclude Include="src\utils\iter2d.hpp" />
@@ -567,11 +577,13 @@
     <ClInclude Include="src\utils\io.hpp" />
     <ClInclude Include="src\utils\overloaded.hpp" />
     <ClInclude Include="src\utils\pairHash.hpp" />
+    <ClInclude Include="src\utils\print.hpp" />
     <ClInclude Include="src\utils\random.hpp" />
     <ClInclude Include="src\utils\refOptional.hpp" />
     <ClInclude Include="src\utils\serialize.hpp" />
     <ClInclude Include="src\utils\span.hpp" />
     <ClInclude Include="src\utils\staticVec.hpp" />
+    <ClInclude Include="src\utils\stringStream.hpp" />
     <ClInclude Include="src\utils\swapAndPop.hpp" />
     <ClInclude Include="src\utils\timer.hpp" />
     <ClInclude Include="src\winUtils.hpp" />

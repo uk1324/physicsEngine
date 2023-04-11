@@ -73,7 +73,7 @@ Game::Game() {
 	if (!loadedOldLevel) {
 		ent.body.create(Body{ Vec2{ 0.0f, -50.0f }, BoxCollider{ Vec2{ 200.0f, 100.0f } }, true });
 	}
-	physicsSubsteps = 10;
+	//physicsSubsteps = 10;
 }
 
 auto Game::saveLevel() const -> Json::Value {
@@ -944,6 +944,11 @@ auto Game::update() -> void {
 
 	Renderer::update(camera, gridSize);
 }
+
+//auto constructMatrix() ->  {
+//
+//}
+
 auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void {
 	for (const auto [_, body] : ent.body) {
 		if (body.isStatic())

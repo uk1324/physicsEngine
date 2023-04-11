@@ -11,13 +11,15 @@
 #include <demos/polygonHull.hpp>
 #include <demos/imageToSdf.hpp>
 #include <demos/gravityInDifferentMetricsDemo.hpp>
+#include <demos/maxwell.hpp>
 
 struct Demos {
 	auto update() -> void;
 
-	//FourierTransformDemo fourierTransformDemo;
-	//EulerianFluidDemo eulerianFluid;
-	PixelPhysics pixelPhysics;
+	Maxwell maxwell;
+	FourierTransformDemo fourierTransformDemo;
+	EulerianFluidDemo eulerianFluid;
+	//PixelPhysics pixelPhysics;
 	//TriangulationDemo triangulationDemo;
 	//WaterDemo waterDemo;
 	//TestDemo testDemo;

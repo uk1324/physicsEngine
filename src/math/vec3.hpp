@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 template<typename T>
 struct Vec3T {
 	constexpr Vec3T(const T& v);
@@ -12,8 +14,12 @@ struct Vec3T {
 	auto operator*=(const Vec3T& v) -> Vec3T&;
 	auto operator*(const T& s) const -> Vec3T;
 	auto operator+(const Vec3T& v) const -> Vec3T;
+	auto operator+=(const Vec3T& v) -> Vec3T&;
 	auto operator-(const Vec3T& v) const -> Vec3T;
 	constexpr auto operator/(const T& s) const -> Vec3T;
+	auto operator/=(const T& s) -> Vec3T&;
+	auto length() const -> float;
+	auto normalized() const -> Vec3T;
 
 	auto data() -> T*;
 
@@ -68,6 +74,12 @@ auto Vec3T<T>::operator+(const Vec3T& v) const -> Vec3T {
 }
 
 template<typename T>
+auto Vec3T<T>::operator+=(const Vec3T& v) -> Vec3T& {
+	*this = *this + v;
+	return *this;
+}
+
+template<typename T>
 auto Vec3T<T>::operator-(const Vec3T& v) const -> Vec3T {
 	return Vec3T{ x - v.x, y - v.y, z - v.z };
 }
@@ -75,6 +87,26 @@ auto Vec3T<T>::operator-(const Vec3T& v) const -> Vec3T {
 template<typename T>
 constexpr auto Vec3T<T>::operator/(const T& s) const -> Vec3T {
 	return { x / s, y / s, z / s };
+}
+
+template<typename T>
+auto Vec3T<T>::operator/=(const T& s) -> Vec3T& {
+	*this = *this / s;
+	return *this;
+}
+
+template<typename T>
+auto Vec3T<T>::length() const -> float {
+	return sqrt(x * x + y * y + z * z);
+}
+
+template<typename T>
+auto Vec3T<T>::normalized() const -> Vec3T {
+	const auto l = length();
+	if (l == 0.0f) {
+		return *this;
+	}
+	return *this / l;
 }
 
 template<typename T>

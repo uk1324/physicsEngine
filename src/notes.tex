@@ -149,4 +149,48 @@ C = \theta_a - \theta_b \\
 J = \begin{bmatrix}0 & 0 & 1 & 0 & 0 & -1\end{bmatrix} \\
 JMJ^T = i_a + i_b
 \end{gather}
+
+\section*{Spring}
+Hooke's law
+\begin{gather}
+F = -kx \\
+ma = -kx \\
+ma + kx = 0 \\
+a + \frac{k}{m}x = 0 \\
+\Omega = \frac{k}{m} \\
+x'' +\Omega x = 0 \\ 
+\end{gather}
+Characteristic equation
+\begin{gather}
+a^2e^{ax} + \Omega e^{ax} = 0 \\
+e^{ax}(a^2 + \Omega) = 0 \\
+e^{ax}(a^2 - i^2\Omega) = 0 \\
+\omega = \sqrt{\Omega} \\
+(a - i \omega)(a +  i \omega) = 0 \\
+a_1 = i \omega \\
+a_2 = -i \omega \\
+x_1 = e^{i \omega x} = i sin(\omega x) + cos(\omega x) \\
+x_2 = e^{-i \omega x} =  i sin(-\omega x) + cos(-\omega x) = -i sin(\omega x) + cos(\omega x) \\
+f(x) = a(i sin(\omega x) + cos(\omega x) ) +  b(-i sin(\omega x) + cos(\omega x)) \\
+f(x) = (a - b)i sin(\omega x) + (a + b)cos(\omega x) \\ 
+f'(x) = \omega(a - b)i cos(\omega x) - \omega(a + b)sin(\omega x) \\
+\end{gather}
+Initial conditions
+\begin{gather}
+f(x) = (a + b) \\
+f'(x) = i\omega(a - b)
+\end{gather}
+\section*{Dampened Spring}
+Some amount of velocity is removed.
+\begin{gather}
+F = -\alpha v -kx \\
+ma + \alpha v + kx = 0 \\
+a + \frac{\alpha}{m} v + \frac{k}{m}x = 0 \\
+x'' + \beta x' + \gamma x = 0 \\ 
+r^2 e^{rx} + \beta r e^{rx} + \gamma e^{rx} \\
+e^{rx}(r^2 + \beta r + \gamma) \\ 
+r^2 + \beta r + \gamma = 0 \\
+\Delta = \beta^2 - 4 \gamma \\
+r_1 = \frac{-\beta + \beta^2 - 4 \gamma}{2}
+\end{gather}
 \end{document}

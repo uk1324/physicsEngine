@@ -165,3 +165,28 @@ d\left(A,\ B\right)=\left(\left|A.x-B.x\right|^{a}+\left|A.y-B.y\right|^{a}\righ
 lim n -> -Infinity = min(a, b)
 Use geometric constructions?
 Line defined as a set of points that are equally distant too two points.
+
+Image quadtree. Color based height. Scientific coloring?
+
+Domino pacing machine using sider cranck
+
+Wave function collapse 
+
+Animate julia set going from -i to i
+
+Bad apple
+Tetris. Tetrominozation. The number of pixels has to be divisble by 4.
+
+Dunalay triangulation
+
+Springs that move to the boundary
+
+Each frame the pieces on the boundary get set, but the other ones just play the game of life or some other automaton.
+
+Dijskstra algorithm graph of the sdf.
+
+Phyisical memory stick deamage or some other corruption.
+
+To serialize the deubgged process's memory maybe somehow pass the function that needs to be executed to get the data. Probably would requrire something more advanced than just ReadProcessMemory. It would also be asnychrnous. To making it synchronous the debugged process would need to call a function, which would kinda defeat the purpose of the debugger invoking the function. idk.
+
+Maybe create a new branch for each new demo.

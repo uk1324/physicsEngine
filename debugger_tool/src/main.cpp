@@ -36,6 +36,7 @@ namespace fs = std::filesystem;
 // Memory locations of libraries and the executable can differ between executions.
 // The base address is only used for reading static memory locations.
 auto getProcessBaseAddress(HANDLE processHandle) -> std::optional<HMODULE> {
+	// https://stackoverflow.com/questions/14467229/get-base-address-of-process
 	char executableName[1024] = "";
 	CHECK_WIN_ZERO(GetProcessImageFileNameA(processHandle, executableName, sizeof(executableName)));
 	HMODULE modules[1024];
@@ -206,6 +207,7 @@ auto readMessage(void* output, DWORD size) -> bool {
 	} else if (connected && GetLastError() == ERROR_BROKEN_PIPE) {
 		std::cout << "client disconnected\n";
 		connected = false;
+		debuggedImages.clear();
 	} else if (GetLastError() == ERROR_NO_DATA) {
 		return false;
 	}

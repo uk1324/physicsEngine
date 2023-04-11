@@ -40,6 +40,7 @@ public:
 	std::vector<bool> isWallValues;
 	std::vector<float> smoke;
 	std::vector<float> newSmoke;
+	std::vector<float> divergence;
 	/*
 	Velocities v around a point [x, y] lie on a staggered grid.
 	        v0[x, y + 1]

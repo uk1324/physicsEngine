@@ -12,6 +12,7 @@ struct Iter2d {
 	auto operator=(const T& value) -> T&;
 	auto operator++() -> Iter2d&;
 	auto operator*() -> Iter2d&;
+	auto operator->() -> T*;
 	auto operator!=(const Iter2d& other) -> bool;
 };
 
@@ -40,6 +41,11 @@ auto Iter2d<T>::operator++() -> Iter2d& {
 template<typename T>
 auto Iter2d<T>::operator*() -> Iter2d& {
 	return *this;
+}
+
+template<typename T>
+auto Iter2d<T>::operator->() -> T* {
+	return data;
 }
 
 template<typename T>

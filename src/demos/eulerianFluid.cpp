@@ -24,6 +24,7 @@ Fluid::Fluid(Vec2T<i64> gridSize, float cellSpacing, float overRelaxation, float
 	smoke.resize(cellCount, 1.0f);
 	isWallValues.resize(cellCount);
 	newSmoke.resize(cellCount);
+	divergence.resize(cellCount);
 
 	// Place border walls.
 	for (i64 x = 0; x < gridSize.x; x++) {
@@ -87,6 +88,31 @@ auto Fluid::solveIncompressibility(i32 solverIterations, float dt) -> void {
 				at(velY, x, y) -= sy0 * correctedOutflow;
 				at(velY, x, y + 1) += sy1 * correctedOutflow;
 			}
+		}
+	}
+
+	for (i64 x = 1; x < gridSize.x - 1; x++) {
+		for (i64 y = 1; y < gridSize.y - 1; y++) {
+			if (isWall(x, y))
+				continue;
+
+			const auto
+				sx0 = !isWall(x - 1, y),
+				sx1 = !isWall(x + 1, y),
+				sy0 = !isWall(x, y - 1),
+				sy1 = !isWall(x, y + 1);
+			const auto outflowingSidesCount = sx0 + sx1 + sy0 + sy1;
+
+			if (outflowingSidesCount == 0.0)
+				continue;
+
+			const auto divergence =
+				-at(velX, x, y)
+				+ at(velX, x + 1, y)
+				- at(velY, x, y)
+				+ at(velY, x, y + 1);
+
+			at(this->divergence, x, y) = divergence;
 		}
 	}
 }
@@ -428,6 +454,7 @@ auto EulerianFluidDemo::update() -> void {
 		for (i64 x = 2; x < GRID_SIZE.x; x += 5) {
 			for (i64 y = 2; y < GRID_SIZE.y; y += 5) {
 				auto pos = (Vec2{ Vec2T{ x, y } } + Vec2{ 0.5f }) * SPACE_BETWEEN_CELLS;
+				const auto startPos = pos;
 				auto fullSize = Vec2{ fluid.gridSize } * SPACE_BETWEEN_CELLS;
 
 				for (i32 i = 0; i < 15; i++) {
@@ -436,6 +463,8 @@ auto EulerianFluidDemo::update() -> void {
 					pos += vel * streamlineStepSize;
 					Debug::drawLine(fluidPosToCameraPos(oldPos), fluidPosToCameraPos(pos));
 				}
+				// Show divergence.
+				/*Debug::drawText(fluidPosToCameraPos(startPos), floor(fluid.at(fluid.divergence, x, y) * 100.0f) / 100.0f, Vec3::BLACK, 0.01f);*/
 			}
 		}
 	}
