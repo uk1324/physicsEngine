@@ -36,6 +36,7 @@ auto PixelPhysics::update() -> void {
 	}
 
 	Debug::debugImage(&texture);
+	Debug::debugU8Array2d(reinterpret_cast<u8*>(blocks), GRID_SIZE, 0, static_cast<u8>(Block::COUNT), true, false);
 
 	Begin("pixels");
 	Checkbox("paused", &paused);

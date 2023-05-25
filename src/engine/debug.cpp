@@ -127,9 +127,13 @@ auto Debug::drawStr(Vec2 pos, const char* txt, const Vec3& color, float height) 
 auto Debug::debugImage(const ImageRgba* img) -> void {
 	if (!client.has_value())
 		return;
+	client->send(RefreshArray2dGridMessage::image32Grid(img->data(), Vec2T<i32>{ img->size() }));
+}
 
-	RefreshImageMessage message{ .img = img };
-	client->send(message);
+auto Debug::debugU8Array2d(u8* data, Vec2T<i64> size, u8 min, u8 max, bool posXGoingRight, bool posYGoingUp) -> void {
+	if (!client.has_value())
+		return;
+	client->send(RefreshArray2dGridMessage::intGrid(data, Vec2T<i32>{ size }, Array2dType::U8, min, max, posXGoingRight, posYGoingUp));
 }
 
 std::vector<Debug::Line> Debug::lines;

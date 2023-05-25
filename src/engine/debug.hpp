@@ -33,7 +33,9 @@ namespace Debug {
 	template<typename T>
 	auto drawText(Vec2 pos, const T& value, const Vec3& color = DEFAULT_COLOR, float height = 0.1f) -> void;
 
+	// For enums could automatically get min max using COUNT enum value and get size from sizeof.
 	auto debugImage(const ImageRgba* img) -> void;
+	auto debugU8Array2d(u8* data, Vec2T<i64> size, u8 min, u8 max, bool posXGoingUp, bool posYGoingRight) -> void;
 
 	struct Line {
 		Vec2 start;

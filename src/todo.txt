@@ -190,3 +190,12 @@ Phyisical memory stick deamage or some other corruption.
 To serialize the deubgged process's memory maybe somehow pass the function that needs to be executed to get the data. Probably would requrire something more advanced than just ReadProcessMemory. It would also be asnychrnous. To making it synchronous the debugged process would need to call a function, which would kinda defeat the purpose of the debugger invoking the function. idk.
 
 Maybe create a new branch for each new demo.
+
+Multiplayer 
+
+Post processing system.
+
+https://twitter.com/matthen2/status/1642236406465454082?cxt=HHwWhICzyfHTssotAAAA
+
+Water maze solvings
+https://www.youtube.com/watch?v=C3gnNpYK3lo

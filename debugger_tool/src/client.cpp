@@ -43,7 +43,6 @@ auto DebuggerClient::send(const void* message, usize messageByteSize) -> void {
 	} else {
 		ASSERT(bytesWritten == messageByteSize);
 	}
-	
 }
 
 DebuggerClient::~DebuggerClient() {

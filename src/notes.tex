@@ -99,10 +99,11 @@ J \lambda fM^{-1}  \Delta t = -Jv_0 \\
 \lambda = \frac{-Jv_0}{JfM^{-1}  \Delta t }
 \end{flalign}
 
-\section*{Revolute joint}
+\section*{Distance joint}
 
 \begin{gather}
 \begin{flalign}
+C = (p_a - p_b)
 u & = \frac{d}{dt}(p _a \cdot p _b) \\
 C(t) & = \sqrt{ p _a \cdot p _b } = 0 \\
 \dot C(t) & = \frac{1}{2} \cdot \frac{1}{\sqrt{p _a \cdot p _b}} \cdot 2 \cdot p _a \cdot p _b \\
@@ -193,4 +194,38 @@ r^2 + \beta r + \gamma = 0 \\
 \Delta = \beta^2 - 4 \gamma \\
 r_1 = \frac{-\beta + \beta^2 - 4 \gamma}{2}
 \end{gather}
+
+\section*{Linear systems of differential equations}
+The solution of the differential equation $x' = ay$ is $c_1 e^{at}$ similarly the solution to the system of equations \\
+\begin{gather}
+x' = Mx \\
+x' = xa + cx' \\
+x'' = xb + dx'\\
+\end{gather}
+Which can be 
+\begin{gather}
+\begin{bmatrix} x \\ x' \end{bmatrix}' =
+\begin{bmatrix} x' \\ x'' \end{bmatrix} ==
+M\begin{bmatrix} x \\ x' \end{bmatrix}\\
+\end{gather} \\
+or
+\begin{gather}
+\begin{bmatrix} x \\ y \end{bmatrix}' =
+\begin{bmatrix} x' \\ y' \end{bmatrix} =
+M\begin{bmatrix} x \\ y' \end{bmatrix}\\
+\end{gather}
+or any other linear system of differential equations. Also has the form $e^{Mt}$. \\
+By definition
+\begin{gather}
+e^{tM} = \sum_{n=0}^\infty \frac{(tM)^n}{n!} = \frac{t^0M^0}{0!} + \frac{t^1M^1}{1!} +\frac{ t^2M^2}{2!} + ... \\
+M^0 = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix} \\
+\end{gather}
+$M$ is constant so $\frac{d}{dx}(Mt^n)$ = $M\frac{d}{dx}t^n$ = $M\frac{d}{dx}t^n$ = $Mnt^{n-1}$
+\begin{gather}
+\frac{d}{dx} e^M = 0 + M^1t^0 + M^2t^1 + ... = M(It^0 + Mt^1 + ...) = Me^{Mt}
+\end{gather}
+which satisfies x' = Mx. \\
+One issue which isn't addressed is the convergence of the matrix exponential which I don't know how to do yet.
+\\
+This method can also be used to solve equations like
 \end{document}

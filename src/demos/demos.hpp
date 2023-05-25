@@ -19,7 +19,7 @@ struct Demos {
 	Maxwell maxwell;
 	FourierTransformDemo fourierTransformDemo;
 	EulerianFluidDemo eulerianFluid;
-	//PixelPhysics pixelPhysics;
+	PixelPhysics pixelPhysics;
 	//TriangulationDemo triangulationDemo;
 	//WaterDemo waterDemo;
 	//TestDemo testDemo;

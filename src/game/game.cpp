@@ -945,8 +945,51 @@ auto Game::update() -> void {
 	Renderer::update(camera, gridSize);
 }
 
-//auto constructMatrix() ->  {
+#include <utils/array2d.hpp>
+
+//auto scaleMatrix(Array2d<float>& m, const std::vector<float>& scale /* scaling matrix diagonal */) -> void {
+//	if (m.size().x)
+//}
+
+//auto constructMatrix(const CollisionMap& contacts) -> Array2d<float> {
+//	const auto rigidBodyStateVectorSize = 3;
+//	const auto stateVectorSize = ent.body.aliveCount() * rigidBodyStateVectorSize;
+//	std::vector<float> invMassMatrixDiagonal;
+//	for (const auto& body : ent.body) {
+//		invMassMatrixDiagonal.push_back(body->invMass);
+//		invMassMatrixDiagonal.push_back(body->invMass);
+//		invMassMatrixDiagonal.push_back(body->invRotationalInertia);
+//	}
+//	Array2d<float> jacobian{ stateVectorSize, stateVectorSize };
+//	std::unordered_map<BodyId, int> bodyIdToIndex;
+//	{
+//		int index = 0;
+//		for (const auto& body : ent.body) {
+//			bodyIdToIndex[body.id] = index;
+//			index++;
+//		}
+//	}
+//	auto computeJacobian = [](const Body& a, const Body& b, const Collision& collision, int contactIndex) -> Array2d<float> {
+//		Array2d<float> jacobian{ rigidBodyStateVectorSize * 2, 1 };
+//		const auto& contact = collision.contacts[contactIndex];
+//		jacobian(0, 0) = collision.normal.x;
+//		jacobian(1, 0) = collision.normal.y;
+//		const auto raDerivative = ((contact.pos - a.transform.pos) * a.angularVel).rotBy90deg();
+//		jacobian(2, 0) = dot(collision.normal, raDerivative);
 //
+//		jacobian(3, 0) = -collision.normal.x;
+//		jacobian(4, 0) = -collision.normal.y;
+//		const auto rbDerivative = ((contact.pos - b.transform.pos) * b.angularVel).rotBy90deg();
+//		jacobian(5, 0) = -dot(collision.normal, raDerivative);
+//		return jacobian;
+//	};
+//
+//	for (const auto& [bodyPair, collision] : contacts) {
+//		for (i32 i = 0; i < collision.contactCount; i++) {
+//			const auto jacobian = computeJacobian(*ent.body.get(bodyPair.a), *ent.body.get(bodyPair.b), collision, i);
+//			
+//		}
+//	}
 //}
 
 auto Game::physicsStep(float dt, i32 solverIterations, PhysicsProfile& profile) -> void {

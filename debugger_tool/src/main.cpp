@@ -1,3 +1,13 @@
+/*
+Async client.
+Could use overlapped io, tried, but there were some weird issues with multiple connect messages being send I think.
+Could just have a seperate thread on the server that would but the messages onto a queue.
+It seems that it just just simpler to stay make the writes synchronous, because then there won't be any issues relating to that.
+Also it seems that client NO_WAIT flag is completly obsolete. Tried setting it using the SetNamedPipeHandleState and the checking the state using the get function and it just doesn't get set.
+
+DON'T set the update rate. Currently the codes just reads a single message and the updates contitnues with the loop, which means the next messages will get read on the next frame so the client has to wait. This can be modified to check if there are any messages pending, but if the messages is completed fast enought the client might still need to pointlesly wait. A complete solution would obviously be to implement something asnychronous.
+*/
+
 #include <utils/imageRgba.hpp>
 #include <raylib.h>
 
@@ -94,88 +104,93 @@ auto textureSize(const Texture& texture) -> Vec2 {
 	return Vec2{ static_cast<float>(texture.width), static_cast<float>(texture.height) };
 }
 
-enum class DebuggedImageType {
-	IMAGE_RGBA,
-	// Only updatable through calls from client.
-	BOOL,
-	INT_RANGE,
-	FLOAT_RANGE
-};
-
 struct DebuggedImage {
-	DebuggedImageType type;
-	// This info is useful for reading the exact values.
-	/*union {
+	Array2dType type;
+	union {
 		struct {
-			float floatMin; float floatMax;
+			i32 intMin, intMax;
 		};
-	};*/
+	};
 	Texture texture;
 	const void* address = nullptr;
 	bool autoRefresh = false;
 	bool isWindowOpen = true;
+	bool posYGoingUp;
+	bool posXGoingRight;
 
-	DebuggedImage(const DebuggedImage&) = delete;
-	auto operator=(const DebuggedImage&) -> DebuggedImage& = delete;
+private:
+	DebuggedImage(const DebuggedImage&);
+	auto operator=(const DebuggedImage&) -> DebuggedImage& = default;
+public:
 
-	DebuggedImage(DebuggedImage&& other) noexcept 
-		: texture{ other.texture } {
+	DebuggedImage(DebuggedImage&& other) noexcept {
+		*this = other;
 		other.texture.id = 0;
-		address = other.address;
+		/*address = other.address;
 		autoRefresh = other.autoRefresh;
 		isWindowOpen = other.isWindowOpen;
-		type = other.type;
+		type = other.type;*/
 	}
 	auto operator=(DebuggedImage&& other) noexcept -> DebuggedImage& {
-		texture = other.texture;
+		*this = other;
+		//texture = other.texture;
 		other.texture.id = 0;
-		address = other.address;
+		/*address = other.address;
 		autoRefresh = other.autoRefresh;
 		isWindowOpen = other.isWindowOpen;
-		type = other.type;
+		type = other.type;*/
 		return *this;
 	}
 
-	DebuggedImage(const void* address, DebuggedImageType type)
+	DebuggedImage(const void* address, Array2dType type, Vec2T<i64> size, bool posXGoingRight, bool posYGoingUp)
 		: address{ address }
-		, type{ type } {
-		alignas(alignof(ImageRgba)) static u8 imgData[sizeof(ImageRgba)];
+		, type{ type }
+		, posXGoingRight{ posXGoingRight }
+		, posYGoingUp{ posYGoingUp } {
+		// @Hack: There is no way to create a buffer without allocating. This should matter because the buffer would need to be resized later anyaway.
+		if (const auto pixelBufferSize = size.x * size.y * sizeof(u32); pixelBufferSize > copyBuffer.size()) {
+			copyBuffer.resize(pixelBufferSize);
+		}
+		texture = textureFromBuffer(copyBuffer.data(), size);
+		refresh();
+		/*alignas(alignof(ImageRgba)) static u8 imgData[sizeof(ImageRgba)];
 		readMemory(imgData, address, sizeof(imgData));
 		const auto source = reinterpret_cast<ImageRgba*>(&imgData);
 		readMemoryToCopyBuffer(source->data(), source->dataSizeBytes());
-		texture = textureFromBuffer(copyBuffer.data(), source->size());
+		texture = textureFromBuffer(copyBuffer.data(), source->size());*/
 	}
 
 	auto refresh() -> bool {
 		switch (type) {
-		case DebuggedImageType::IMAGE_RGBA: {
-			alignas(alignof(ImageRgba)) static u8 imgData[sizeof(ImageRgba)];
-			readMemory(imgData, address, sizeof(imgData));
-			const auto source = reinterpret_cast<ImageRgba*>(&imgData);
-
-			// Prevent invalid data reads. This can happen if the debugged process is closing.
-			if (source->dataSizeBytes() > 2048 * 2048 * sizeof(u32)) {
-				return false;
-			}
-
-			readMemoryToCopyBuffer(source->data(), source->dataSizeBytes());
-			if (source->size() == Vec2T<i64>{ texture.width, texture.height }) {
-				UpdateTexture(texture, copyBuffer.data());
-			} else {
-				texture = textureFromBuffer(copyBuffer.data(), source->size());
-			}
-			return true;
-		}
-			
-
-		case DebuggedImageType::BOOL:
+		case Array2dType::IMAGE32:
+			readMemoryToCopyBuffer(address, size().x * size().y * sizeof(u32));
+			UpdateTexture(texture, copyBuffer.data());
 			break;
-		case DebuggedImageType::INT_RANGE:
-			break;
-		default:
+
+		case Array2dType::U8:
+			const auto arrayDataSize = size().x * size().y;
+			readMemoryToCopyBuffer(address, arrayDataSize);
+			copyBuffer.resize(copyBuffer.size() + arrayDataSize * sizeof(u32));
+			const auto arrayData = reinterpret_cast<u8*>(copyBuffer.data());
+			const auto imageData = reinterpret_cast<PixelRgba*>(copyBuffer.data() + arrayDataSize);
+			for (i32 y = 0; y < size().y; y++) {
+				for (i32 x = 0; x < size().x; x++) {
+					// Flip the data here or in outisde the switch later.
+					i64 gridX = posXGoingRight ? x : (size().x - x - 1);
+					i64 gridY = posYGoingUp ? y : (size().y - y - 1);
+					const auto value = arrayData[gridX * size().y + gridY];
+					imageData[y * size().x + x] = PixelRgba::scientificColoring(value, intMin, intMax);
+				}
+			}
+			UpdateTexture(texture, imageData);
 			break;
 		}
-		return false;
+
+		return true;
+	}
+
+	auto size() -> Vec2T<i64> {
+		return Vec2T<i64>{ texture.width, texture.height };
 	}
 
 	~DebuggedImage() {
@@ -220,6 +235,8 @@ auto readDebuggerMessageAfterHeader(T* output) -> void {
 }
 
 auto main() -> int {
+
+	SetTraceLogLevel(LOG_DEBUG | LOG_INFO | LOG_WARNING);
 	// PIPE_NOWAIT makes it so the pipe returns immediately if there is no data and sets last error to ERROR_NO_DATA. Tried using PeekNamedPipe to check if there is data before reading, but it errors if there is no connection client connected yet, also I couldn't find a function that check if a any client is connected the server.
 	serverHandle = CreateNamedPipeA(
 		"\\\\.\\pipe\\debugger",
@@ -244,8 +261,10 @@ auto main() -> int {
 			return;
 		}
 
+
 		// https://stackoverflow.com/questions/14467229/get-base-address-of-process
 		if (messageType == DebuggerMessageType::CONNECT) {
+			std::cout << "connect message\n";
 			if (connected) {
 				ASSERT_NOT_REACHED();
 			} else {
@@ -271,14 +290,17 @@ auto main() -> int {
 		} else {
 			switch (messageType) {
 
-			case DebuggerMessageType::REFRESH_IMAGE: {
-				RefreshImageMessage refresh;
+			case DebuggerMessageType::REFRESH_ARRAY_2D: {
+				RefreshArray2dGridMessage refresh;
 				readDebuggerMessageAfterHeader(&refresh);
-				auto image = debuggedImagesFind(refresh.img);
+				auto image = debuggedImagesFind(refresh.data);
 				if (image.has_value()) {
 					image->refresh();
 				} else {
-					debuggedImages.push_back(DebuggedImage{ refresh.img, DebuggedImageType::IMAGE_RGBA });
+					debuggedImages.push_back(DebuggedImage{ refresh.data, refresh.type, Vec2T<i64>{ refresh.size }, refresh.posXGoingRight, refresh.posYGoingUp });
+					auto& image = debuggedImages.back();
+					image.intMin = refresh.intMin;
+					image.intMax = refresh.intMax;
 				}
 				break;
 			}
@@ -302,7 +324,7 @@ auto main() -> int {
 		.rotation = 0.0f,
 		.zoom = 1.0f,
 	};
-	SetTargetFPS(60);
+	//SetTargetFPS(60);
 
 	while (!WindowShouldClose()) {
 		ImGui_ImplOpenGL3_NewFrame();
@@ -355,9 +377,15 @@ auto main() -> int {
 					static void* address = 0;
 					/*InputScalar("address", ImGuiDataType_U64, &address, nullptr, nullptr, "%" PRIX64, ImGuiInputTextFlags_CharsHexadecimal);*/
 					InputScalar("address", ImGuiDataType_U64, &address, nullptr, nullptr, "%p", ImGuiInputTextFlags_CharsHexadecimal);
+					Vec2T<i64> size;
+					InputScalarN("size", ImGuiDataType_S64, size.data(), 2);
+					// TODO: Choose array type, automatically read size from ImageRgba.
 					if (Button("add")) {
-						if (!debuggedImagesFind(address).has_value()) {
-							debuggedImages.push_back(DebuggedImage{ address, DebuggedImageType::IMAGE_RGBA });
+						if (size.x < 0 || size.y < 0) {
+							size.x = 0;
+							size.y = 0;
+						} else if (!debuggedImagesFind(address).has_value()) {
+							debuggedImages.push_back(DebuggedImage{ address, Array2dType::IMAGE32, size, true, true });
 						}
 					}
 

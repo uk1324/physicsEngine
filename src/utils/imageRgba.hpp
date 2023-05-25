@@ -45,6 +45,7 @@ public:
 	auto get(Vec2T<i64> pos) const -> PixelRgba;
 	auto size() const -> const Vec2T<i64>&;
 	auto data() -> PixelRgba*;
+	auto data() const -> const PixelRgba*;
 	auto dataSizeBytes() const -> usize;
 	auto pixelCount() const -> usize;
 
