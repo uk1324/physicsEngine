@@ -35,8 +35,8 @@ auto PixelPhysics::update() -> void {
 		camera.setWidth(gridSize.y * camera.aspectRatio);
 	}
 
-	Debug::debugImage(&texture);
-	Debug::debugU8Array2d(reinterpret_cast<u8*>(blocks), GRID_SIZE, 0, static_cast<u8>(Block::COUNT), true, false);
+	Debug::debugImage("texture", &texture);
+	Debug::debugU8Array2d("blocks", reinterpret_cast<u8*>(blocks), GRID_SIZE, 0, static_cast<u8>(Block::COUNT), true, false);
 
 	Begin("pixels");
 	Checkbox("paused", &paused);

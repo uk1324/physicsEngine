@@ -106,6 +106,7 @@ auto textureSize(const Texture& texture) -> Vec2 {
 }
 
 struct DebuggedImage {
+	std::string windowName;
 	Array2dType type;
 	union {
 		struct {
@@ -137,8 +138,15 @@ public:
 		return *this;
 	}
 
-	DebuggedImage(const void* address, Array2dType type, Vec2T<i64> size, bool posXGoingRight, bool posYGoingUp)
-		: address{ address }
+	DebuggedImage(
+		std::string_view windowName, 
+		const void* address, 
+		Array2dType type, 
+		Vec2T<i64> size, 
+		bool posXGoingRight, 
+		bool posYGoingUp)
+		: windowName{ windowName }
+		, address{ address }
 		, type{ type }
 		, posXGoingRight{ posXGoingRight }
 		, posYGoingUp{ posYGoingUp } {
@@ -236,9 +244,9 @@ public:
 
 std::vector<DebuggedImage> debuggedImages;
 
-auto debuggedImagesFind(const void* address) -> std::optional<DebuggedImage&> {
+auto debuggedImagesFind(std::string_view windowName) -> std::optional<DebuggedImage&> {
 	auto it = std::find_if(debuggedImages.begin(), debuggedImages.end(), [&](const DebuggedImage& img) { 
-		return img.address == address; 
+		return img.windowName == windowName; 
 	});
 	if (it == debuggedImages.end()) {
 		return std::nullopt;
@@ -268,6 +276,90 @@ auto readMessage(void* output, DWORD size) -> bool {
 template<typename T>
 auto readDebuggerMessageAfterHeader(T* output) -> void {
 	readMessage(reinterpret_cast<u8*>(output) + sizeof(DebuggerMessageType), sizeof(T) - sizeof(DebuggerMessageType));
+}
+
+auto drawUi() -> void {
+	using namespace ImGui;
+
+	const Vec2 windowSize{ static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()) };
+
+	Begin("tool");
+	if (BeginTabBar("test")) {
+
+		if (BeginTabItem("image")) {
+			static_assert(sizeof(u64) == sizeof(intptr_t));
+			static void* address = 0;
+			static char windowNameInput[256] = "";
+			static Vec2T<i64> size{ 1, 1 };
+			InputText("window name", windowNameInput, sizeof(windowNameInput));
+			InputScalar("address", ImGuiDataType_U64, &address, nullptr, nullptr, "%p", ImGuiInputTextFlags_CharsHexadecimal);
+			InputScalarN("size", ImGuiDataType_S64, size.data(), 2);
+			size = size.clamped(Vec2T<i64>{ 1 }, Vec2T<i64>{ 10000 });
+			// TODO: Choose array type, automatically read size from ImageRgba.
+			if (Button("add")) {
+				if (size.x < 0 || size.y < 0) {
+					size.x = 0;
+					size.y = 0;
+				} else if (!debuggedImagesFind(windowNameInput).has_value()) {
+					debuggedImages.push_back(DebuggedImage{ windowNameInput, address, Array2dType::IMAGE32, size, true, true });
+				}
+			}
+
+			BeginChild("images");
+			for (int i = static_cast<int>(debuggedImages.size()) - 1; i >= 0; i--) {
+				auto& img = debuggedImages[i];
+				Text("%p", img.address);
+				SameLine();
+				PushID(img.texture.id);
+				if (Button("open")) {
+					img.isWindowOpen = true;
+				}
+				SameLine();
+				if (Button("remove")) {
+					debuggedImages.erase(debuggedImages.begin() + i);
+				}
+				PopID();
+				SameLine();
+				Checkbox("auto refresh", &img.autoRefresh);
+			}
+			EndChild();
+			EndTabItem();
+		}
+
+		EndTabBar();
+	}
+
+	End();
+
+	for (auto& img : debuggedImages) {
+		if (!img.isWindowOpen) {
+			continue;
+		}
+
+		auto aspectRatioConstraint = [](ImGuiSizeCallbackData* data) -> void {
+			// https://github.com/ocornut/imgui/issues/6210
+			float aspect_ratio = *reinterpret_cast<float*>(data->UserData);
+			data->DesiredSize.x = std::max(data->DesiredSize.x, data->DesiredSize.y);
+			data->DesiredSize.y = (float)(int)(data->DesiredSize.x / aspect_ratio);
+		};
+		float aspectRatio = textureSize(img.texture).xOverY();
+		SetNextWindowSizeConstraints(Vec2{ 0.0f }, Vec2{ INFINITY }, aspectRatioConstraint, &aspectRatio);
+
+		const auto textureSize = ::textureSize(img.texture);
+		SetNextWindowSize(Vec2{ windowSize.x * 0.3f, windowSize.x * 0.3f / textureSize.xOverY() }, ImGuiCond_Appearing);
+		Begin(img.windowName.c_str(), &img.isWindowOpen);
+
+		const auto sceneWindowWindowSpace = Aabb::fromCorners(
+			Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMin(),
+			Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMax()
+		);
+		const auto sceneWindowSize = sceneWindowWindowSpace.size();
+		ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(img.texture.id)), sceneWindowSize);
+		End();
+		if (img.autoRefresh) {
+			img.refresh();
+		}
+	}
 }
 
 auto main() -> int {
@@ -335,11 +427,15 @@ auto main() -> int {
 				RefreshArray2dGridMessage refresh;
 				readDebuggerMessageAfterHeader(&refresh);
 				msgLog << "REFRESH_ARRAY_2D " << refresh.data << '\n';
-				auto image = debuggedImagesFind(refresh.data);
+
+				readMemoryToCopyBuffer(refresh.windowName.data(), refresh.windowName.size());
+				std::string_view windowName{ reinterpret_cast<const char*>(copyBuffer.data()), refresh.windowName.size() };
+				
+				auto image = debuggedImagesFind(windowName);
 				if (image.has_value()) {
 					image->refresh();
 				} else {
-					debuggedImages.push_back(DebuggedImage{ refresh.data, refresh.type, Vec2T<i64>{ refresh.size }, refresh.posXGoingRight, refresh.posYGoingUp });
+					debuggedImages.push_back(DebuggedImage{ windowName, refresh.data, refresh.type, Vec2T<i64>{ refresh.size }, refresh.posXGoingRight, refresh.posYGoingUp });
 					auto& image = debuggedImages.back();
 					if (array2dTypeIsInt(refresh.type)) {
 						image.intMin = refresh.intMin;
@@ -406,93 +502,11 @@ auto main() -> int {
 		//	}
 		//}
 
-		ImGui::ShowDemoWindow();
-
 		BeginDrawing();
 		ClearBackground(BLACK);
 
-		const Vec2 windowSize{ static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()) };
 
-		{
-			using namespace ImGui;
-
-			Begin("tool");
-			if (BeginTabBar("test")) {
-
-				if (BeginTabItem("image")) {
-					static_assert(sizeof(u64) == sizeof(intptr_t));
-					static void* address = 0;
-					/*InputScalar("address", ImGuiDataType_U64, &address, nullptr, nullptr, "%" PRIX64, ImGuiInputTextFlags_CharsHexadecimal);*/
-					InputScalar("address", ImGuiDataType_U64, &address, nullptr, nullptr, "%p", ImGuiInputTextFlags_CharsHexadecimal);
-					Vec2T<i64> size;
-					InputScalarN("size", ImGuiDataType_S64, size.data(), 2);
-					// TODO: Choose array type, automatically read size from ImageRgba.
-					if (Button("add")) {
-						if (size.x < 0 || size.y < 0) {
-							size.x = 0;
-							size.y = 0;
-						} else if (!debuggedImagesFind(address).has_value()) {
-							debuggedImages.push_back(DebuggedImage{ address, Array2dType::IMAGE32, size, true, true });
-						}
-					}
-
-					BeginChild("images");
-					for (int i = static_cast<int>(debuggedImages.size()) - 1; i >= 0; i--) {
-						auto& img = debuggedImages[i];
-						Text("%p", img.address);
-						SameLine();
-						PushID(img.texture.id);
-						if (Button("open")) {
-							img.isWindowOpen = true;
-						}
-						SameLine();
-						if (Button("remove")) {
-							debuggedImages.erase(debuggedImages.begin() + i);
-						}
-						PopID();
-						SameLine();
-						Checkbox("auto refresh", &img.autoRefresh);
-					}
-					EndChild();
-					EndTabItem();
-				}
-
-				EndTabBar();
-			}
-
-			End();
-
-			for (auto& img : debuggedImages) {
-				if (!img.isWindowOpen) {
-					continue;
-				}
-
-				auto aspectRatioConstraint = [](ImGuiSizeCallbackData* data) -> void {
-					// https://github.com/ocornut/imgui/issues/6210
-					float aspect_ratio = *reinterpret_cast<float*>(data->UserData);
-					data->DesiredSize.x = std::max(data->DesiredSize.x, data->DesiredSize.y); 
-					data->DesiredSize.y = (float)(int)(data->DesiredSize.x / aspect_ratio);
-				};
-				float aspectRatio = textureSize(img.texture).xOverY();
-				SetNextWindowSizeConstraints(Vec2{ 0.0f }, Vec2{ INFINITY }, aspectRatioConstraint, &aspectRatio);
-
-				const auto textureSize = ::textureSize(img.texture);
-				SetNextWindowSize(Vec2{ windowSize.x * 0.3f, windowSize.x * 0.3f / textureSize.xOverY() }, ImGuiCond_Appearing);
-				char windowName[1024] = "";
-				snprintf(windowName, sizeof(windowName), "%p", img.address);
-				Begin(windowName, &img.isWindowOpen);
-				const auto sceneWindowWindowSpace = Aabb::fromCorners(
-					Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMin(),
-					Vec2{ ImGui::GetWindowPos() } + ImGui::GetWindowContentRegionMax()
-				);
-				const auto sceneWindowSize = sceneWindowWindowSpace.size();
-				ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(img.texture.id)), sceneWindowSize);
-				End();
-				if (img.autoRefresh) {
-					img.refresh();
-				}
-			}
-		}
+		drawUi();
 
 		BeginMode2D(camera);
 

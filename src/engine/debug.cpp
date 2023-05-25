@@ -124,22 +124,22 @@ auto Debug::drawStr(Vec2 pos, const char* txt, const Vec3& color, float height) 
 	Debug::text.push_back(Text{ pos, reinterpret_cast<char*>(t), color, height });
 }
 
-auto Debug::debugImage(const ImageRgba* img) -> void {
+auto Debug::debugImage(std::string_view windowName, const ImageRgba* img) -> void {
 	if (!client.has_value())
 		return;
-	client->send(RefreshArray2dGridMessage::image32Grid(img->data(), Vec2T<i32>{ img->size() }));
+	client->send(RefreshArray2dGridMessage::image32Grid(windowName, img->data(), Vec2T<i32>{ img->size() }));
 }
 
-auto Debug::debugU8Array2d(u8* data, Vec2T<i64> size, u8 min, u8 max, bool posXGoingRight, bool posYGoingUp) -> void {
+auto Debug::debugU8Array2d(std::string_view windowName, u8* data, Vec2T<i64> size, u8 min, u8 max, bool posXGoingRight, bool posYGoingUp) -> void {
 	if (!client.has_value())
 		return;
-	client->send(RefreshArray2dGridMessage::intGrid(data, Vec2T<i32>{ size }, Array2dType::U8, min, max, posXGoingRight, posYGoingUp));
+	client->send(RefreshArray2dGridMessage::intGrid(windowName, data, Vec2T<i32>{ size }, Array2dType::U8, min, max, posXGoingRight, posYGoingUp));
 }
 
-auto Debug::debugF32Array2d(float* data, Vec2T<i64> size, float min, float max, bool posXGoingRight, bool posYGoingUp) -> void {
+auto Debug::debugF32Array2d(std::string_view windowName, float* data, Vec2T<i64> size, float min, float max, bool posXGoingRight, bool posYGoingUp) -> void {
 	if (!client.has_value())
 		return;
-	client->send(RefreshArray2dGridMessage::floatGrid(data, Vec2T<i32>{ size }, Array2dType::F32, min, max, posXGoingRight, posYGoingUp));
+	client->send(RefreshArray2dGridMessage::floatGrid(windowName, data, Vec2T<i32>{ size }, Array2dType::F32, min, max, posXGoingRight, posYGoingUp));
 }
 
 std::vector<Debug::Line> Debug::lines;
