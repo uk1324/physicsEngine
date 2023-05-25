@@ -33,6 +33,9 @@ namespace Debug {
 	template<typename T>
 	auto drawText(Vec2 pos, const T& value, const Vec3& color = DEFAULT_COLOR, float height = 0.1f) -> void;
 
+	auto clearDebuggerScreen() -> void;
+	auto drawDebuggerLine(Vec2 start, Vec2 end, const Vec3& color = DEFAULT_COLOR) -> void;
+
 	// For enums could automatically get min max using COUNT enum value and get size from sizeof.
 	auto debugImage(std::string_view windowName, const ImageRgba* img) -> void;
 	auto debugU8Array2d(std::string_view windowName, u8* data, Vec2T<i64> size, u8 min, u8 max, bool posXGoingRight, bool posYGoingUp) -> void;

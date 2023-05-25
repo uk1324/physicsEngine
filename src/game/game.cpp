@@ -563,6 +563,7 @@ auto Game::displayErrorPopupModal() -> void {
 }
 
 auto Game::update() -> void {
+	Debug::clearDebuggerScreen();
 	camera.aspectRatio = Window::aspectRatio();
 	camera.moveOnWasd();
 

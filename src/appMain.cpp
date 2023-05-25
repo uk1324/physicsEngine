@@ -8,6 +8,7 @@
 #include <engine/frameAllocator.hpp>
 #include <imgui/imgui.h>
 #include <utils/io.hpp>
+#include <framework.hpp>
 
 #include <chrono>
 
@@ -38,27 +39,12 @@ auto testAreaAllocator() -> void {
 	}
 }
 
-static auto setCustomImGuiStyle() -> void {
-	auto& io = ImGui::GetIO();
-	io.Fonts->AddFontFromFileTTF("assets/fonts/RobotoMono-Regular.ttf", 20);
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-	auto& style = ImGui::GetStyle();
-	style.WindowRounding = 5.0f;
-};
+
 
 auto appMain() -> int {
-	// ImGui_ImplWin32_WndProcHandler is called inside the window proc handler.
-
-	Window::init("game", Vec2(640, 480));
-	Audio::init();
-	ImGui::CreateContext();
-	auto& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	setCustomImGuiStyle();
-	Renderer::init();
+	Framework::init();
 	// Uses too much stack memory.
 	const auto gameMain = std::make_unique<GameMain>();
-
 
 	// Remember to use a high precision timestamp so the numbers don't get rounded down to 0.
 	using namespace std::chrono_literals;

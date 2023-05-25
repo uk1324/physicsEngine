@@ -17,9 +17,12 @@ DON'T set the update rate. Currently the codes just reads a single message and t
 #include <messages.hpp>
 #include <iostream>
 #include <fstream>
-
+#include <thread>
+#include <mutex>
+#include <queue>
 #include <math/aabb.hpp>
 #include <utils/refOptional.hpp>
+#include <utils/overloaded.hpp>
 
 auto to(Vec2 v) -> Vector2 {
 	return Vector2{ v.x, v.y };
@@ -46,6 +49,7 @@ namespace fs = std::filesystem;
 
 // Memory locations of libraries and the executable can differ between executions.
 // The base address is only used for reading static memory locations.
+// // https://stackoverflow.com/questions/14467229/get-base-address-of-process
 auto getProcessBaseAddress(HANDLE processHandle) -> std::optional<HMODULE> {
 	// https://stackoverflow.com/questions/14467229/get-base-address-of-process
 	char executableName[1024] = "";
@@ -58,6 +62,7 @@ auto getProcessBaseAddress(HANDLE processHandle) -> std::optional<HMODULE> {
 			char moduleFilename[1024] = "";
 			CHECK_WIN_ZERO(GetModuleFileNameExA(processHandle, modules[i], moduleFilename, sizeof(moduleFilename)));
 			// This isn't a very good way to compare the names, because someone could impersonate the library. GetProcessImageFileNameA outputs a name with something like \\HardDrive\\[...]\\<actual path> so I am not sure what part to compare.
+			// TODO: Shouldn't there be a built in win32 function to compare paths?
 			if (fs::path(executableName).stem() == fs::path(moduleFilename).stem()) {
 				return modules[i];
 			}
@@ -189,14 +194,14 @@ public:
 					case Array2dType::U8: {
 						const auto data = reinterpret_cast<u8*>(copyBuffer.data());
 						const auto value = data[gridOffset];
-						outPixel = PixelRgba::scientificColoring(value, intMin, intMax);
+						outPixel = PixelRgba::scientificColoring(value, static_cast<float>(intMin), static_cast<float>(intMax));
 						break;
 					}
 						 
 					case Array2dType::F32: {
 						const auto data = reinterpret_cast<float*>(copyBuffer.data());
 						const auto value = data[gridOffset];
-						outPixel = PixelRgba::scientificColoring(value, floatMin, floatMax);
+						outPixel = PixelRgba::scientificColoring(value, static_cast<float>(floatMin), static_cast<float>(floatMax));
 						break;
 					}
 						
@@ -258,6 +263,7 @@ bool connected = false;
 
 HANDLE serverHandle = INVALID_HANDLE_VALUE;
 
+// Needs to be thread safe. GetLastError is thread safe.
 auto readMessage(void* output, DWORD size) -> bool {
 	DWORD bytesRead;
 	if (ReadFile(serverHandle, output, size, &bytesRead, nullptr)) {
@@ -362,8 +368,52 @@ auto drawUi() -> void {
 	}
 }
 
-auto main() -> int {
+struct DebuggerLine {
+	Vec2 start;
+	Vec2 end;
+	Vec3 color;
+};
 
+std::vector<DebuggerLine> lines;
+std::vector<DebuggerLine> nextFrameLines;
+std::queue<DebuggerMessage> debuggerMessageQueue;
+std::mutex messageQueueMutex;
+
+#include <utils/timer.hpp>
+
+// If the app sends too many messages the debugger might not be fast enought to process them all before new messages come which would overflow the queue. It might be good to either but a cap on the number of messages or maybe create a synchoronization point for example on the clear screen message.
+auto messageQueueThread(const std::atomic_bool* endMessageQueueThread) -> void {
+	while (!endMessageQueueThread->load()) {
+		// The standard says that padding is never added before the first member.
+		DebuggerMessageType messageType;
+
+		if (!readMessage(&messageType, sizeof(messageType))) {
+			continue;
+		}
+		static float x = 0.0f;
+		Timer timer;
+		std::lock_guard lock{ messageQueueMutex };
+		if (timer.elapsedMilliseconds() > x) {
+			x = timer.elapsedMilliseconds();
+			std::cout << x << '\n';
+		}
+
+		#define READ_AND_BREAK(MsgType) { \
+			MsgType msg; \
+			readDebuggerMessageAfterHeader(&msg); \
+			debuggerMessageQueue.push(msg); \
+			break; \
+		}
+		switch (messageType) {
+		case DebuggerMessageType::CONNECT: READ_AND_BREAK(ConnectMessage);
+		case DebuggerMessageType::REFRESH_ARRAY_2D: READ_AND_BREAK(RefreshArray2dGridMessage)
+		case DebuggerMessageType::CLEAR_SCREEN:  READ_AND_BREAK(ClearScreenMessage)
+		case DebuggerMessageType::DRAW_LINE: READ_AND_BREAK(DrawLineMessage)
+		}
+	}
+}
+
+auto main() -> int {
 	SetTraceLogLevel(LOG_DEBUG | LOG_INFO | LOG_WARNING);
 	// PIPE_NOWAIT makes it so the pipe returns immediately if there is no data and sets last error to ERROR_NO_DATA. Tried using PeekNamedPipe to check if there is data before reading, but it errors if there is no connection client connected yet, also I couldn't find a function that check if a any client is connected the server.
 	serverHandle = CreateNamedPipeA(
@@ -377,7 +427,9 @@ auto main() -> int {
 		nullptr
 	);
 	CHECK_WIN_HANDLE(serverHandle);
-	
+	std::atomic_bool endMessageQueueThread{ false };
+	std::thread messageQueueThread{ ::messageQueueThread, &endMessageQueueThread };
+
 	u8* baseAddress; // Probably only useful for reading static values.
 	std::ostream msgLog{ std::cout.rdbuf() };
 	std::fstream nullStream; // An unopened fstream doesn't output anywhere.
@@ -387,72 +439,155 @@ auto main() -> int {
 	}
 
 	auto updateServer = [&]() -> void {
-		// The standard says that padding is never added before the first member.
-		DebuggerMessageType messageType;
+		for (;;) {
+			messageQueueMutex.lock();
 
-		if (!readMessage(&messageType, sizeof(messageType))) {
-			return;
-		}
-
-
-		// https://stackoverflow.com/questions/14467229/get-base-address-of-process
-		if (messageType == DebuggerMessageType::CONNECT) {
-			msgLog << "connect message\n";
-			if (connected) {
-				ASSERT_NOT_REACHED();
-			} else {
-				ConnectMessage connect;
-				readDebuggerMessageAfterHeader(&connect);
-				std::cout << "client " << connect.processId << " connected\n";
-				connected = true;
-
-				debuggedProcessHandle = OpenProcess(PROCESS_VM_READ | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION, false, connect.processId);
-				// Should it assume the client disconnected because it closed? Should it handle it?
-				CHECK_WIN_ZERO(debuggedProcessHandle);
-
-				auto address = getProcessBaseAddress(debuggedProcessHandle);
-				if (address.has_value()) {
-					baseAddress = reinterpret_cast<u8*>(*address);
-				} else {
-					baseAddress = nullptr;
-				}
+			if (debuggerMessageQueue.empty()) {
+				messageQueueMutex.unlock();
+				//return;
+				continue;
 			}
 
-		} else if (connected == false) {
-			std::cout << "message received before connecting\n";
-		} else {
-			switch (messageType) {
+			const auto message = debuggerMessageQueue.back();
+			debuggerMessageQueue.pop();
 
-			case DebuggerMessageType::REFRESH_ARRAY_2D: {
-				RefreshArray2dGridMessage refresh;
-				readDebuggerMessageAfterHeader(&refresh);
-				msgLog << "REFRESH_ARRAY_2D " << refresh.data << '\n';
+			messageQueueMutex.unlock();
 
-				readMemoryToCopyBuffer(refresh.windowName.data(), refresh.windowName.size());
-				std::string_view windowName{ reinterpret_cast<const char*>(copyBuffer.data()), refresh.windowName.size() };
-				
-				auto image = debuggedImagesFind(windowName);
-				if (image.has_value()) {
-					image->refresh();
+			if (const auto connect = std::get_if<ConnectMessage>(&message)) {
+				if (connected) {
+					ASSERT_NOT_REACHED()
 				} else {
-					debuggedImages.push_back(DebuggedImage{ windowName, refresh.data, refresh.type, Vec2T<i64>{ refresh.size }, refresh.posXGoingRight, refresh.posYGoingUp });
-					auto& image = debuggedImages.back();
-					if (array2dTypeIsInt(refresh.type)) {
-						image.intMin = refresh.intMin;
-						image.intMax = refresh.intMax;
+					debuggedProcessHandle = OpenProcess(PROCESS_VM_READ | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION, false, connect->processId);
+					// Should it assume the client disconnected because it closed? Should it handle it?
+					CHECK_WIN_ZERO(debuggedProcessHandle);
+					const auto address = getProcessBaseAddress(debuggedProcessHandle);
+					if (address.has_value()) {
+						baseAddress = reinterpret_cast<u8*>(*address);
 					} else {
-						image.floatMin = refresh.floatMin;
-						image.floatMax = refresh.floatMax;
+						baseAddress = nullptr;
 					}
 				}
-				break;
-			}
+			} else if (connected) {
+				std::cout << "message received before connecting\n";
+			} else {
+				bool endProcessingMessagesForThisFrame = false;
 
-			case DebuggerMessageType::CONNECT: break;
-			default:
-				std::cout << "invalid message type\n";
+				std::visit(overloaded{
+					[](const ConnectMessage& connect) {},
+					[](const RefreshArray2dGridMessage& refresh) {
+						readMemoryToCopyBuffer(refresh.windowName.data(), refresh.windowName.size());
+						std::string_view windowName{ reinterpret_cast<const char*>(copyBuffer.data()), refresh.windowName.size() };
+
+						auto image = debuggedImagesFind(windowName);
+						if (image.has_value()) {
+							image->refresh();
+						} else {
+							debuggedImages.push_back(DebuggedImage{ windowName, refresh.data, refresh.type, Vec2T<i64>{ refresh.size }, refresh.posXGoingRight, refresh.posYGoingUp });
+							auto& image = debuggedImages.back();
+							if (array2dTypeIsInt(refresh.type)) {
+								image.intMin = refresh.intMin;
+								image.intMax = refresh.intMax;
+							} else {
+								image.floatMin = refresh.floatMin;
+								image.floatMax = refresh.floatMax;
+							}
+						}
+					},
+					[&](const ClearScreenMessage& clear) { 
+						std::swap(lines, nextFrameLines);
+						nextFrameLines.clear();
+						endProcessingMessagesForThisFrame = true;
+					},
+					[](const DrawLineMessage& draw) {
+						nextFrameLines.push_back(DebuggerLine{ draw.start, draw.end, draw.color });
+					}
+				}, message);
+				if (endProcessingMessagesForThisFrame)
+					return;
 			}
 		}
+		// https://stackoverflow.com/questions/14467229/get-base-address-of-process
+
+
+		//// The standard says that padding is never added before the first member.
+		//DebuggerMessageType messageType;
+
+		//if (!readMessage(&messageType, sizeof(messageType))) {
+		//	return;
+		//}
+
+		//// https://stackoverflow.com/questions/14467229/get-base-address-of-process
+		//if (messageType == DebuggerMessageType::CONNECT) {
+		//	msgLog << "connect message\n";
+		//	if (connected) {
+		//		ASSERT_NOT_REACHED();
+		//	} else {
+		//		ConnectMessage connect;
+		//		readDebuggerMessageAfterHeader(&connect);
+		//		std::cout << "client " << connect.processId << " connected\n";
+		//		connected = true;
+
+		//		debuggedProcessHandle = OpenProcess(PROCESS_VM_READ | PROCESS_VM_OPERATION | PROCESS_QUERY_INFORMATION, false, connect.processId);
+		//		// Should it assume the client disconnected because it closed? Should it handle it?
+		//		CHECK_WIN_ZERO(debuggedProcessHandle);
+
+		//		auto address = getProcessBaseAddress(debuggedProcessHandle);
+		//		if (address.has_value()) {
+		//			baseAddress = reinterpret_cast<u8*>(*address);
+		//		} else {
+		//			baseAddress = nullptr;
+		//		}
+		//	}
+
+		//} else if (connected == false) {
+		//	std::cout << "message received before connecting\n";
+		//} else {
+		//	switch (messageType) {
+
+		//	case DebuggerMessageType::REFRESH_ARRAY_2D: {
+		//		RefreshArray2dGridMessage refresh;
+		//		readDebuggerMessageAfterHeader(&refresh);
+		//		msgLog << "REFRESH_ARRAY_2D " << refresh.data << '\n';
+
+		//		readMemoryToCopyBuffer(refresh.windowName.data(), refresh.windowName.size());
+		//		std::string_view windowName{ reinterpret_cast<const char*>(copyBuffer.data()), refresh.windowName.size() };
+		//		
+		//		auto image = debuggedImagesFind(windowName);
+		//		if (image.has_value()) {
+		//			image->refresh();
+		//		} else {
+		//			debuggedImages.push_back(DebuggedImage{ windowName, refresh.data, refresh.type, Vec2T<i64>{ refresh.size }, refresh.posXGoingRight, refresh.posYGoingUp });
+		//			auto& image = debuggedImages.back();
+		//			if (array2dTypeIsInt(refresh.type)) {
+		//				image.intMin = refresh.intMin;
+		//				image.intMax = refresh.intMax;
+		//			} else {
+		//				image.floatMin = refresh.floatMin;
+		//				image.floatMax = refresh.floatMax;
+		//			}
+		//		}
+		//		break;
+		//	}
+
+		//	case DebuggerMessageType::CLEAR_SCREEN: {
+		//		ClearScreenMessage clearScreen;
+		//		readDebuggerMessageAfterHeader(&clearScreen);
+		//		lines.clear();
+		//		break;
+		//	}
+
+		//	case DebuggerMessageType::DRAW_LINE: {
+		//		DrawLineMessage drawLine;
+		//		readDebuggerMessageAfterHeader(&drawLine);
+		//		lines.push_back(DebuggerLine{ drawLine.start, drawLine.end, drawLine.color });
+		//		break;
+		//	}
+
+		//	case DebuggerMessageType::CONNECT: break;
+		//	default:
+		//		std::cout << "invalid message type\n";
+		//	}
+		//}
 	};
 
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
@@ -469,38 +604,67 @@ auto main() -> int {
 	};
 	//SetTargetFPS(60);
 
+	std::optional<Vec2> screenGrabStartPos;
+
+	static constexpr int MOUSE_RIGHT = 1;
+
+	auto vec2 = [](Vector2 v) -> Vec2 {
+		return Vec2{ v.x, v.y };
+	};
+
+	auto vector2 = [](Vec2 v) -> Vector2 {
+		return Vector2{ .x = v.x, .y = v.y };
+	};
+
+	auto cameraSpaceCursorPos = [&]() -> Vec2 {
+		return vec2(GetScreenToWorld2D(GetMousePosition(), camera));
+	};
+
+	int currentFrame = 0;
 	while (!WindowShouldClose()) {
+		currentFrame++;
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
-		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+		ImGui::DockSpaceOverViewport(ImGui::GetMainViewport(), ImGuiDockNodeFlags_NoDockingInCentralNode | ImGuiDockNodeFlags_PassthruCentralNode);
+
+		if (IsMouseButtonPressed(MOUSE_RIGHT)) {
+			screenGrabStartPos = cameraSpaceCursorPos();
+		}
+		if (screenGrabStartPos.has_value()) {
+			const auto currentCursorPos = cameraSpaceCursorPos();
+			camera.offset = vector2(vec2(camera.offset) - (*screenGrabStartPos - currentCursorPos) * camera.zoom);
+		}
+		if (IsMouseButtonReleased(MOUSE_RIGHT)) {
+			screenGrabStartPos = std::nullopt;
+		}
 
 		updateServer();
-		//Vec2 dir{ 0.0f };
-		//if (IsKeyDown(KEY_W)) {
-		//	dir.y += 1.0f;
-		//}
-		//if (IsKeyDown(KEY_S)) {
-		//	dir.y -= 1.0f;
-		//}
-		//if (IsKeyDown(KEY_A)) {
-		//	dir.x += 1.0f;
-		//}
-		//if (IsKeyDown(KEY_D)) {
-		//	dir.x -= 1.0f;
-		//}
-		//dir = dir.normalized();
-		//camera.offset.x += dir.x;
-		//camera.offset.y += dir.y;
+		Vec2 dir{ 0.0f };
+		if (IsKeyDown(KEY_W)) {
+			dir.y += 1.0f;
+		}
+		if (IsKeyDown(KEY_S)) {
+			dir.y -= 1.0f;
+		}
+		if (IsKeyDown(KEY_A)) {
+			dir.x += 1.0f;
+		}
+		if (IsKeyDown(KEY_D)) {
+			dir.x -= 1.0f;
+		}
+		dir = dir.normalized();
+		camera.offset.x += dir.x;
+		camera.offset.y += dir.y;
 
-		//const auto scroll = GetMouseWheelMove();
-		//if (scroll != 0.0f) {
-		//	if (scroll < 0.0f) {
-		//		camera.zoom /= 2.0f;
-		//	} else {
-		//		camera.zoom *= 2.0f;
-		//	}
-		//}
+		const auto scroll = GetMouseWheelMove();
+		if (scroll != 0.0f) {
+			if (scroll < 0.0f) {
+				camera.zoom /= 2.0f;
+			} else {
+				camera.zoom *= 2.0f;
+			}
+		}
 
 		BeginDrawing();
 		ClearBackground(BLACK);
@@ -511,6 +675,26 @@ auto main() -> int {
 		BeginMode2D(camera);
 
 		DrawCircleLines(20, 20, 50, BLUE);
+		ImGui::Text("%d", nextFrameLines.size());
+		ImGui::Text("%d", lines.size());
+		ImGui::Text("%d", lines.size() + nextFrameLines.size());
+		for (auto line : lines) {
+			auto convertPos = [](Vec2 v) -> Vec2 {
+				v *= 100.0f;
+				v.y = -v.y;
+				return v;
+			};
+			line.start = convertPos(line.start);
+			line.end = convertPos(line.end);
+			const PixelRgba color{ line.color };
+			DrawLine(
+				static_cast<int>(line.start.x), 
+				static_cast<int>(line.start.y), 
+				static_cast<int>(line.end.x), 
+				static_cast<int>(line.end.y), 
+				Color{ color.r, color.g, color.b, 255 });
+			//DrawLineEx(vector2(line.start), vector2(line.end), 1, Color{ color.r, color.g, color.b, 255 });
+		}
 
 		EndMode2D();
 
@@ -523,6 +707,8 @@ auto main() -> int {
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
+	endMessageQueueThread.store(true);
+	messageQueueThread.join();
 
 	CloseWindow();
 }

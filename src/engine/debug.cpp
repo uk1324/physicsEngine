@@ -21,6 +21,7 @@ auto Debug::update() -> void {
 }
 
 auto Debug::drawLine(Vec2 start, Vec2 end, const Vec3& color) -> void {
+	drawDebuggerLine(start, end, color);
 	lines.push_back({ start, end, color });
 }
 
@@ -122,6 +123,23 @@ auto Debug::drawStr(Vec2 pos, const char* txt, const Vec3& color, float height) 
 	auto t = frameAllocator.alloc(length);
 	memcpy(t, txt, length);
 	Debug::text.push_back(Text{ pos, reinterpret_cast<char*>(t), color, height });
+}
+
+auto Debug::clearDebuggerScreen() -> void {
+	if (!client.has_value())
+		return;
+	client->send(ClearScreenMessage{});
+}
+
+#include <utils/timer.hpp>
+#include <utils/io.hpp>
+
+auto Debug::drawDebuggerLine(Vec2 start, Vec2 end, const Vec3& color) -> void {
+	if (!client.has_value())
+		return;
+	Timer t;
+	client->send(DrawLineMessage{ .start = start, .end = end, .color = color });
+	dbg(t.elapsedMilliseconds());
 }
 
 auto Debug::debugImage(std::string_view windowName, const ImageRgba* img) -> void {

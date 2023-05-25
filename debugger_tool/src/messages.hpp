@@ -2,12 +2,15 @@
 
 #include <utils/int.hpp>
 #include <utils/imageRgba.hpp>
+#include <variant>
 
 // If there are issues with alignment could use pragma pack. And don't use inheritance
 enum class DebuggerMessageType : u8 {
 	CONNECT,
-	REFRESH_IMAGE,
-	REFRESH_ARRAY_2D
+	REFRESH_ARRAY_2D,
+	CLEAR_SCREEN,
+	DRAW_LINE,
+	//DRAW_CIRCLE,
 };
 
 struct ConnectMessage {
@@ -76,3 +79,16 @@ struct RefreshArray2dGridMessage {
 		bool posXGoingRight,
 		bool posYGoingUp) -> RefreshArray2dGridMessage;
 };
+
+struct ClearScreenMessage {
+	DebuggerMessageType msg = DebuggerMessageType::CLEAR_SCREEN;
+};
+
+struct DrawLineMessage {
+	DebuggerMessageType msg = DebuggerMessageType::DRAW_LINE;
+	Vec2 start{ 0.0f };
+	Vec2 end{ 0.0f };
+	Vec3 color{ 0.0f };
+};
+
+using DebuggerMessage = std::variant<ConnectMessage, RefreshArray2dGridMessage, ClearScreenMessage, DrawLineMessage>;
