@@ -35,7 +35,9 @@ namespace Debug {
 
 	// For enums could automatically get min max using COUNT enum value and get size from sizeof.
 	auto debugImage(const ImageRgba* img) -> void;
-	auto debugU8Array2d(u8* data, Vec2T<i64> size, u8 min, u8 max, bool posXGoingUp, bool posYGoingRight) -> void;
+	auto debugU8Array2d(u8* data, Vec2T<i64> size, u8 min, u8 max, bool posXGoingRight, bool posYGoingUp) -> void;
+	auto debugF32Array2d(float* data, Vec2T<i64> size, float min, float max, bool posXGoingRight, bool posYGoingUp) -> void;
+	// TODO: Send message (json object pointer maybe) assosiated with a point. On click open an imgui window. This could be a more general version of the physics engine inspector idea.
 
 	struct Line {
 		Vec2 start;
@@ -91,8 +93,8 @@ namespace Debug {
 
 	template<typename T>
 	auto drawText(Vec2 pos, const T& value, const Vec3& color, float height) -> void {
-		std::stringstream stream;
-		stream << value;
-		drawStr(pos, stream.str().data(), color, height);
+		std::stringstream s;
+		s << value;
+		drawStr(pos, s.str().data(), color, height);
 	}
 }

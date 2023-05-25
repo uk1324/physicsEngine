@@ -18,8 +18,10 @@ struct ConnectMessage {
 // Not having a special case for ImageRgba Array2ds is better because you don't have to prevent against invalid data reads of the image size. This can happen if the debugged process is closing. 
 
 enum class Array2dType {
-	IMAGE32, U8
+	IMAGE32, U8, F32
 };
+
+auto array2dTypeIsInt(Array2dType t) -> bool;
 
 struct RefreshArray2dGridMessage {
 	DebuggerMessageType msg = DebuggerMessageType::REFRESH_ARRAY_2D;
@@ -32,12 +34,28 @@ struct RefreshArray2dGridMessage {
 			i32 intMin, intMax;
 		};
 		struct {
-			float floatMin, floatMax;
+			double floatMin, floatMax;
 		};
 	};
 	bool posXGoingRight;
 	bool posYGoingUp;
 
 	static auto image32Grid(const void* data, Vec2T<i32> size) -> RefreshArray2dGridMessage;
-	static auto intGrid(const void* data, Vec2T<i32> size, Array2dType type, i32 intMin, i32 intMax, bool posXGoingRight, bool posYGoingUp) -> RefreshArray2dGridMessage;
+	static auto intGrid(
+		const void* data, 
+		Vec2T<i32> size, 
+		Array2dType type, 
+		i32 intMin, 
+		i32 intMax, 
+		bool posXGoingRight, 
+		bool posYGoingUp) -> RefreshArray2dGridMessage;
+
+	static auto floatGrid(
+		const void* data,
+		Vec2T<i32> size,
+		Array2dType type,
+		double floatMin,
+		double floatMax,
+		bool posXGoingRight,
+		bool posYGoingUp) -> RefreshArray2dGridMessage;
 };

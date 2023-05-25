@@ -473,6 +473,8 @@ auto EulerianFluidDemo::update() -> void {
 		Debug::drawPoint(fluidPosToCameraPos(Vec2{ gridPos } * fluid.cellSpacing));
 		Debug::drawRay(fluidPosToCameraPos(Vec2{ gridPos } * fluid.cellSpacing), (velocity / (Vec2{ fluid.gridSize } *fluid.cellSpacing) * textureSize * Time::deltaTime() * 4.0f).flippedY(), Vec3::GREEN);
 	}
+	Debug::debugF32Array2d(fluid.velX.data(), fluid.gridSize, 0.0f, 1.0f, true, true);
+	Debug::debugF32Array2d(fluid.velY.data(), fluid.gridSize, 0.0f, 1.0f, true, true);
 
 	Renderer::drawDynamicTexture(texturePos, textureHeight, texture, true);
 	Renderer::update(camera);

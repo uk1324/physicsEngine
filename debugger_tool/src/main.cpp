@@ -16,6 +16,7 @@ DON'T set the update rate. Currently the codes just reads a single message and t
 #include <winUtils.hpp>
 #include <messages.hpp>
 #include <iostream>
+#include <fstream>
 
 #include <math/aabb.hpp>
 #include <utils/refOptional.hpp>
@@ -110,6 +111,9 @@ struct DebuggedImage {
 		struct {
 			i32 intMin, intMax;
 		};
+		struct {
+			double floatMin, floatMax;
+		};
 	};
 	Texture texture;
 	const void* address = nullptr;
@@ -126,19 +130,10 @@ public:
 	DebuggedImage(DebuggedImage&& other) noexcept {
 		*this = other;
 		other.texture.id = 0;
-		/*address = other.address;
-		autoRefresh = other.autoRefresh;
-		isWindowOpen = other.isWindowOpen;
-		type = other.type;*/
 	}
 	auto operator=(DebuggedImage&& other) noexcept -> DebuggedImage& {
 		*this = other;
-		//texture = other.texture;
 		other.texture.id = 0;
-		/*address = other.address;
-		autoRefresh = other.autoRefresh;
-		isWindowOpen = other.isWindowOpen;
-		type = other.type;*/
 		return *this;
 	}
 
@@ -153,38 +148,79 @@ public:
 		}
 		texture = textureFromBuffer(copyBuffer.data(), size);
 		refresh();
-		/*alignas(alignof(ImageRgba)) static u8 imgData[sizeof(ImageRgba)];
-		readMemory(imgData, address, sizeof(imgData));
-		const auto source = reinterpret_cast<ImageRgba*>(&imgData);
-		readMemoryToCopyBuffer(source->data(), source->dataSizeBytes());
-		texture = textureFromBuffer(copyBuffer.data(), source->size());*/
 	}
 
 	auto refresh() -> bool {
-		switch (type) {
-		case Array2dType::IMAGE32:
+		if (type == Array2dType::IMAGE32) {
 			readMemoryToCopyBuffer(address, size().x * size().y * sizeof(u32));
 			UpdateTexture(texture, copyBuffer.data());
-			break;
+		} else {
+			auto array2dDataTypeSizeBytes = [](Array2dType t) -> usize {
+				switch (t) {
+				case Array2dType::IMAGE32: ASSERT_NOT_REACHED(); return 0;
+				case Array2dType::U8: return 1;
+				case Array2dType::F32: return 4;
+					break;
+				}
+			};
 
-		case Array2dType::U8:
-			const auto arrayDataSize = size().x * size().y;
+			const auto arrayDataSize = size().x * size().y * array2dDataTypeSizeBytes(type);
 			readMemoryToCopyBuffer(address, arrayDataSize);
-			copyBuffer.resize(copyBuffer.size() + arrayDataSize * sizeof(u32));
-			const auto arrayData = reinterpret_cast<u8*>(copyBuffer.data());
+			copyBuffer.resize(copyBuffer.size() + arrayDataSize * sizeof(PixelRgba));
 			const auto imageData = reinterpret_cast<PixelRgba*>(copyBuffer.data() + arrayDataSize);
 			for (i32 y = 0; y < size().y; y++) {
 				for (i32 x = 0; x < size().x; x++) {
 					// Flip the data here or in outisde the switch later.
 					i64 gridX = posXGoingRight ? x : (size().x - x - 1);
 					i64 gridY = posYGoingUp ? y : (size().y - y - 1);
-					const auto value = arrayData[gridX * size().y + gridY];
-					imageData[y * size().x + x] = PixelRgba::scientificColoring(value, intMin, intMax);
+					const auto gridOffset = gridX * size().y + gridY;
+					auto& outPixel = imageData[y * size().x + x];
+					switch (type)
+					{
+					case Array2dType::IMAGE32: ASSERT_NOT_REACHED(); break;
+					case Array2dType::U8: {
+						const auto data = reinterpret_cast<u8*>(copyBuffer.data());
+						const auto value = data[gridOffset];
+						outPixel = PixelRgba::scientificColoring(value, intMin, intMax);
+						break;
+					}
+						 
+					case Array2dType::F32: {
+						const auto data = reinterpret_cast<float*>(copyBuffer.data());
+						const auto value = data[gridOffset];
+						outPixel = PixelRgba::scientificColoring(value, floatMin, floatMax);
+						break;
+					}
+						
+					}
 				}
 			}
 			UpdateTexture(texture, imageData);
-			break;
 		}
+		//switch (type) {
+		//case Array2dType::IMAGE32:
+		//	readMemoryToCopyBuffer(address, size().x * size().y * sizeof(u32));
+		//	UpdateTexture(texture, copyBuffer.data());
+		//	break;
+
+		//case Array2dType::U8:
+		//	const auto arrayDataSize = size().x * size().y;
+		//	readMemoryToCopyBuffer(address, arrayDataSize);
+		//	copyBuffer.resize(copyBuffer.size() + arrayDataSize * sizeof(u32));
+		//	const auto arrayData = reinterpret_cast<u8*>(copyBuffer.data());
+		//	const auto imageData = reinterpret_cast<PixelRgba*>(copyBuffer.data() + arrayDataSize);
+		//	for (i32 y = 0; y < size().y; y++) {
+		//		for (i32 x = 0; x < size().x; x++) {
+		//			// Flip the data here or in outisde the switch later.
+		//			i64 gridX = posXGoingRight ? x : (size().x - x - 1);
+		//			i64 gridY = posYGoingUp ? y : (size().y - y - 1);
+		//			const auto value = arrayData[gridX * size().y + gridY];
+		//			imageData[y * size().x + x] = PixelRgba::scientificColoring(value, intMin, intMax);
+		//		}
+		//	}
+		//	UpdateTexture(texture, imageData);
+		//	break;
+		//}
 
 		return true;
 	}
@@ -251,7 +287,12 @@ auto main() -> int {
 	CHECK_WIN_HANDLE(serverHandle);
 	
 	u8* baseAddress; // Probably only useful for reading static values.
-	
+	std::ostream msgLog{ std::cout.rdbuf() };
+	std::fstream nullStream; // An unopened fstream doesn't output anywhere.
+	static constexpr auto DISABLE_MSG_LOG = true;
+	if constexpr (DISABLE_MSG_LOG) {
+		msgLog.set_rdbuf(nullStream.rdbuf());
+	}
 
 	auto updateServer = [&]() -> void {
 		// The standard says that padding is never added before the first member.
@@ -264,7 +305,7 @@ auto main() -> int {
 
 		// https://stackoverflow.com/questions/14467229/get-base-address-of-process
 		if (messageType == DebuggerMessageType::CONNECT) {
-			std::cout << "connect message\n";
+			msgLog << "connect message\n";
 			if (connected) {
 				ASSERT_NOT_REACHED();
 			} else {
@@ -293,14 +334,20 @@ auto main() -> int {
 			case DebuggerMessageType::REFRESH_ARRAY_2D: {
 				RefreshArray2dGridMessage refresh;
 				readDebuggerMessageAfterHeader(&refresh);
+				msgLog << "REFRESH_ARRAY_2D " << refresh.data << '\n';
 				auto image = debuggedImagesFind(refresh.data);
 				if (image.has_value()) {
 					image->refresh();
 				} else {
 					debuggedImages.push_back(DebuggedImage{ refresh.data, refresh.type, Vec2T<i64>{ refresh.size }, refresh.posXGoingRight, refresh.posYGoingUp });
 					auto& image = debuggedImages.back();
-					image.intMin = refresh.intMin;
-					image.intMax = refresh.intMax;
+					if (array2dTypeIsInt(refresh.type)) {
+						image.intMin = refresh.intMin;
+						image.intMax = refresh.intMax;
+					} else {
+						image.floatMin = refresh.floatMin;
+						image.floatMax = refresh.floatMax;
+					}
 				}
 				break;
 			}

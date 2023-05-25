@@ -136,6 +136,12 @@ auto Debug::debugU8Array2d(u8* data, Vec2T<i64> size, u8 min, u8 max, bool posXG
 	client->send(RefreshArray2dGridMessage::intGrid(data, Vec2T<i32>{ size }, Array2dType::U8, min, max, posXGoingRight, posYGoingUp));
 }
 
+auto Debug::debugF32Array2d(float* data, Vec2T<i64> size, float min, float max, bool posXGoingRight, bool posYGoingUp) -> void {
+	if (!client.has_value())
+		return;
+	client->send(RefreshArray2dGridMessage::floatGrid(data, Vec2T<i32>{ size }, Array2dType::F32, min, max, posXGoingRight, posYGoingUp));
+}
+
 std::vector<Debug::Line> Debug::lines;
 std::vector<Debug::Circle> Debug::circles;
 std::vector<Debug::Point> Debug::points;

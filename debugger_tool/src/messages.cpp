@@ -20,3 +20,25 @@ auto RefreshArray2dGridMessage::intGrid(const void* data, Vec2T<i32> size, Array
 	image.posYGoingUp = posYGoingUp;
 	return image;
 }
+
+auto RefreshArray2dGridMessage::floatGrid(const void* data, Vec2T<i32> size, Array2dType type, double floatMin, double floatMax, bool posXGoingRight, bool posYGoingUp) -> RefreshArray2dGridMessage {
+	RefreshArray2dGridMessage image;
+	image.type = type;
+	image.data = data;
+	image.size = size;
+	image.floatMin = floatMin;
+	image.floatMax = floatMax;
+	image.posXGoingRight = posXGoingRight;
+	image.posYGoingUp = posYGoingUp;
+	return image;
+}
+
+auto array2dTypeIsInt(Array2dType t) -> bool {
+	switch (t) {
+	case Array2dType::IMAGE32:
+	case Array2dType::U8:
+		return true;
+	case Array2dType::F32:
+		return false;
+	}
+}
