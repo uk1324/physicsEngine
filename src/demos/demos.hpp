@@ -12,6 +12,7 @@
 #include <demos/imageToSdf.hpp>
 #include <demos/gravityInDifferentMetricsDemo.hpp>
 #include <demos/maxwell.hpp>
+#include <demos/refractionDemo.hpp>
 
 struct Demos {
 	auto update() -> void;
@@ -20,6 +21,7 @@ struct Demos {
 	FourierTransformDemo fourierTransformDemo;
 	EulerianFluidDemo eulerianFluid;
 	PixelPhysics pixelPhysics;
+	RefractionDemo refraction;
 	//TriangulationDemo triangulationDemo;
 	//WaterDemo waterDemo;
 	//TestDemo testDemo;

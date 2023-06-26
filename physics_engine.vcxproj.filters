@@ -286,6 +286,9 @@
     <ClCompile Include="src\framework.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\demos\refractionDemo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\gfx\gfx.hpp">
@@ -628,6 +631,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\framework.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\demos\refractionDemo.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

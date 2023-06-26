@@ -7,7 +7,8 @@ auto Demos::update() -> void {
 	//triangulationDemo.update();
 	//fourierTransformDemo.update();
 	//marchingSquaresDemo.update();
-	eulerianFluid.update();
+	//eulerianFluid.update();
+	refraction.update();
 	//maxwell.update();
 	//waterDemo.update();
 	//testDemo.update();

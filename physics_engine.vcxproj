@@ -188,6 +188,10 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\demos\refractionDemo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="src\framework.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
@@ -502,6 +506,7 @@
     <ClInclude Include="src\demos\imageToSdf.hpp" />
     <ClInclude Include="src\demos\maxwell.hpp" />
     <ClInclude Include="src\demos\polygonHull.hpp" />
+    <ClInclude Include="src\demos\refractionDemo.hpp" />
     <ClInclude Include="src\framework.hpp" />
     <ClInclude Include="src\game\demos\cycloidDemo.hpp" />
     <ClInclude Include="src\demos\integrationDemo.hpp" />
